@@ -44,8 +44,8 @@ export function TruckSilhouette({
           <stop offset="100%" stopColor="#28384a" />
         </linearGradient>
         <radialGradient id="hc-underglow">
-          <stop offset="0%" stopColor="#ffc02b" stopOpacity="0.4" />
-          <stop offset="100%" stopColor="#ffc02b" stopOpacity="0" />
+          <stop offset="0%" stopColor="#ffaa00" stopOpacity="0.4" />
+          <stop offset="100%" stopColor="#ffaa00" stopOpacity="0" />
         </radialGradient>
         <radialGradient id="hc-beam">
           <stop offset="0%" stopColor="#fff4d6" stopOpacity="0.5" />
@@ -97,7 +97,7 @@ export function TruckSilhouette({
       <rect x="84" y="207" width="284" height="13" rx="3" fill="#121216" />
 
       {/* Rear: tail light and underrun bar on its brackets */}
-      <rect x="74" y="176" width="8" height="22" rx="3" fill="#f5a302" />
+      <rect x="74" y="176" width="8" height="22" rx="3" fill="#ffaa00" />
       <rect x="86" y="220" width="6" height="18" fill="#121216" />
       <rect x="70" y="235" width="32" height="9" rx="4" fill="#121216" />
 

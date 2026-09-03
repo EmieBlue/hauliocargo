@@ -35,7 +35,7 @@ export function Card({
 
   const spotX = useTransform(x, (value) => `${50 + value * 32}%`);
   const spotY = useTransform(y, (value) => `${50 + value * 32}%`);
-  const spotlight = useMotionTemplate`radial-gradient(360px circle at ${spotX} ${spotY}, rgba(255,192,43,0.11), transparent 68%)`;
+  const spotlight = useMotionTemplate`radial-gradient(360px circle at ${spotX} ${spotY}, rgba(255,170,0,0.11), transparent 68%)`;
 
   return (
     <motion.div
@@ -48,7 +48,7 @@ export function Card({
       className={cn(
         "group/card relative isolate overflow-hidden rounded-2xl border border-white/8 bg-ink-850/70",
         "transition-[border-color,box-shadow,transform] duration-500 ease-brand",
-        "hover:border-brand/35 hover:shadow-[0_28px_70px_-40px_rgba(255,192,43,0.55)]",
+        "hover:border-brand/35 hover:shadow-[0_28px_70px_-40px_rgba(255,170,0,0.55)]",
         className,
       )}
     >

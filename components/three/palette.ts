@@ -3,13 +3,18 @@ export const MAT = {
   /* Classic hire-truck livery: white cab, yellow box. The white cab is what
      stops the two volumes merging into one mass at hero scale. */
   bodyCab: "#e4e5e9",
-  bodyBox: "#ffc02b",
+  bodyBox: "#ffaa00",
 
   /* Everything below the body: chassis, bumper, arches, mirrors, frames. */
   trim: "#121216",
 
-  brand: "#ffc02b",
-  brandDeep: "#f5a302",
+  brand: "#ffaa00",
+  // Matches `brand` deliberately — one yellow across the system. This used
+  // to be a darker accent for panel seams/roof lip/tail-light housings, so
+  // those edges read a little less distinctly now than before.
+  brandDeep: "#ffaa00",
+  // Not brand yellow: a real vehicle's turn-indicator lights are amber, not
+  // whatever the body paint is — kept distinct on purpose.
   amber: "#ff9d1c",
 
   tyre: "#0b0b0d",

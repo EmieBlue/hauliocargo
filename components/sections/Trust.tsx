@@ -23,7 +23,7 @@ export function Trust() {
         className="pointer-events-none absolute inset-0 opacity-60"
         style={{
           background:
-            "radial-gradient(760px 420px at 50% 0%, rgba(255,192,43,0.07), transparent 70%)",
+            "radial-gradient(760px 420px at 50% 0%, rgba(255,170,0,0.07), transparent 70%)",
         }}
       />
 
@@ -48,7 +48,7 @@ export function Trust() {
             const Icon = TRUST_ICONS[index];
             return (
               <RevealItem key={point.title} className="flex flex-col items-center text-center">
-                <span className="grid size-14 place-items-center rounded-2xl border border-white/10 bg-ink-850 text-brand transition-[border-color,box-shadow] duration-500 hover:border-brand/40 hover:shadow-[0_0_32px_-8px_rgba(255,192,43,0.5)]">
+                <span className="grid size-14 place-items-center rounded-2xl border border-white/10 bg-ink-850 text-brand transition-[border-color,box-shadow] duration-500 hover:border-brand/40 hover:shadow-[0_0_32px_-8px_rgba(255,170,0,0.5)]">
                   <Icon className="size-6" aria-hidden />
                 </span>
                 <h3 className="mt-5 font-display text-base font-bold text-white">

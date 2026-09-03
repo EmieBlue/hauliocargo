@@ -163,8 +163,10 @@ function Panel({
                     "Send"
                   )}
                 </Button>
+                {/* Only one brand yellow in the system now — no separate
+                    "deep" shade to reach for. */}
                 {error ? (
-                  <p role="alert" className="text-[0.85rem] text-brand-deep">
+                  <p role="alert" className="text-[0.85rem] text-brand">
                     {error}
                   </p>
                 ) : null}

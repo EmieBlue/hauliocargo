@@ -10,10 +10,12 @@ const BASE =
   "hover:-translate-y-0.5 active:translate-y-0 active:duration-100";
 
 const VARIANTS: Record<Variant, string> = {
+  // Lift-on-hover reads as a brightness change, not a second yellow — there
+  // is only one brand yellow (#ffaa00) in the system now.
   primary:
-    "bg-brand text-black shadow-[0_8px_24px_-14px_rgba(255,192,43,0.9)] hover:bg-brand-bright hover:shadow-[0_16px_44px_-12px_rgba(255,192,43,0.65)]",
+    "bg-brand text-black shadow-[0_8px_24px_-14px_rgba(255,170,0,0.9)] hover:brightness-110 hover:shadow-[0_16px_44px_-12px_rgba(255,170,0,0.65)]",
   secondary:
-    "border border-brand/55 bg-brand/[0.04] text-white hover:border-brand hover:bg-brand/10 hover:text-brand hover:shadow-[0_16px_44px_-16px_rgba(255,192,43,0.5)]",
+    "border border-brand/55 bg-brand/[0.04] text-white hover:border-brand hover:bg-brand/10 hover:text-brand hover:shadow-[0_16px_44px_-16px_rgba(255,170,0,0.5)]",
   ghost:
     "border border-white/12 bg-white/[0.02] text-mist hover:border-white/25 hover:bg-white/[0.06] hover:text-white",
 };

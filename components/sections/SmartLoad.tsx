@@ -65,7 +65,7 @@ export function SmartLoad() {
                 <span className="text-brand-gradient">you need?</span>
               </>
             }
-            sub="Show us what you're moving. Haulio SmartLoad™ helps recommend the right vehicle based on your cargo."
+            sub="Load smarter. Haulio SmartLoad™ recommends the right vehicle for your cargo."
           />
         </div>
 

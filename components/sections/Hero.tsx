@@ -20,7 +20,7 @@ export function Hero() {
         className="absolute inset-0 -z-30 opacity-70"
         style={{
           background:
-            "radial-gradient(1100px 620px at 68% 30%, rgba(255,192,43,0.09), transparent 62%), radial-gradient(760px 520px at 10% 76%, rgba(70,90,130,0.14), transparent 65%)",
+            "radial-gradient(1100px 620px at 68% 30%, rgba(255,170,0,0.09), transparent 62%), radial-gradient(760px 520px at 10% 76%, rgba(70,90,130,0.14), transparent 65%)",
         }}
       />
 

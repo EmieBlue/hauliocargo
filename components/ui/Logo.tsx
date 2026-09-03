@@ -15,8 +15,8 @@ export function Logo({ className }: { className?: string }) {
     <span className={cn("inline-flex items-center gap-2.5", className)}>
       <img src="/brand/nav-mark.png" alt="" className="h-7 w-auto" />
       <span className="font-display text-[1.05rem] leading-none font-extrabold tracking-[0.02em]">
-        <span className="text-white">HAULIO</span>
-        <span className="text-brand">CARGO</span>
+        <span className="text-brand">HAULIO</span>
+        <span className="text-white">CARGO</span>
       </span>
     </span>
   );

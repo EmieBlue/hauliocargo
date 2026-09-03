@@ -83,7 +83,7 @@ export function MobileMenu({
             className="absolute inset-0 opacity-60"
             style={{
               background:
-                "radial-gradient(680px 420px at 78% 12%, rgba(255,192,43,0.13), transparent 65%)",
+                "radial-gradient(680px 420px at 78% 12%, rgba(255,170,0,0.13), transparent 65%)",
             }}
           />
 
