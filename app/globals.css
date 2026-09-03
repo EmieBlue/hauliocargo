@@ -1,26 +1,238 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ------------------------------------------------------------------
+   HaulioCargo design tokens
+   Black + Yellow + White. Everything visual derives from here.
+------------------------------------------------------------------- */
+@theme {
+  /* Brand yellow */
+  --color-brand: #ffc02b;
+  --color-brand-bright: #ffd75e;
+  --color-brand-deep: #f5a302;
+
+  /* Ink (blacks) */
+  --color-ink-950: #050505;
+  --color-ink-900: #0a0a0b;
+  --color-ink-850: #111113;
+  --color-ink-800: #17171a;
+  --color-ink-700: #232328;
+
+  /* Supporting neutrals */
+  --color-mist: #e7e7ea;
+  --color-muted: #9a9aa3;
+
+  /* Motion */
+  --ease-brand: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Keyframed utilities */
+  --animate-scan: scan 3.2s var(--ease-brand) infinite;
+  --animate-pulse-ring: pulse-ring 3s ease-out infinite;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-sora);
+  --font-sans: var(--font-inter);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@keyframes scan {
+  0%,
+  100% {
+    transform: translateY(-120%);
+    opacity: 0;
+  }
+  10%,
+  90% {
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(120%);
   }
 }
 
+@keyframes float-slow {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -10px, 0);
+  }
+}
+
+/* Fallback-scene streaks: travel right-to-left across the viewport */
+@keyframes streak {
+  from {
+    transform: translate3d(60vw, 0, 0);
+    opacity: 0;
+  }
+  12%,
+  88% {
+    opacity: 1;
+  }
+  to {
+    transform: translate3d(-70vw, 0, 0);
+    opacity: 0;
+  }
+}
+
+@keyframes wheel-spin {
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+/* Applied to SVG wheel groups in the non-WebGL scene */
+.wheel-spin {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: wheel-spin 1.15s linear infinite;
+}
+
+/*
+ * Road rushing past under the non-WebGL truck.
+ *
+ * The WebGL scene sells its movement with a scrolling ground plane; without an
+ * equivalent the vector truck reads as parked no matter how fast its wheels
+ * turn. Translating a repeating dash row is the whole trick. The distance must
+ * be exactly one tile of the gradient or the loop visibly jumps.
+ */
+@keyframes road-rush {
+  to {
+    transform: translate3d(-120px, 0, 0);
+  }
+}
+
+.road-rush {
+  background-image: linear-gradient(
+    to right,
+    var(--color-brand) 0 56px,
+    transparent 56px 120px
+  );
+  background-repeat: repeat-x;
+  background-size: 120px 100%;
+  /* Overshoot the container so the translate never exposes a bare edge. */
+  width: calc(100% + 120px);
+  animation: road-rush 0.9s linear infinite;
+}
+
+/* Suspension bob, matching the sine the 3D truck body carries. */
+@keyframes body-bob {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -0.9%, 0);
+  }
+}
+
+.body-bob {
+  animation: body-bob 2.6s ease-in-out infinite;
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.6;
+  }
+  70% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ------------------------------------------------------------------
+   Base
+------------------------------------------------------------------- */
+html {
+  scroll-behavior: smooth;
+  /* Anchors clear the fixed navbar */
+  scroll-padding-top: 5.5rem;
+  background-color: var(--color-ink-950);
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-ink-950);
+  color: var(--color-mist);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Never allow a stray transform to create a horizontal scrollbar */
+  overflow-x: hidden;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+::selection {
+  background-color: var(--color-brand);
+  color: #000;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* Locks background scrolling while the mobile menu is open */
+body[data-scroll-locked="true"] {
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* ------------------------------------------------------------------
+   Reusable visual primitives
+------------------------------------------------------------------- */
+@utility container-page {
+  width: 100%;
+  max-width: 1200px;
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+  @media (width >= 768px) {
+    padding-inline: 2rem;
+  }
+}
+
+/* Yellow gradient text used on accent words */
+@utility text-brand-gradient {
+  background-image: linear-gradient(
+    100deg,
+    var(--color-brand-bright) 0%,
+    var(--color-brand) 45%,
+    var(--color-brand-deep) 100%
+  );
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+/* Fine film grain – keeps large black areas from banding */
+@utility grain-layer {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.42'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
 }
