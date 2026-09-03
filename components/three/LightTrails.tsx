@@ -35,9 +35,14 @@ export function LightTrails({ count = 16 }: { count?: number }) {
       z: (rand(i) - 0.5) * 22,
       y: 0.35 + rand(i + 40) * 3.6,
       length: 2.4 + rand(i + 80) * 5.5,
-      speed: 16 + rand(i + 120) * 22,
+      // Floor raised from 16: these streaks are the single clearest "this is
+      // moving fast" signal in the scene, more than the slow idle camera sway
+      // ever reads as on a few-second glance — they need to be unmistakable.
+      speed: 20 + rand(i + 120) * 24,
       offset: rand(i + 160) * RANGE,
-      opacity: 0.12 + rand(i + 200) * 0.3,
+      // Floor raised from 0.12: at that opacity the dimmer streaks were
+      // essentially invisible against the dark ground.
+      opacity: 0.22 + rand(i + 200) * 0.28,
       warm: rand(i + 240) > 0.45,
     }));
   }, [count]);
