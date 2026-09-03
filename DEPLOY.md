@@ -86,6 +86,80 @@ signups**, and confirm a `select` from the browser returns nothing.
 
 ---
 
+## 4. Supabase — authentication
+
+Uses the **same project** as the early-access list above, so if that's already connected, the
+`NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` pair is already in place — this section only adds
+tables and two dashboard settings.
+
+**Run the schema.** Supabase → SQL Editor:
+
+```sql
+create table public.profiles (
+  id         uuid primary key references auth.users(id) on delete cascade,
+  role       text not null check (role in ('customer','driver','admin')),
+  first_name text not null,
+  last_name  text not null,
+  phone      text not null,
+  city       text,
+  area       text,
+  created_at timestamptz not null default now()
+);
+alter table public.profiles enable row level security;
+create policy "read own profile" on public.profiles for select using (auth.uid() = id);
+create policy "update own profile" on public.profiles for update using (auth.uid() = id);
+create policy "insert own profile" on public.profiles for insert with check (auth.uid() = id);
+
+create table public.driver_applications (
+  id                        uuid primary key default gen_random_uuid(),
+  profile_id                uuid not null references public.profiles(id) on delete cascade,
+  date_of_birth             date,
+  license_number            text not null,
+  vehicle_type              text not null,
+  vehicle_make              text not null,
+  vehicle_model             text not null,
+  vehicle_year              int not null,
+  vehicle_registration_no   text not null,
+  vehicle_capacity          text not null,
+  status                    text not null default 'pending' check (status in ('pending','verified','rejected')),
+  submitted_at              timestamptz not null default now()
+);
+alter table public.driver_applications enable row level security;
+create policy "driver reads own application" on public.driver_applications
+  for select using (auth.uid() = profile_id);
+create policy "driver submits own application" on public.driver_applications
+  for insert with check (auth.uid() = profile_id);
+-- Deliberately no update policy — a driver cannot self-approve. Status
+-- changes are an admin action, out of scope this round, and will need the
+-- service-role key, which never belongs in browser code.
+```
+
+**Create the storage bucket.** Supabase → Storage → New bucket → name it `driver-documents`, **private** (not
+public). Then, in the SQL editor, a policy scoping each user to their own folder:
+
+```sql
+create policy "drivers manage their own documents"
+on storage.objects for all
+using (bucket_id = 'driver-documents' and (storage.foldername(name))[1] = auth.uid()::text)
+with check (bucket_id = 'driver-documents' and (storage.foldername(name))[1] = auth.uid()::text);
+```
+
+**Two dashboard settings, not code:**
+
+- **Auth → Policies → Password requirements** — set minimum length 8 with uppercase/lowercase/number required.
+  Supabase's default is weaker than that; the app's own checklist promises these four rules, so the account
+  needs to actually enforce them, not just the UI.
+- **Auth → Email Templates → Confirm signup** *and* **Reset password** — set both to **OTP** (a 6-digit code),
+  not the default magic-link. The verification screen expects a code to type in; a magic-link email would send
+  something that screen can't consume.
+
+**Check it.** Register a customer account, confirm the real email OTP arrives and verifies, confirm the new
+row appears in **Table Editor → profiles**. Register a driver account, confirm `driver_applications` gets a row
+with `status = 'pending'` and the uploaded files appear under that user's folder in the `driver-documents`
+bucket.
+
+---
+
 ## Local development
 
 ```bash
