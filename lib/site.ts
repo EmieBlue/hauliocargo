@@ -1,11 +1,10 @@
 /**
  * Single source of truth for navigation, copy and destinations.
  *
- * NOTE ON ROUTES: the landing page is the only thing built so far. Every
- * auth/booking destination below therefore resolves to an on-page anchor so
- * nothing 404s and nothing pretends to work. When the real pages land
- * (registration, sign-in, booking flow), change the values here — no component
- * needs to be touched.
+ * NOTE ON ROUTES: sign-in/registration are real pages now; anything past
+ * authentication (booking, the real dashboards) still doesn't exist, so those
+ * destinations resolve to an on-page anchor rather than a 404. When they land,
+ * change the values here — no component needs to be touched.
  */
 
 export const SECTION_IDS = {
@@ -26,10 +25,17 @@ export const ROUTES = {
   contact: `#${SECTION_IDS.contact}`,
   smartload: `#${SECTION_IDS.smartload}`,
 
+  // --- Auth: real pages ---
+  signin: "/sign-in",
+  register: "/register",
+  verify: "/verify",
+  forgotPassword: "/forgot-password",
+  dashboardCustomer: "/dashboard/customer",
+  dashboardDriver: "/dashboard/driver",
+  dashboardAdmin: "/dashboard/admin",
+
   // --- Placeholders: these products do not exist yet ---
   book: `#${SECTION_IDS.getStarted}`,
-  register: `#${SECTION_IDS.getStarted}`,
-  signin: `#${SECTION_IDS.getStarted}`,
   privacy: "#",
   terms: "#",
 } as const;

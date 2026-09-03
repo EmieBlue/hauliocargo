@@ -7,7 +7,10 @@ type Size = "sm" | "md";
 const BASE =
   "group/btn relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-xl font-display font-semibold uppercase tracking-[0.09em] whitespace-nowrap " +
   "transition-[transform,box-shadow,background-color,border-color,color] duration-300 ease-brand will-change-transform " +
-  "hover:-translate-y-0.5 active:translate-y-0 active:duration-100";
+  "hover:-translate-y-0.5 active:translate-y-0 active:duration-100 " +
+  // Every auth form disables its submit button while a request is in
+  // flight — without this a "disabled" button still looked fully live.
+  "disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:translate-y-0";
 
 const VARIANTS: Record<Variant, string> = {
   // Lift-on-hover reads as a brightness change, not a second yellow — there
