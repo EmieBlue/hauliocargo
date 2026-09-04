@@ -33,11 +33,9 @@ const ACTIONS: Action[] = [
   {
     icon: UserPlus,
     title: "Register",
-    // Honest: booking is not built, so this joins a list rather than
-    // creating an account.
-    body: "Booking opens soon. Join the early list and we will tell you the moment it does.",
-    cta: "Join the early list",
-    intent: "register",
+    body: "Create your account and start booking a truck.",
+    cta: "Create your account",
+    href: ROUTES.register,
   },
   {
     icon: Compass,
