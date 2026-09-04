@@ -1,13 +1,14 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Package, PackageCheck, Sofa } from "lucide-react";
 import type { ReactNode } from "react";
 import { AuthVisual } from "@/components/three/AuthVisual";
 import { Logo } from "@/components/ui/Logo";
 import { riseIn, staggerParent } from "@/lib/motion";
 import { ROUTES } from "@/lib/site";
 import { cn } from "@/lib/cn";
+import { useSettledReducedMotion } from "@/lib/useSettledReducedMotion";
 
 /**
  * The shared frame every auth screen mounts inside: form on the left (right
@@ -36,6 +37,8 @@ export function AuthShell({
   /** Registration's forms run longer than sign-in's — a touch more room. */
   wide?: boolean;
 }) {
+  const reduced = useSettledReducedMotion();
+
   return (
     <div className="relative flex min-h-svh flex-col overflow-hidden bg-ink-950">
       <div
@@ -47,6 +50,35 @@ export function AuthShell({
         }}
       />
       <div aria-hidden className="grain-layer pointer-events-none absolute inset-0 -z-10 opacity-[0.15]" />
+
+      {/*
+       * Ambient life for the form side. `AuthVisual` only fills its own
+       * right-hand column, so without this the form column (and anything
+       * below it on a tall page, like the driver form) reads as flat black.
+       * Full-bleed, well behind the content (`-z-10`) and never intercepts a
+       * click — same contract as the two layers above.
+       */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+        <div className="absolute top-[8%] left-[4%] h-[42%] w-[34%] rounded-full bg-brand/[0.07] blur-[110px]" />
+        <div className="absolute bottom-[6%] left-[20%] h-[34%] w-[28%] rounded-full bg-[#4a6ba8]/[0.09] blur-[120px]" />
+
+        {!reduced ? (
+          <>
+            <Package
+              className="absolute top-[22%] left-[9%] size-5 text-brand/25"
+              style={{ animation: "float-slow 9s ease-in-out infinite" }}
+            />
+            <Sofa
+              className="absolute bottom-[28%] left-[15%] size-6 text-mist/15"
+              style={{ animation: "float-slow 11s ease-in-out 1.4s infinite" }}
+            />
+            <PackageCheck
+              className="absolute top-[58%] left-[6%] size-4 text-brand/20"
+              style={{ animation: "float-slow 7.5s ease-in-out 0.6s infinite" }}
+            />
+          </>
+        ) : null}
+      </div>
 
       <header className="container-page flex h-20 shrink-0 items-center justify-between">
         <a href={ROUTES.home} className="shrink-0 transition-opacity duration-300 hover:opacity-85">

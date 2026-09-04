@@ -2,8 +2,8 @@
 
 import { motion } from "framer-motion";
 import { Truck, User } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { CustomerRegisterForm } from "@/components/auth/CustomerRegisterForm";
 import { DriverRegisterForm } from "@/components/auth/DriverRegisterForm";
@@ -26,9 +26,24 @@ const COPY: Record<Role, { eyebrow: string; title: string; subtitle: string }> =
   },
 };
 
+/** `useSearchParams` needs a Suspense boundary — see AGENTS.md, verified against this Next version's docs. */
 export default function RegisterPage() {
+  return (
+    <Suspense fallback={null}>
+      <RegisterContent />
+    </Suspense>
+  );
+}
+
+function RegisterContent() {
   const router = useRouter();
-  const [role, setRole] = useState<Role | null>(null);
+  const searchParams = useSearchParams();
+
+  // Role lives in the URL, not local state — so "back" and the browser's own
+  // Back button are both real navigation rather than a bet on component state
+  // surviving whatever the page is doing.
+  const roleParam = searchParams.get("role");
+  const role: Role | null = roleParam === "customer" || roleParam === "driver" ? roleParam : null;
 
   function afterCustomerSignup(email: string) {
     router.push(
@@ -70,7 +85,7 @@ export default function RegisterPage() {
                 title="Customer"
                 body="I want to move my cargo"
                 selected={false}
-                onSelect={() => setRole("customer")}
+                onSelect={() => router.push(`${ROUTES.register}?role=customer`)}
                 testId="role-customer"
               />
             </motion.div>
@@ -80,7 +95,7 @@ export default function RegisterPage() {
                 title="Driver"
                 body="I want to provide cargo transportation"
                 selected={false}
-                onSelect={() => setRole("driver")}
+                onSelect={() => router.push(`${ROUTES.register}?role=driver`)}
                 testId="role-driver"
               />
             </motion.div>
@@ -95,13 +110,12 @@ export default function RegisterPage() {
         </div>
       ) : (
         <div className="flex flex-col gap-6">
-          <button
-            type="button"
-            onClick={() => setRole(null)}
+          <a
+            href={ROUTES.register}
             className="self-start text-[0.8rem] font-medium text-muted transition-colors duration-200 hover:text-brand"
           >
             ← Choose a different account type
-          </button>
+          </a>
 
           {role === "customer" ? (
             <CustomerRegisterForm onSubmitted={afterCustomerSignup} />
