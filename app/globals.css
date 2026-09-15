@@ -9,7 +9,7 @@
      underlines, focus rings, road-rush dashes. Kept separate from the
      headline gradient's own stops below `text-brand-gradient`, so changing
      this can never shift that gradient. */
-  --color-brand: #ffaa00;
+  --color-brand: #FCB435;
 
   /* Ink (blacks) */
   --color-ink-950: #050505;
