@@ -41,6 +41,23 @@ export function AuthShell({
 
   return (
     <div className="relative flex min-h-svh flex-col overflow-hidden bg-ink-950">
+      {/*
+       * Real footage, not decoration — sits behind the two layers below so
+       * their gradient/grain keep the footage dark enough for form text on
+       * top of it to stay legible without any extra overlay work.
+       */}
+      {!reduced ? (
+        <video
+          aria-hidden
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="absolute inset-0 -z-20 size-full object-cover"
+          src="/videos/haulio-bg.mp4"
+        />
+      ) : null}
+
       <div
         aria-hidden
         className="absolute inset-0 -z-10 opacity-70"
