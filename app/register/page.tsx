@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Truck, User } from "lucide-react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { AuthShell } from "@/components/auth/AuthShell";
@@ -110,12 +111,12 @@ function RegisterContent() {
         </div>
       ) : (
         <div className="flex flex-col gap-6">
-          <a
+          <Link
             href={ROUTES.register}
             className="self-start text-[0.8rem] font-medium text-muted transition-colors duration-200 hover:text-brand"
           >
             ← Choose a different account type
-          </a>
+          </Link>
 
           {role === "customer" ? (
             <CustomerRegisterForm onSubmitted={afterCustomerSignup} />
