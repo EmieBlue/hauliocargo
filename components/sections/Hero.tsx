@@ -4,16 +4,18 @@ import { motion } from "framer-motion";
 import { ArrowRight, Truck } from "lucide-react";
 import { EASE, riseIn, staggerParent } from "@/lib/motion";
 import { BRAND, ROUTES, SECTION_IDS } from "@/lib/site";
-import { HeroScene } from "@/components/three/HeroScene";
 import { Button } from "@/components/ui/Button";
+import { useSettledReducedMotion } from "@/lib/useSettledReducedMotion";
 
 export function Hero() {
+  const reduced = useSettledReducedMotion();
+
   return (
     <section
       id={SECTION_IDS.home}
       className="relative isolate flex min-h-[100svh] flex-col overflow-hidden"
     >
-      {/* --- Background depth: glows sit behind the transparent canvas --- */}
+      {/* --- Background depth: glows sit behind the video --- */}
       <div aria-hidden className="absolute inset-0 -z-30 bg-ink-950" />
       <div
         aria-hidden
@@ -25,19 +27,33 @@ export function Hero() {
       />
 
       {/*
-       * Mobile is a genuinely different composition, not a squeezed desktop:
-       * the truck sits in a band along the bottom with the copy stacked above
-       * it. From lg up the scene fills the section and the copy sits over it on
-       * the left. The mask feathers the scene's top edge into the page on
-       * mobile, where there is no scrim doing that job.
+       * Real footage, full-bleed at every breakpoint (unlike the old 3D scene
+       * it replaces, which only filled the section from `lg` up and sat in a
+       * bottom band on mobile) — dropped when reduced motion is preferred,
+       * same fallback contract as `AuthShell`.
        */}
-      <HeroScene className="absolute inset-x-0 bottom-0 -z-20 h-[44%] [mask-image:linear-gradient(to_bottom,transparent,black_20%)] lg:top-0 lg:h-full lg:[mask-image:none]" />
+      {!reduced ? (
+        <video
+          aria-hidden
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="pointer-events-none absolute inset-0 -z-20 size-full object-cover"
+          src="/videos/haulio-bg.mp4"
+        />
+      ) : null}
 
-      {/* Legibility scrim — desktop only; on mobile the copy never overlaps */}
+      {/*
+       * Legibility scrim — now always on, not just `lg`: the old scene only
+       * sat under the copy on desktop, but the video is full-bleed everywhere,
+       * so text needs the dark layer on every breakpoint now.
+       */}
       <div
         aria-hidden
-        className="absolute inset-0 -z-10 hidden lg:block lg:bg-linear-to-r lg:from-ink-950 lg:via-ink-950/55 lg:to-transparent"
+        className="absolute inset-0 -z-10 bg-linear-to-r from-ink-950 via-ink-950/55 to-transparent"
       />
+      <div aria-hidden className="absolute inset-0 -z-10 bg-ink-950/35" />
       <div aria-hidden className="grain-layer pointer-events-none absolute inset-0 -z-10 opacity-[0.15]" />
 
       {/* --- Copy --- */}
