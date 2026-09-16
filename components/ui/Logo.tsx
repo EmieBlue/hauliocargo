@@ -10,13 +10,13 @@ import { cn } from "@/lib/cn";
  * screenshotting it, not assumed. Text has no such floor; it stays crisp at
  * any size a browser renders it.
  */
-export function Logo({ className }: { className?: string }) {
+export function Logo({ className, dark = false }: { className?: string; dark?: boolean }) {
   return (
     <span className={cn("inline-flex items-center gap-2.5", className)}>
       <img src="/brand/nav-mark.png" alt="" className="h-7 w-auto" />
       <span className="font-display text-[1.05rem] leading-none font-extrabold tracking-[0.02em]">
-        <span className="text-brand">HAULIO</span>
-        <span className="text-white">CARGO</span>
+        <span className={dark ? "text-black" : "text-brand"}>HAULIO</span>
+        <span className={dark ? "text-black" : "text-white"}>CARGO</span>
       </span>
     </span>
   );

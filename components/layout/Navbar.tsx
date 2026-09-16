@@ -32,7 +32,7 @@ export function Navbar() {
         className={cn(
           "fixed inset-x-0 top-0 z-60 transition-[background-color,backdrop-filter,border-color] duration-500 ease-brand",
           scrolled
-            ? "border-b border-white/8 bg-ink-950/78 backdrop-blur-xl"
+            ? "border-b border-black/10 bg-brand"
             : "border-b border-transparent bg-transparent",
         )}
       >
@@ -41,7 +41,7 @@ export function Navbar() {
             href={ROUTES.home}
             className="shrink-0 transition-opacity duration-300 hover:opacity-85"
           >
-            <Logo />
+            <Logo dark={scrolled} />
           </a>
 
           <nav aria-label="Primary" className="hidden lg:block">
@@ -50,12 +50,18 @@ export function Navbar() {
                 <li key={link.href}>
                   <a
                     href={link.href}
-                    className="group relative inline-flex h-11 items-center px-3.5 text-[0.86rem] font-medium text-mist transition-colors duration-300 hover:text-white"
+                    className={cn(
+                      "group relative inline-flex h-11 items-center px-3.5 text-[0.86rem] font-medium transition-colors duration-300",
+                      scrolled ? "text-black/70 hover:text-black" : "text-mist hover:text-white",
+                    )}
                   >
                     {link.label}
                     <span
                       aria-hidden
-                      className="absolute inset-x-3.5 bottom-2.5 h-px origin-left scale-x-0 bg-brand transition-transform duration-300 ease-brand group-hover:scale-x-100"
+                      className={cn(
+                        "absolute inset-x-3.5 bottom-2.5 h-px origin-left scale-x-0 transition-transform duration-300 ease-brand group-hover:scale-x-100",
+                        scrolled ? "bg-black" : "bg-brand",
+                      )}
                     />
                   </a>
                 </li>
@@ -66,7 +72,10 @@ export function Navbar() {
           <div className="flex items-center gap-2 sm:gap-3">
             <a
               href={ROUTES.signin}
-              className="hidden h-11 items-center px-3 font-display text-[0.72rem] font-semibold tracking-[0.09em] text-mist uppercase transition-colors duration-300 hover:text-brand sm:inline-flex"
+              className={cn(
+                "hidden h-11 items-center px-3 font-display text-[0.72rem] font-semibold tracking-[0.09em] uppercase transition-colors duration-300 sm:inline-flex",
+                scrolled ? "text-black/70 hover:text-black" : "text-mist hover:text-brand",
+              )}
             >
               Sign In
             </a>
@@ -78,7 +87,7 @@ export function Navbar() {
              * button leaks onto small screens.
              */}
             <span className="hidden sm:block">
-              <Button href={ROUTES.register} size="sm">
+              <Button href={ROUTES.register} size="sm" variant={scrolled ? "dark" : "primary"}>
                 Register
               </Button>
             </span>
@@ -88,7 +97,12 @@ export function Navbar() {
               onClick={() => setMenuOpen(true)}
               aria-label="Open menu"
               aria-expanded={menuOpen}
-              className="grid size-12 place-items-center rounded-xl border border-white/10 bg-white/[0.03] text-mist transition-colors duration-300 hover:border-brand/40 hover:text-brand lg:hidden"
+              className={cn(
+                "grid size-12 place-items-center rounded-xl border transition-colors duration-300 lg:hidden",
+                scrolled
+                  ? "border-black/15 bg-black/5 text-black/70 hover:border-black/30 hover:text-black"
+                  : "border-white/10 bg-white/[0.03] text-mist hover:border-brand/40 hover:text-brand",
+              )}
             >
               <Menu className="size-5" aria-hidden />
             </button>

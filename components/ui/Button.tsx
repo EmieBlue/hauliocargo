@@ -1,7 +1,7 @@
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
-type Variant = "primary" | "secondary" | "ghost";
+type Variant = "primary" | "secondary" | "ghost" | "dark";
 type Size = "sm" | "md";
 
 const BASE =
@@ -21,6 +21,9 @@ const VARIANTS: Record<Variant, string> = {
     "border border-brand/55 bg-brand/[0.04] text-white hover:border-brand hover:bg-brand/10 hover:text-brand hover:shadow-[0_16px_44px_-16px_rgba(255,170,0,0.5)]",
   ghost:
     "border border-white/12 bg-white/[0.02] text-mist hover:border-white/25 hover:bg-white/[0.06] hover:text-white",
+  // For sitting on top of a brand-yellow surface (e.g. the scrolled navbar) —
+  // a yellow "primary" button would disappear on a yellow background.
+  dark: "bg-ink-950 text-white shadow-[0_8px_24px_-14px_rgba(0,0,0,0.7)] hover:brightness-125",
 };
 
 const SIZES: Record<Size, string> = {
