@@ -46,7 +46,7 @@ export function Card({
           : undefined
       }
       className={cn(
-        "group/card relative isolate overflow-hidden rounded-2xl border border-white/8 bg-ink-850/70",
+        "group/card relative isolate overflow-hidden rounded-2xl border border-white/8 bg-ink-950/90",
         "transition-[border-color,box-shadow,transform] duration-500 ease-brand",
         "hover:border-brand/35 hover:shadow-[0_28px_70px_-40px_rgba(255,170,0,0.55)]",
         className,

@@ -64,7 +64,7 @@ export function ActionTrio() {
             <RevealItem key={title} id={id} className="scroll-mt-28">
               <Card className="h-full">
                 <CardBody href={href} onOpen={cardIntent ? () => setIntent(cardIntent) : undefined}>
-                  <span className="grid size-12 place-items-center rounded-xl border border-brand/25 bg-brand/10 text-brand transition-colors duration-500 group-hover/card:border-brand/50 group-hover/card:bg-brand/15">
+                  <span className="grid size-12 place-items-center rounded-xl bg-brand text-black transition-[filter] duration-500 group-hover/card:brightness-110">
                     <Icon className="size-5" aria-hidden />
                   </span>
 
