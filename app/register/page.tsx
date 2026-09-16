@@ -66,7 +66,7 @@ function RegisterContent() {
       eyebrow={copy.eyebrow}
       title={copy.title}
       subtitle={copy.subtitle}
-      backHref={role ? undefined : ROUTES.home}
+      backHref={role ? undefined : ROUTES.homePage}
       wide={role !== null}
     >
       {!role ? (

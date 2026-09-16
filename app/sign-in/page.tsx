@@ -41,7 +41,7 @@ export default function SignInPage() {
       eyebrow="Sign In"
       title="Welcome Back"
       subtitle="Move what matters. Pick up where you left off."
-      backHref={ROUTES.home}
+      backHref={ROUTES.homePage}
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         <TextField

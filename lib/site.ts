@@ -19,6 +19,8 @@ export const SECTION_IDS = {
 
 export const ROUTES = {
   home: `#${SECTION_IDS.home}`,
+  /** The actual homepage route — unlike `home` above, safe to link to from a different page. */
+  homePage: "/",
   howItWorks: `#${SECTION_IDS.howItWorks}`,
   services: `#${SECTION_IDS.services}`,
   about: `#${SECTION_IDS.about}`,
