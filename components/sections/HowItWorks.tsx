@@ -40,7 +40,7 @@ export function HowItWorks() {
                       {step.number}
                     </span>
 
-                    <span className="relative grid size-12 place-items-center rounded-xl border border-brand/25 bg-brand/10 text-brand">
+                    <span className="relative grid size-12 place-items-center rounded-xl bg-brand text-black">
                       <Icon className="size-5" aria-hidden />
                     </span>
 
