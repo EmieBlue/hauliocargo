@@ -5,57 +5,18 @@ import { ArrowRight, Truck } from "lucide-react";
 import { EASE, riseIn, staggerParent } from "@/lib/motion";
 import { BRAND, ROUTES, SECTION_IDS } from "@/lib/site";
 import { Button } from "@/components/ui/Button";
-import { useSettledReducedMotion } from "@/lib/useSettledReducedMotion";
 
+/**
+ * No background layers here — `VideoBackdrop` (mounted once at the page root,
+ * see `app/page.tsx`) covers the whole page now, Hero included. Just content,
+ * same as every other homepage section.
+ */
 export function Hero() {
-  const reduced = useSettledReducedMotion();
-
   return (
     <section
       id={SECTION_IDS.home}
-      className="relative isolate flex min-h-[100svh] flex-col overflow-hidden"
+      className="relative flex min-h-[100svh] flex-col overflow-hidden"
     >
-      {/* --- Background depth: glows sit behind the video --- */}
-      <div aria-hidden className="absolute inset-0 -z-30 bg-ink-950" />
-      <div
-        aria-hidden
-        className="absolute inset-0 -z-30 opacity-70"
-        style={{
-          background:
-            "radial-gradient(1100px 620px at 68% 30%, rgba(255,170,0,0.09), transparent 62%), radial-gradient(760px 520px at 10% 76%, rgba(70,90,130,0.14), transparent 65%)",
-        }}
-      />
-
-      {/*
-       * Real footage, full-bleed at every breakpoint (unlike the old 3D scene
-       * it replaces, which only filled the section from `lg` up and sat in a
-       * bottom band on mobile) — dropped when reduced motion is preferred,
-       * same fallback contract as `AuthShell`.
-       */}
-      {!reduced ? (
-        <video
-          aria-hidden
-          autoPlay
-          muted
-          loop
-          playsInline
-          className="pointer-events-none absolute inset-0 -z-20 size-full object-cover"
-          src="/videos/haulio-bg.mp4"
-        />
-      ) : null}
-
-      {/*
-       * Legibility scrim — now always on, not just `lg`: the old scene only
-       * sat under the copy on desktop, but the video is full-bleed everywhere,
-       * so text needs the dark layer on every breakpoint now.
-       */}
-      <div
-        aria-hidden
-        className="absolute inset-0 -z-10 bg-linear-to-r from-ink-950 via-ink-950/55 to-transparent"
-      />
-      <div aria-hidden className="absolute inset-0 -z-10 bg-ink-950/35" />
-      <div aria-hidden className="grain-layer pointer-events-none absolute inset-0 -z-10 opacity-[0.15]" />
-
       {/* --- Copy --- */}
       <div className="container-page relative flex flex-1 items-center pt-28 pb-[42svh] md:pt-32 lg:pb-32">
         <motion.div
