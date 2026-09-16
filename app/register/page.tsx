@@ -68,6 +68,8 @@ function RegisterContent() {
       subtitle={copy.subtitle}
       backHref={role ? undefined : ROUTES.homePage}
       wide={role !== null}
+      visual={role !== null}
+      formCard={role !== null}
     >
       {!role ? (
         <div className="flex flex-col gap-5">
