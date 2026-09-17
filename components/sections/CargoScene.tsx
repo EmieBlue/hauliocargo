@@ -39,7 +39,9 @@ export function CargoScene() {
               <RevealItem key={category.title}>
                 <Card className="h-full" tilt={false}>
                   <div className="flex h-full flex-col gap-3.5 p-6">
-                    <Icon className="size-5 text-brand" aria-hidden />
+                    <span className="grid size-12 place-items-center rounded-xl bg-brand text-black">
+                      <Icon className="size-5" aria-hidden />
+                    </span>
                     <h3 className="font-display text-base font-bold text-white">
                       {category.title}
                     </h3>
