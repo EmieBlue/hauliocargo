@@ -76,13 +76,13 @@ export function SmartLoad() {
               <RevealItem key={title}>
                 <Card className="h-full">
                   <div className="flex h-full flex-col items-center gap-4 p-7 text-center md:p-8">
-                    <span className="relative grid size-16 place-items-center overflow-hidden rounded-2xl border border-brand/25 bg-ink-950 text-brand">
+                    <span className="relative grid size-16 place-items-center overflow-hidden rounded-2xl bg-brand text-black">
                       <Icon className="size-6" aria-hidden />
                       {/* Scan sweep on the analysis node only */}
                       {index === 1 ? (
                         <span
                           aria-hidden
-                          className="pointer-events-none absolute inset-x-2 top-0 h-8 animate-scan bg-linear-to-b from-transparent via-brand/45 to-transparent"
+                          className="pointer-events-none absolute inset-x-2 top-0 h-8 animate-scan bg-linear-to-b from-transparent via-black/30 to-transparent"
                         />
                       ) : null}
                     </span>
@@ -115,7 +115,7 @@ export function SmartLoad() {
               style={{ left: `${(index * 100) / 3}%` }}
               className="pointer-events-none absolute top-16 hidden -translate-x-1/2 -translate-y-1/2 place-items-center md:grid"
             >
-              <span className="grid size-8 place-items-center rounded-full border border-brand/30 bg-ink-950 text-brand">
+              <span className="grid size-8 place-items-center rounded-full bg-brand text-black">
                 <ChevronRight className="size-4" aria-hidden />
               </span>
             </motion.span>
