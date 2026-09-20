@@ -4,6 +4,8 @@ import { motion } from "framer-motion";
 import { ArrowRight, Truck } from "lucide-react";
 import { EASE, riseIn, staggerParent } from "@/lib/motion";
 import { BRAND, ROUTES, SECTION_IDS } from "@/lib/site";
+import { cn } from "@/lib/cn";
+import { useScrolled } from "@/lib/useScrolled";
 import { Button } from "@/components/ui/Button";
 
 /**
@@ -12,6 +14,8 @@ import { Button } from "@/components/ui/Button";
  * same as every other homepage section.
  */
 export function Hero() {
+  const scrolled = useScrolled();
+
   return (
     <section
       id={SECTION_IDS.home}
@@ -19,8 +23,16 @@ export function Hero() {
     >
       {/* Panel starts partway down, roughly level with the badge below — the
        * sky/navbar area above it stays clear video, matching the request to
-       * start "from where the badge is," not the very top of the section. */}
-      <div aria-hidden className="absolute inset-x-0 top-28 bottom-0 bg-ink-950/60 md:top-64" />
+       * start "from where the badge is," not the very top of the section.
+       * Fades in on scroll, in step with the navbar's own color change,
+       * rather than sitting there from the first paint. */}
+      <div
+        aria-hidden
+        className={cn(
+          "absolute inset-x-0 top-28 bottom-0 bg-ink-950/60 transition-opacity duration-500 md:top-64",
+          scrolled ? "opacity-100" : "opacity-0",
+        )}
+      />
 
       {/* --- Copy --- */}
       <div className="container-page relative flex flex-1 items-center pt-28 pb-[42svh] md:pt-32 lg:pb-32">
