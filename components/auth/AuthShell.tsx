@@ -31,9 +31,10 @@ export function AuthShell({
   wide = false,
   visual = false,
   formCard = true,
+  align = "center",
 }: {
   eyebrow?: string;
-  title: string;
+  title: ReactNode;
   subtitle?: string;
   backHref?: string;
   backLabel?: string;
@@ -43,11 +44,14 @@ export function AuthShell({
   /** Restore the AuthVisual column alongside the form. Off by default. */
   visual?: boolean;
   /**
-   * Wrap `children` in a `Card`. On by default — off for register's
-   * role-picker screen, whose `RoleCard`s are already `Card`s themselves;
-   * wrapping that in another `Card` would nest a card inside a card.
+   * Wrap the eyebrow/title/subtitle/children together in a `Card`. On by
+   * default — off for register's role-picker screen, whose `RoleCard`s are
+   * already `Card`s themselves; wrapping that in another `Card` would nest a
+   * card inside a card.
    */
   formCard?: boolean;
+  /** Horizontal placement of the content column when not `visual`. */
+  align?: "center" | "left";
 }) {
   return (
     <div className="relative flex min-h-svh flex-col overflow-hidden">
@@ -73,7 +77,7 @@ export function AuthShell({
           "container-page flex flex-1 flex-col py-8 lg:py-16",
           visual
             ? "lg:grid lg:grid-cols-2 lg:items-center lg:gap-12"
-            : "items-center justify-center",
+            : cn("justify-center", align === "left" ? "items-stretch" : "items-center"),
         )}
       >
         {visual ? (
@@ -87,42 +91,57 @@ export function AuthShell({
           initial="hidden"
           animate="show"
           className={cn(
-            "mx-auto w-full",
+            "w-full",
             wide ? "max-w-xl" : "max-w-md",
+            align === "left" ? "" : "mx-auto",
             visual && "lg:order-1",
           )}
         >
-          {eyebrow ? (
-            <motion.span
-              variants={riseIn}
-              className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.04] px-3.5 py-1.5 font-display text-[0.62rem] font-semibold tracking-[0.18em] text-mist uppercase"
-            >
-              {eyebrow}
-            </motion.span>
-          ) : null}
+          {(() => {
+            const header = (
+              <>
+                {eyebrow ? (
+                  <motion.span
+                    variants={riseIn}
+                    className="inline-flex items-center gap-2 rounded-full border border-brand/25 bg-brand/[0.06] px-3.5 py-1.5 font-display text-[0.62rem] font-semibold tracking-[0.18em] text-brand uppercase"
+                  >
+                    {eyebrow}
+                  </motion.span>
+                ) : null}
 
-          <motion.h1
-            variants={riseIn}
-            className="mt-5 text-[clamp(2rem,4.4vw,2.7rem)] leading-[1.04] font-extrabold tracking-[-0.02em] text-white"
-          >
-            {title}
-          </motion.h1>
+                <motion.h1
+                  variants={riseIn}
+                  className="mt-5 text-[clamp(2rem,4.4vw,2.7rem)] leading-[1.04] font-extrabold tracking-[-0.02em] text-white"
+                >
+                  {title}
+                </motion.h1>
 
-          {subtitle ? (
-            <motion.p variants={riseIn} className="mt-3 text-[1rem] leading-relaxed text-muted text-pretty">
-              {subtitle}
-            </motion.p>
-          ) : null}
+                {subtitle ? (
+                  <motion.p variants={riseIn} className="mt-3 text-[1rem] leading-relaxed text-muted text-pretty">
+                    {subtitle}
+                  </motion.p>
+                ) : null}
+              </>
+            );
 
-          <motion.div variants={riseIn} className="mt-8">
-            {formCard ? (
-              <Card tilt={false} className="p-6 sm:p-8">
-                {children}
-              </Card>
-            ) : (
-              children
-            )}
-          </motion.div>
+            if (formCard) {
+              return (
+                <Card tilt={false} className="p-6 sm:p-8">
+                  {header}
+                  <div className="mt-8">{children}</div>
+                </Card>
+              );
+            }
+
+            return (
+              <>
+                {header}
+                <motion.div variants={riseIn} className="mt-8">
+                  {children}
+                </motion.div>
+              </>
+            );
+          })()}
         </motion.div>
       </div>
     </div>
