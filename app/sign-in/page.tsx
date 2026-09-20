@@ -39,9 +39,14 @@ export default function SignInPage() {
   return (
     <AuthShell
       eyebrow="Sign In"
-      title="Welcome Back"
+      title={
+        <>
+          <span className="text-brand">Welcome</span> Back
+        </>
+      }
       subtitle="Move what matters. Pick up where you left off."
       backHref={ROUTES.homePage}
+      align="left"
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         <TextField

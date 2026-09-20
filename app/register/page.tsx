@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { Truck, User } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, type ReactNode } from "react";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { CustomerRegisterForm } from "@/components/auth/CustomerRegisterForm";
 import { DriverRegisterForm } from "@/components/auth/DriverRegisterForm";
@@ -14,15 +14,23 @@ import { ROUTES } from "@/lib/site";
 
 type Role = "customer" | "driver";
 
-const COPY: Record<Role, { eyebrow: string; title: string; subtitle: string }> = {
+const COPY: Record<Role, { eyebrow: string; title: ReactNode; subtitle: string }> = {
   customer: {
     eyebrow: "Register",
-    title: "Join HaulioCargo",
+    title: (
+      <>
+        Join <span className="text-brand">Haulio</span>Cargo
+      </>
+    ),
     subtitle: "Move smarter. Book with confidence.",
   },
   driver: {
     eyebrow: "Driver Registration",
-    title: "Become a HaulioCargo Driver",
+    title: (
+      <>
+        Become a <span className="text-brand">Haulio</span>Cargo Driver
+      </>
+    ),
     subtitle: "Turn your vehicle into an opportunity.",
   },
 };
@@ -66,9 +74,10 @@ function RegisterContent() {
       eyebrow={copy.eyebrow}
       title={copy.title}
       subtitle={copy.subtitle}
-      backHref={role ? undefined : ROUTES.homePage}
+      backHref={role ? ROUTES.register : ROUTES.homePage}
       wide={role !== null}
       formCard={role !== null}
+      align={role !== null ? "left" : "center"}
     >
       {!role ? (
         <div className="flex flex-col gap-5">
