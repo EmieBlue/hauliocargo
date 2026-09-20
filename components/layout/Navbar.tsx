@@ -2,24 +2,18 @@
 
 import { motion } from "framer-motion";
 import { Menu } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { cn } from "@/lib/cn";
 import { EASE } from "@/lib/motion";
 import { NAV_LINKS, ROUTES } from "@/lib/site";
+import { useScrolled } from "@/lib/useScrolled";
 import { Button } from "@/components/ui/Button";
 import { Logo } from "@/components/ui/Logo";
 import { MobileMenu } from "./MobileMenu";
 
 export function Navbar() {
-  const [scrolled, setScrolled] = useState(false);
+  const scrolled = useScrolled();
   const [menuOpen, setMenuOpen] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 24);
-    handleScroll();
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
 
   const closeMenu = useCallback(() => setMenuOpen(false), []);
 
