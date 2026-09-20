@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Menu } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 import { EASE } from "@/lib/motion";
 import { NAV_LINKS, ROUTES } from "@/lib/site";
@@ -11,11 +11,49 @@ import { Button } from "@/components/ui/Button";
 import { Logo } from "@/components/ui/Logo";
 import { MobileMenu } from "./MobileMenu";
 
+const SCROLLED_FAVICON = "/favicon-scrolled.png";
+
 export function Navbar() {
   const scrolled = useScrolled();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const closeMenu = useCallback(() => setMenuOpen(false), []);
+
+  // Swap the browser-tab favicon in step with the navbar's own color change.
+  // Next's client runtime turns out to add a *second* set of icon `<link>`
+  // elements sometime after mount (confirmed against a real production
+  // build, not just dev — this isn't a dev/HMR artifact), so a one-time
+  // capture-on-mount misses the ones that show up later and can never
+  // restore them. Storing each element's own original href on itself (a
+  // data attribute) instead is self-healing: whenever a not-yet-seen link
+  // shows up while not scrolled, it gets its own original captured right
+  // there, regardless of how many elements exist or when they appeared.
+  useEffect(() => {
+    const links = Array.from(
+      document.querySelectorAll<HTMLLinkElement>(
+        'link[rel="icon"], link[rel="apple-touch-icon"]',
+      ),
+    );
+    // Capture each element's original the first time we ever see it —
+    // regardless of the *current* scrolled state. Confirmed (by instrumenting
+    // this effect against a real production build) that Next inserts a
+    // second set of icon `<link>` elements sometime after mount, and that
+    // insertion can land on a render where `scrolled` is already true. Gating
+    // the capture on `!scrolled` meant those elements were never captured
+    // before being overwritten, so they could never be restored again.
+    links.forEach((link) => {
+      if (!link.dataset.originalHref && !link.href.endsWith(SCROLLED_FAVICON)) {
+        link.dataset.originalHref = link.href;
+      }
+    });
+    links.forEach((link) => {
+      if (scrolled) {
+        link.href = SCROLLED_FAVICON;
+      } else if (link.dataset.originalHref) {
+        link.href = link.dataset.originalHref;
+      }
+    });
+  }, [scrolled]);
 
   return (
     <>
