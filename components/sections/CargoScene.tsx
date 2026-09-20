@@ -17,7 +17,7 @@ export function CargoScene() {
       id={SECTION_IDS.services}
       className="relative scroll-mt-24 overflow-hidden border-t border-white/6 py-20 md:py-28"
     >
-      <div aria-hidden className="absolute inset-0 bg-ink-950/60" />
+      <div aria-hidden className="absolute inset-0 bg-brand/15" />
       <div className="container-page relative">
         <SectionHeading
           eyebrow="Services"
