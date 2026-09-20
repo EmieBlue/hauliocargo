@@ -17,6 +17,11 @@ export function Hero() {
       id={SECTION_IDS.home}
       className="relative flex min-h-[100svh] flex-col overflow-hidden"
     >
+      {/* Panel starts partway down, roughly level with the badge below — the
+       * sky/navbar area above it stays clear video, matching the request to
+       * start "from where the badge is," not the very top of the section. */}
+      <div aria-hidden className="absolute inset-x-0 top-28 bottom-0 bg-ink-950/60 md:top-64" />
+
       {/* --- Copy --- */}
       <div className="container-page relative flex flex-1 items-center pt-28 pb-[42svh] md:pt-32 lg:pb-32">
         <motion.div
