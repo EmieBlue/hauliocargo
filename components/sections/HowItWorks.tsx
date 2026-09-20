@@ -13,7 +13,8 @@ export function HowItWorks() {
       id={SECTION_IDS.howItWorks}
       className="relative scroll-mt-24 border-t border-white/6 py-20 md:py-28"
     >
-      <div className="container-page">
+      <div aria-hidden className="absolute inset-0 bg-ink-950/60" />
+      <div className="container-page relative">
         <SectionHeading
           eyebrow="How it works"
           title={

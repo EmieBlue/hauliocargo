@@ -48,12 +48,13 @@ export function SmartLoad() {
       id={SECTION_IDS.smartload}
       className="relative scroll-mt-24 overflow-hidden border-t border-white/6 py-20 md:py-28"
     >
+      <div aria-hidden className="absolute inset-0 bg-ink-950/60" />
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-brand/30 to-transparent"
       />
 
-      <div className="container-page">
+      <div className="container-page relative">
         <div className="flex flex-col items-center gap-6 text-center">
           <Badge pulse>Coming Soon</Badge>
           <SectionHeading

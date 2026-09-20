@@ -58,7 +58,8 @@ export function ActionTrio() {
       id={SECTION_IDS.getStarted}
       className="relative scroll-mt-24 border-t border-white/6 py-20 md:py-28"
     >
-      <div className="container-page">
+      <div aria-hidden className="absolute inset-0 bg-ink-950/60" />
+      <div className="container-page relative">
         <RevealGroup className="grid gap-5 md:grid-cols-3" stagger={0.12}>
           {ACTIONS.map(({ id, icon: Icon, title, body, cta, href, intent: cardIntent }) => (
             <RevealItem key={title} id={id} className="scroll-mt-28">

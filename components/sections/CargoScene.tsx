@@ -17,7 +17,8 @@ export function CargoScene() {
       id={SECTION_IDS.services}
       className="relative scroll-mt-24 overflow-hidden border-t border-white/6 py-20 md:py-28"
     >
-      <div className="container-page">
+      <div aria-hidden className="absolute inset-0 bg-ink-950/60" />
+      <div className="container-page relative">
         <SectionHeading
           eyebrow="Services"
           align="center"
@@ -31,7 +32,7 @@ export function CargoScene() {
         />
       </div>
 
-      <div className="container-page">
+      <div className="container-page relative">
         <RevealGroup className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4" stagger={0.08}>
           {CARGO_CATEGORIES.map((category, index) => {
             const Icon = CATEGORY_ICONS[index];
