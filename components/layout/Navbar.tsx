@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Menu } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { cn } from "@/lib/cn";
 import { EASE } from "@/lib/motion";
 import { NAV_LINKS, ROUTES } from "@/lib/site";
@@ -11,58 +11,11 @@ import { Button } from "@/components/ui/Button";
 import { Logo } from "@/components/ui/Logo";
 import { MobileMenu } from "./MobileMenu";
 
-const SCROLLED_FAVICON = "/favicon-scrolled.png";
-
 export function Navbar() {
   const scrolled = useScrolled();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const closeMenu = useCallback(() => setMenuOpen(false), []);
-
-  // Swap the browser-tab favicon in step with the navbar's own color change.
-  //
-  // Replaces the icon `<link>` elements rather than changing their `href`.
-  // Checked in the real installed Chrome (not just headless): mutating `href`
-  // on an existing icon link works on a first-ever visit, but for a returning
-  // visitor — Chrome already has this page's default icon cached — the
-  // attributes change and the tab icon simply doesn't. A freshly inserted
-  // `<link>` forces Chrome to re-evaluate the page's icons.
-  //
-  // Next also inserts a second set of duplicate icon links shortly after
-  // mount, so this grabs whatever's in `<head>` at the moment of scrolling
-  // instead of caching a snapshot from mount.
-  const detachedIcons = useRef<HTMLLinkElement[]>([]);
-  const scrolledIcon = useRef<HTMLLinkElement | null>(null);
-
-  useEffect(() => {
-    const head = document.head;
-
-    if (scrolled) {
-      if (scrolledIcon.current) return;
-      const existing = Array.from(
-        head.querySelectorAll<HTMLLinkElement>(
-          'link[rel="icon"], link[rel="apple-touch-icon"]',
-        ),
-      );
-      detachedIcons.current = existing;
-      existing.forEach((link) => link.remove());
-
-      const link = document.createElement("link");
-      link.rel = "icon";
-      link.type = "image/png";
-      link.href = SCROLLED_FAVICON;
-      head.appendChild(link);
-      scrolledIcon.current = link;
-      return;
-    }
-
-    if (scrolledIcon.current) {
-      scrolledIcon.current.remove();
-      scrolledIcon.current = null;
-      detachedIcons.current.forEach((link) => head.appendChild(link));
-      detachedIcons.current = [];
-    }
-  }, [scrolled]);
 
   return (
     <>

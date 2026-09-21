@@ -13,7 +13,13 @@ import { cn } from "@/lib/cn";
 export function Logo({ className, dark = false }: { className?: string; dark?: boolean }) {
   return (
     <span className={cn("inline-flex items-center gap-2.5", className)}>
-      <img src="/brand/nav-mark.png" alt="" className="h-7 w-auto" />
+      {/* The default mark is white + yellow, which disappears on the yellow
+       * scrolled navbar — `dark` swaps in the black + white version. */}
+      <img
+        src={dark ? "/brand/nav-mark-dark.png" : "/brand/nav-mark.png"}
+        alt=""
+        className="h-7 w-auto"
+      />
       <span className="font-display text-[1.05rem] leading-none font-extrabold tracking-[0.02em]">
         <span className={dark ? "text-black" : "text-brand"}>HAULIO</span>
         <span className="text-white">CARGO</span>
