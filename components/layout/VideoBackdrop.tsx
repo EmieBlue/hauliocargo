@@ -2,6 +2,12 @@
 
 import { useSettledReducedMotion } from "@/lib/useSettledReducedMotion";
 
+const POSTER = "/videos/haulio-bg-poster.jpg";
+
+// Only matters in a portrait viewport, where `cover` crops the 16:9 footage
+// down to a narrow slice — keeps the truck (right of centre) in that slice.
+const FOCAL = "66% 50%";
+
 /**
  * The site's looping footage, `fixed` to the viewport rather than scoped to
  * one section — deliberately outside any `isolate`d ancestor (e.g. `Hero`),
@@ -27,13 +33,27 @@ export function VideoBackdrop() {
     <div aria-hidden className="pointer-events-none fixed inset-0">
       <div className="absolute inset-0 bg-ink-950" />
 
+      {/*
+        A still frame of the footage underneath the video, so the page is never
+        a plain dark screen: it shows while the (large) video buffers on mobile
+        data, stays put when a phone refuses to autoplay (iOS Low Power Mode),
+        and is all a visitor with "Reduce Motion" on gets — a still respects
+        that setting where a looping video would not.
+      */}
+      <div
+        className="absolute inset-0 bg-cover"
+        style={{ backgroundImage: `url(${POSTER})`, backgroundPosition: FOCAL }}
+      />
+
       {!reduced ? (
         <video
           autoPlay
           muted
           loop
           playsInline
+          poster={POSTER}
           className="absolute inset-0 size-full object-cover"
+          style={{ objectPosition: FOCAL }}
           src="/videos/haulio-bg.mp4"
         />
       ) : null}
