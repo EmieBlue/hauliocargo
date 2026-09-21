@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Menu } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 import { EASE } from "@/lib/motion";
 import { NAV_LINKS, ROUTES } from "@/lib/site";
@@ -20,39 +20,48 @@ export function Navbar() {
   const closeMenu = useCallback(() => setMenuOpen(false), []);
 
   // Swap the browser-tab favicon in step with the navbar's own color change.
-  // Next's client runtime turns out to add a *second* set of icon `<link>`
-  // elements sometime after mount (confirmed against a real production
-  // build, not just dev — this isn't a dev/HMR artifact), so a one-time
-  // capture-on-mount misses the ones that show up later and can never
-  // restore them. Storing each element's own original href on itself (a
-  // data attribute) instead is self-healing: whenever a not-yet-seen link
-  // shows up while not scrolled, it gets its own original captured right
-  // there, regardless of how many elements exist or when they appeared.
+  //
+  // Replaces the icon `<link>` elements rather than changing their `href`.
+  // Checked in the real installed Chrome (not just headless): mutating `href`
+  // on an existing icon link works on a first-ever visit, but for a returning
+  // visitor — Chrome already has this page's default icon cached — the
+  // attributes change and the tab icon simply doesn't. A freshly inserted
+  // `<link>` forces Chrome to re-evaluate the page's icons.
+  //
+  // Next also inserts a second set of duplicate icon links shortly after
+  // mount, so this grabs whatever's in `<head>` at the moment of scrolling
+  // instead of caching a snapshot from mount.
+  const detachedIcons = useRef<HTMLLinkElement[]>([]);
+  const scrolledIcon = useRef<HTMLLinkElement | null>(null);
+
   useEffect(() => {
-    const links = Array.from(
-      document.querySelectorAll<HTMLLinkElement>(
-        'link[rel="icon"], link[rel="apple-touch-icon"]',
-      ),
-    );
-    // Capture each element's original the first time we ever see it —
-    // regardless of the *current* scrolled state. Confirmed (by instrumenting
-    // this effect against a real production build) that Next inserts a
-    // second set of icon `<link>` elements sometime after mount, and that
-    // insertion can land on a render where `scrolled` is already true. Gating
-    // the capture on `!scrolled` meant those elements were never captured
-    // before being overwritten, so they could never be restored again.
-    links.forEach((link) => {
-      if (!link.dataset.originalHref && !link.href.endsWith(SCROLLED_FAVICON)) {
-        link.dataset.originalHref = link.href;
-      }
-    });
-    links.forEach((link) => {
-      if (scrolled) {
-        link.href = SCROLLED_FAVICON;
-      } else if (link.dataset.originalHref) {
-        link.href = link.dataset.originalHref;
-      }
-    });
+    const head = document.head;
+
+    if (scrolled) {
+      if (scrolledIcon.current) return;
+      const existing = Array.from(
+        head.querySelectorAll<HTMLLinkElement>(
+          'link[rel="icon"], link[rel="apple-touch-icon"]',
+        ),
+      );
+      detachedIcons.current = existing;
+      existing.forEach((link) => link.remove());
+
+      const link = document.createElement("link");
+      link.rel = "icon";
+      link.type = "image/png";
+      link.href = SCROLLED_FAVICON;
+      head.appendChild(link);
+      scrolledIcon.current = link;
+      return;
+    }
+
+    if (scrolledIcon.current) {
+      scrolledIcon.current.remove();
+      scrolledIcon.current = null;
+      detachedIcons.current.forEach((link) => head.appendChild(link));
+      detachedIcons.current = [];
+    }
   }, [scrolled]);
 
   return (
