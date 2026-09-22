@@ -21,8 +21,8 @@ export function Logo({ className, dark = false }: { className?: string; dark?: b
         className="h-7 w-auto"
       />
       <span className="font-display text-[1.05rem] leading-none font-extrabold tracking-[0.02em]">
-        <span className={dark ? "text-black" : "text-brand"}>HAULIO</span>
-        <span className="text-white">CARGO</span>
+        <span className={dark ? "text-white" : "text-brand"}>HAULIO</span>
+        <span className={dark ? "text-black" : "text-white"}>CARGO</span>
       </span>
     </span>
   );
