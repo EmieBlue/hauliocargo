@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Sora } from "next/font/google";
+import { PreloadAssets } from "@/components/layout/PreloadAssets";
 import { MotionProvider } from "@/components/providers/MotionProvider";
 import { BRAND } from "@/lib/site";
 import "./globals.css";
@@ -66,6 +67,7 @@ export default function RootLayout({
       className={`${sora.variable} ${inter.variable}`}
     >
       <body className="bg-ink-950 antialiased">
+        <PreloadAssets />
         <a
           href="#main"
           className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-100 focus:rounded-lg focus:bg-brand focus:px-4 focus:py-2.5 focus:font-display focus:text-sm focus:font-semibold focus:text-black"

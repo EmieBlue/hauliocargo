@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { AuthShell } from "@/components/auth/AuthShell";
@@ -67,12 +68,12 @@ export default function SignInPage() {
             value={password}
             onChange={(event) => setPassword(event.target.value)}
           />
-          <a
+          <Link
             href={ROUTES.forgotPassword}
             className="self-end text-[0.82rem] font-medium text-muted transition-colors duration-200 hover:text-brand"
           >
             Forgot Password?
-          </a>
+          </Link>
         </div>
 
         {error ? (
@@ -101,9 +102,9 @@ export default function SignInPage() {
 
       <p className="mt-8 text-center text-[0.88rem] text-muted">
         Don&rsquo;t have a HaulioCargo account?{" "}
-        <a href={ROUTES.register} className="font-semibold text-brand hover:underline">
+        <Link href={ROUTES.register} className="font-semibold text-brand hover:underline">
           Create an account
-        </a>
+        </Link>
       </p>
     </AuthShell>
   );

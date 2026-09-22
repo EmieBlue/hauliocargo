@@ -114,9 +114,9 @@ function RegisterContent() {
 
           <p className="text-center text-[0.88rem] text-muted">
             Already have a HaulioCargo account?{" "}
-            <a href={ROUTES.signin} className="font-semibold text-brand hover:underline">
+            <Link href={ROUTES.signin} className="font-semibold text-brand hover:underline">
               Sign in
-            </a>
+            </Link>
           </p>
         </div>
       ) : (

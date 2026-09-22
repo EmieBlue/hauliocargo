@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Menu } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useState } from "react";
 import { cn } from "@/lib/cn";
 import { EASE } from "@/lib/motion";
@@ -64,7 +65,7 @@ export function Navbar() {
           </nav>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            <a
+            <Link
               href={ROUTES.signin}
               className={cn(
                 "hidden h-11 items-center px-3 font-display text-[0.72rem] font-semibold tracking-[0.09em] uppercase transition-colors duration-300 sm:inline-flex",
@@ -72,7 +73,7 @@ export function Navbar() {
               )}
             >
               Sign In
-            </a>
+            </Link>
 
             {/*
              * Visibility lives on a wrapper, not on the Button. The Button's

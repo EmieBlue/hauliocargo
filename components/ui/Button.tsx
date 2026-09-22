@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
@@ -69,10 +70,15 @@ export function Button(props: AnchorProps | NativeButtonProps) {
   );
 
   if (typeof props.href === "string") {
+    // `Link`, not a plain `<a>` — every href here is an internal route, and a
+    // plain anchor forces a full hard page reload (all JS re-parsed, every
+    // asset re-requested) where `Link` prefetches the route and transitions
+    // client-side instead, which is what keeps e.g. Register feeling instant.
+    const { href, ...anchorRest } = rest as ComponentPropsWithoutRef<"a"> & { href: string };
     return (
-      <a {...(rest as ComponentPropsWithoutRef<"a">)} className={classes}>
+      <Link href={href} {...anchorRest} className={classes}>
         {content}
-      </a>
+      </Link>
     );
   }
 
