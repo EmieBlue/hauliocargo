@@ -8,6 +8,13 @@ type SectionHeadingProps = {
   sub?: ReactNode;
   align?: "left" | "center";
   className?: string;
+  /**
+   * "dark" (default) is white/muted text for the site's usual dark-video
+   * backdrop. "light" is for a section that sits on a solid brand-yellow
+   * panel instead (e.g. `CargoScene`) — dark text, same idea as the navbar
+   * swapping to black text once its own background turns yellow.
+   */
+  tone?: "dark" | "light";
 };
 
 export function SectionHeading({
@@ -16,8 +23,10 @@ export function SectionHeading({
   sub,
   align = "left",
   className,
+  tone = "dark",
 }: SectionHeadingProps) {
   const centered = align === "center";
+  const light = tone === "light";
 
   return (
     <RevealGroup
@@ -34,8 +43,13 @@ export function SectionHeading({
             centered && "justify-center",
           )}
         >
-          <span className="h-px w-8 bg-brand/70" aria-hidden />
-          <span className="font-display text-[0.68rem] font-semibold tracking-[0.24em] text-brand uppercase">
+          <span className={cn("h-px w-8", light ? "bg-black/40" : "bg-brand/70")} aria-hidden />
+          <span
+            className={cn(
+              "font-display text-[0.68rem] font-semibold tracking-[0.24em] uppercase",
+              light ? "text-black/70" : "text-brand",
+            )}
+          >
             {eyebrow}
           </span>
         </RevealItem>
@@ -43,7 +57,10 @@ export function SectionHeading({
 
       <RevealItem
         as="h2"
-        className="text-[clamp(1.9rem,4.4vw,3rem)] leading-[1.08] text-white text-balance"
+        className={cn(
+          "text-[clamp(1.9rem,4.4vw,3rem)] leading-[1.08] text-balance",
+          light ? "text-black" : "text-white",
+        )}
       >
         {title}
       </RevealItem>
@@ -51,7 +68,10 @@ export function SectionHeading({
       {sub ? (
         <RevealItem
           as="p"
-          className="max-w-xl text-[clamp(0.95rem,1.6vw,1.06rem)] leading-relaxed text-muted text-pretty"
+          className={cn(
+            "max-w-xl text-[clamp(0.95rem,1.6vw,1.06rem)] leading-relaxed text-pretty",
+            light ? "text-black/65" : "text-muted",
+          )}
         >
           {sub}
         </RevealItem>

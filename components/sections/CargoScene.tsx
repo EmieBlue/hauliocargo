@@ -15,17 +15,23 @@ export function CargoScene() {
   return (
     <section
       id={SECTION_IDS.services}
-      className="relative scroll-mt-24 overflow-hidden border-t border-white/6 py-20 md:py-28"
+      className="relative scroll-mt-24 overflow-hidden border-t border-black/10 py-20 md:py-28"
     >
-      <div aria-hidden className="absolute inset-0 bg-brand/15" />
+      {/* Solid brand yellow, not a translucent tint — a translucent wash over
+       * the video underneath read as a muddy gold rather than the site's
+       * actual yellow, so this section fully covers the video instead (same
+       * idea as the scrolled navbar: a real yellow surface, dark text/cards
+       * on top of it). */}
+      <div aria-hidden className="absolute inset-0 bg-brand" />
       <div className="container-page relative">
         <SectionHeading
           eyebrow="Services"
           align="center"
+          tone="light"
           title={
             <>
               Whatever you&rsquo;re moving,{" "}
-              <span className="text-brand-gradient">there&rsquo;s a truck for it</span>
+              <span className="font-extrabold text-black">there&rsquo;s a truck for it</span>
             </>
           }
           sub="Household goods, furniture and appliances, business stock or building materials — tell us what it is and we help match it to the right vehicle."
