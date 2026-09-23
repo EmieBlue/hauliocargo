@@ -15,7 +15,7 @@ export function CargoScene() {
   return (
     <section
       id={SECTION_IDS.services}
-      className="relative scroll-mt-24 overflow-hidden border-t border-white/6 py-20 md:py-28"
+      className="relative scroll-mt-24 overflow-hidden border-t border-edge/6 py-20 md:py-28"
     >
       {/* Same dark panel treatment as every sibling section — only the card
        * row below gets the solid yellow, not this heading. */}
@@ -52,7 +52,7 @@ export function CargoScene() {
                       <span className="grid size-12 place-items-center rounded-xl bg-brand text-black">
                         <Icon className="size-5" aria-hidden />
                       </span>
-                      <h3 className="font-display text-base font-bold text-white">
+                      <h3 className="font-display text-base font-bold text-fg">
                         {category.title}
                       </h3>
                       <p className="text-[0.88rem] leading-relaxed text-muted text-pretty">

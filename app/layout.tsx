@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Sora } from "next/font/google";
+import Script from "next/script";
 import { PreloadAssets } from "@/components/layout/PreloadAssets";
 import { MotionProvider } from "@/components/providers/MotionProvider";
 import { BRAND } from "@/lib/site";
@@ -67,6 +68,13 @@ export default function RootLayout({
       className={`${sora.variable} ${inter.variable}`}
     >
       <body className="bg-ink-950 antialiased">
+        {/* Sets `data-theme` on <html> from the visitor's saved choice before
+         * anything paints — without this, a visitor who picked light would
+         * see a flash of dark on every load. No entry (or "dark") in storage
+         * means no attribute is set, which is the dark default. */}
+        <Script id="theme-init" strategy="beforeInteractive">
+          {`(function(){try{if(localStorage.getItem("haulio-theme")==="light"){document.documentElement.setAttribute("data-theme","light");}}catch(e){}})();`}
+        </Script>
         <PreloadAssets />
         <a
           href="#main"

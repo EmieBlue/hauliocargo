@@ -19,12 +19,15 @@ const VARIANTS: Record<Variant, string> = {
   primary:
     "bg-brand text-black shadow-[0_8px_24px_-14px_rgba(255,170,0,0.9)] hover:brightness-110 hover:shadow-[0_16px_44px_-12px_rgba(255,170,0,0.65)]",
   secondary:
-    "border border-brand/55 bg-brand/[0.04] text-white hover:border-brand hover:bg-brand/10 hover:text-brand hover:shadow-[0_16px_44px_-16px_rgba(255,170,0,0.5)]",
+    "border border-brand/55 bg-brand/[0.04] text-fg hover:border-brand hover:bg-brand/10 hover:text-brand hover:shadow-[0_16px_44px_-16px_rgba(255,170,0,0.5)]",
   ghost:
-    "border border-white/12 bg-white/[0.02] text-mist hover:border-white/25 hover:bg-white/[0.06] hover:text-white",
+    "border border-edge/12 bg-edge/[0.02] text-mist hover:border-edge/25 hover:bg-edge/[0.06] hover:text-fg",
   // For sitting on top of a brand-yellow surface (e.g. the scrolled navbar) —
-  // a yellow "primary" button would disappear on a yellow background.
-  dark: "bg-ink-950 text-white shadow-[0_8px_24px_-14px_rgba(0,0,0,0.7)] hover:brightness-125",
+  // a yellow "primary" button would disappear on a yellow background. Fixed
+  // near-black regardless of site theme, deliberately not the (theme-aware)
+  // ink-950 token — this pairing is about contrast with the yellow bar, not
+  // the page's own dark/light mode.
+  dark: "bg-[#050505] text-white shadow-[0_8px_24px_-14px_rgba(0,0,0,0.7)] hover:brightness-125",
 };
 
 const SIZES: Record<Size, string> = {
@@ -63,7 +66,7 @@ export function Button(props: AnchorProps | NativeButtonProps) {
       {/* Light sweeps across the face on hover — the 3D "lift" cue. */}
       <span
         aria-hidden
-        className="pointer-events-none absolute inset-0 -translate-x-full bg-linear-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 ease-brand group-hover/btn:translate-x-full"
+        className="pointer-events-none absolute inset-0 -translate-x-full bg-linear-to-r from-transparent via-edge/25 to-transparent transition-transform duration-700 ease-brand group-hover/btn:translate-x-full"
       />
       <span className="relative flex items-center gap-2">{children}</span>
     </>

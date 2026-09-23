@@ -5,7 +5,7 @@ import { SocialIcon } from "@/components/ui/SocialIcon";
 
 export function Footer() {
   return (
-    <footer className="relative overflow-hidden border-t border-white/8 bg-ink-900">
+    <footer className="relative overflow-hidden border-t border-edge/8 bg-ink-900">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-brand/40 to-transparent"
@@ -16,7 +16,7 @@ export function Footer() {
           {/* Brand */}
           <div className="flex flex-col gap-5">
             <Logo />
-            <p className="max-w-xs font-display text-lg font-semibold text-white">
+            <p className="max-w-xs font-display text-lg font-semibold text-fg">
               {BRAND.tagline}
             </p>
             <p className="max-w-xs text-[0.88rem] leading-relaxed text-muted">
@@ -30,7 +30,7 @@ export function Footer() {
                   <a
                     href={social.href}
                     aria-label={social.label}
-                    className="grid size-11 place-items-center rounded-xl border border-white/10 bg-white/[0.02] text-muted transition-[color,border-color,transform] duration-300 ease-brand hover:-translate-y-0.5 hover:border-brand/40 hover:text-brand"
+                    className="grid size-11 place-items-center rounded-xl border border-edge/10 bg-edge/[0.02] text-muted transition-[color,border-color,transform] duration-300 ease-brand hover:-translate-y-0.5 hover:border-brand/40 hover:text-brand"
                   >
                     <SocialIcon name={social.icon} />
                   </a>
@@ -42,7 +42,7 @@ export function Footer() {
           {/* Link columns */}
           {FOOTER_COLUMNS.map((column) => (
             <nav key={column.title} aria-label={column.title}>
-              <h2 className="font-display text-[0.66rem] font-semibold tracking-[0.22em] text-white uppercase">
+              <h2 className="font-display text-[0.66rem] font-semibold tracking-[0.22em] text-fg uppercase">
                 {column.title}
               </h2>
               <ul className="mt-5 flex flex-col gap-3.5">
@@ -62,7 +62,7 @@ export function Footer() {
 
           {/* Sign-up prompt */}
           <div className="flex flex-col gap-5">
-            <h2 className="font-display text-[0.66rem] font-semibold tracking-[0.22em] text-white uppercase">
+            <h2 className="font-display text-[0.66rem] font-semibold tracking-[0.22em] text-fg uppercase">
               Get moving
             </h2>
             <p className="text-[0.9rem] leading-relaxed text-muted">
@@ -74,7 +74,7 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-14 flex flex-col gap-4 border-t border-white/8 pt-8 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-14 flex flex-col gap-4 border-t border-edge/8 pt-8 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-[0.82rem] text-muted">
             © 2026 HaulioCargo. All rights reserved.
           </p>

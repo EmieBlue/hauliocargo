@@ -9,7 +9,7 @@ import {
 } from "@/lib/validation";
 
 const STRENGTH_COPY: Record<PasswordStrength, { label: string; className: string }> = {
-  weak: { label: "Weak", className: "bg-white/25 w-1/3" },
+  weak: { label: "Weak", className: "bg-edge/25 w-1/3" },
   fair: { label: "Fair", className: "bg-brand/70 w-2/3" },
   strong: { label: "Strong", className: "bg-brand w-full" },
 };
@@ -20,9 +20,9 @@ export function PasswordRequirements({ value }: { value: string }) {
   const meter = STRENGTH_COPY[strength];
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-white/8 bg-white/[0.02] p-4">
+    <div className="flex flex-col gap-3 rounded-xl border border-edge/8 bg-edge/[0.02] p-4">
       <div className="flex flex-col gap-1.5">
-        <div className="h-1.5 overflow-hidden rounded-full bg-white/8">
+        <div className="h-1.5 overflow-hidden rounded-full bg-edge/8">
           <div
             className={cn("h-full rounded-full transition-all duration-300 ease-brand", meter.className)}
           />
@@ -40,7 +40,7 @@ export function PasswordRequirements({ value }: { value: string }) {
               key={rule.id}
               className={cn(
                 "flex items-center gap-1.5 text-[0.8rem] transition-colors duration-200",
-                met ? "text-white" : "text-muted",
+                met ? "text-fg" : "text-muted",
               )}
             >
               {met ? (

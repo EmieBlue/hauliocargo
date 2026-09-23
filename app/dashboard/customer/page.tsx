@@ -11,7 +11,7 @@ export default function CustomerDashboardPage() {
   return (
     <DashboardShell>
       <div className="max-w-lg">
-        <h1 className="text-[clamp(1.8rem,3.6vw,2.4rem)] font-extrabold tracking-[-0.02em] text-white">
+        <h1 className="text-[clamp(1.8rem,3.6vw,2.4rem)] font-extrabold tracking-[-0.02em] text-fg">
           Welcome to HaulioCargo
         </h1>
         <p className="mt-3 text-[0.95rem] leading-relaxed text-muted">

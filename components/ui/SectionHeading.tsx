@@ -59,7 +59,7 @@ export function SectionHeading({
         as="h2"
         className={cn(
           "text-[clamp(1.9rem,4.4vw,3rem)] leading-[1.08] text-balance",
-          light ? "text-black" : "text-white",
+          light ? "text-black" : "text-fg",
         )}
       >
         {title}

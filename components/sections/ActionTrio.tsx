@@ -2,6 +2,7 @@
 
 import { ArrowUpRight, Compass, MessageSquare, UserPlus } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { ROUTES, SECTION_IDS } from "@/lib/site";
 import type { SignupIntent } from "@/lib/supabase";
@@ -56,7 +57,7 @@ export function ActionTrio() {
   return (
     <section
       id={SECTION_IDS.getStarted}
-      className="relative scroll-mt-24 border-t border-white/6 py-20 md:py-28"
+      className="relative scroll-mt-24 border-t border-edge/6 py-20 md:py-28"
     >
       <div aria-hidden className="absolute inset-0 bg-ink-950/60" />
       <div className="container-page relative">
@@ -70,7 +71,7 @@ export function ActionTrio() {
                   </span>
 
                   <div className="flex flex-col gap-2.5">
-                    <h3 className="font-display text-xl font-bold text-white">{title}</h3>
+                    <h3 className="font-display text-xl font-bold text-fg">{title}</h3>
                     <p className="text-[0.94rem] leading-relaxed text-muted text-pretty">
                       {body}
                     </p>
@@ -120,8 +121,11 @@ function CardBody({
   }
 
   return (
-    <a href={href} className={shared}>
+    // `Link`, not a plain `<a>` — the Register card points at an internal
+    // route and a plain anchor would force a full hard reload there (see
+    // components/ui/Button.tsx for the same fix, same reasoning).
+    <Link href={href ?? "#"} className={shared}>
       {children}
-    </a>
+    </Link>
   );
 }

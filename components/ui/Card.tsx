@@ -46,7 +46,7 @@ export function Card({
           : undefined
       }
       className={cn(
-        "group/card relative isolate overflow-hidden rounded-2xl border border-white/8 bg-ink-950/90",
+        "group/card relative isolate overflow-hidden rounded-2xl border border-edge/8 bg-ink-950/90",
         "transition-[border-color,box-shadow,transform] duration-500 ease-brand",
         "hover:border-brand/35 hover:shadow-[0_28px_70px_-40px_rgba(255,170,0,0.55)]",
         className,
@@ -64,7 +64,7 @@ export function Card({
       {/* Top edge highlight — reads as a lit bevel */}
       <span
         aria-hidden
-        className="pointer-events-none absolute inset-x-6 top-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent"
+        className="pointer-events-none absolute inset-x-6 top-0 h-px bg-linear-to-r from-transparent via-edge/20 to-transparent"
       />
 
       {children}

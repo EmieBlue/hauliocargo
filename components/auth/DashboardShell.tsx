@@ -23,7 +23,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-svh flex-col bg-ink-950">
-      <header className="container-page flex h-20 items-center justify-between border-b border-white/6">
+      <header className="container-page flex h-20 items-center justify-between border-b border-edge/6">
         <Logo />
         <button
           type="button"
@@ -42,7 +42,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
 export function DashboardLoading() {
   return (
     <div className="grid min-h-svh place-items-center bg-ink-950">
-      <div className="size-8 animate-spin rounded-full border-2 border-white/15 border-t-brand" />
+      <div className="size-8 animate-spin rounded-full border-2 border-edge/15 border-t-brand" />
     </div>
   );
 }

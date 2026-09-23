@@ -46,7 +46,7 @@ export function SmartLoad() {
   return (
     <section
       id={SECTION_IDS.smartload}
-      className="relative scroll-mt-24 overflow-hidden border-t border-white/6 py-20 md:py-28"
+      className="relative scroll-mt-24 overflow-hidden border-t border-edge/6 py-20 md:py-28"
     >
       <div aria-hidden className="absolute inset-0 bg-ink-950/60" />
       <div
@@ -91,7 +91,7 @@ export function SmartLoad() {
                     <span className="font-display text-[0.6rem] font-semibold tracking-[0.22em] text-muted uppercase">
                       {step}
                     </span>
-                    <h3 className="font-display text-lg font-bold text-white">{title}</h3>
+                    <h3 className="font-display text-lg font-bold text-fg">{title}</h3>
                     <p className="text-[0.9rem] leading-relaxed text-muted text-pretty">
                       {body}
                     </p>

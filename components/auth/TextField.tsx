@@ -11,7 +11,7 @@ type TextFieldProps = InputHTMLAttributes<HTMLInputElement> & {
 
 /**
  * Labeled input, matching the styling `SignupDialog` already established
- * (`h-12`, `border-white/12`, `bg-ink-950`) rather than inventing a new look
+ * (`h-12`, `border-edge/12`, `bg-ink-950`) rather than inventing a new look
  * for auth specifically.
  */
 export function TextField({
@@ -40,13 +40,13 @@ export function TextField({
         aria-invalid={error ? true : undefined}
         aria-describedby={cn(hintId, errorId) || undefined}
         className={cn(
-          "h-12 rounded-xl border bg-ink-950 px-4 text-[0.95rem] text-white placeholder:text-muted/70 transition-colors duration-200 focus:outline-none",
+          "h-12 rounded-xl border bg-ink-950 px-4 text-[0.95rem] text-fg placeholder:text-muted/70 transition-colors duration-200 focus:outline-none",
           // No separate "error red" exists in this palette — one brand
           // yellow, per the colour-unification pass. Error state reads via
           // the message + a brighter border, not a different hue.
           error
             ? "border-brand focus:border-brand focus:ring-2 focus:ring-brand/25"
-            : "border-white/12 focus:border-brand/50 focus:ring-2 focus:ring-brand/25",
+            : "border-edge/12 focus:border-brand/50 focus:ring-2 focus:ring-brand/25",
           className,
         )}
         {...rest}

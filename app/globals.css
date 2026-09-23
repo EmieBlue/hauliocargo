@@ -22,6 +22,27 @@
   --color-mist: #e7e7ea;
   --color-muted: #9a9aa3;
 
+  /* Theme-aware stand-ins for literal white, used wherever a component means
+     "the readable text / subtle hairline colour for whatever surface this
+     is," not literally "white." Dark mode's values match what plain
+     `text-white`/`border-white` meant everywhere before these existed — a
+     handful of places (e.g. the permanently-black `Button` "dark" variant,
+     paired with the yellow navbar regardless of site theme) deliberately
+     keep using literal `text-white`/a fixed hex instead of these, and are
+     commented where they do. See the `[data-theme="light"]` block below for
+     the light-mode values. */
+  --color-fg: #ffffff;
+  --color-edge: #ffffff;
+
+  /* `text-brand-gradient`'s stops (below) — kept as their own variables,
+     separate from --color-brand, so changing that flat yellow can never
+     shift this gradient. Redefined for light mode (see the light block
+     above): the pale end of this ramp reads fine on the site's usual dark
+     backdrop but is too washed-out on a light one. */
+  --brand-gradient-1: #ffd75e;
+  --brand-gradient-2: #ffc02b;
+  --brand-gradient-3: #f5a302;
+
   /* Motion */
   --ease-brand: cubic-bezier(0.16, 1, 0.3, 1);
 
@@ -33,6 +54,36 @@
 @theme inline {
   --font-display: var(--font-sora);
   --font-sans: var(--font-inter);
+}
+
+/*
+ * Light theme — same token names, redefined. `dark` (no attribute) is the
+ * default and needs no block of its own; opting into light sets this
+ * attribute on <html>, done before paint (see the inline script in
+ * app/layout.tsx) so there's never a flash of the wrong theme.
+ *
+ * The surface ramp inverts role-for-role, not value-for-value: ink-950 is
+ * "the heaviest/primary surface" (page background, card fill) in either
+ * theme, so it's near-black in dark mode and near-white in light mode, and
+ * so on down the ramp. --color-brand is intentionally absent — the yellow
+ * doesn't change per theme.
+ */
+[data-theme="light"] {
+  --color-ink-950: #ffffff;
+  --color-ink-900: #f4f4f6;
+  --color-ink-850: #ececee;
+  --color-ink-800: #e2e2e5;
+  --color-ink-700: #cfcfd4;
+
+  --color-mist: #3f3f46;
+  --color-muted: #6b6b74;
+
+  --color-fg: #0a0a0b;
+  --color-edge: #0a0a0b;
+
+  --brand-gradient-1: #b8790a;
+  --brand-gradient-2: #9c6300;
+  --brand-gradient-3: #6e4600;
 }
 
 @keyframes scan {
@@ -220,17 +271,18 @@ body[data-scroll-locked="true"] {
 }
 
 /*
- * Yellow gradient text used on accent words. Stops are hardcoded rather than
- * reading --color-brand, deliberately: --color-brand became the flat #ffaa00
- * used everywhere else, and this gradient must stay exactly as it already
- * looks regardless of that.
+ * Yellow gradient text used on accent words. Stops read their own
+ * --brand-gradient-N variables (declared in @theme above, with a light-mode
+ * override) rather than --color-brand, deliberately: --color-brand is the
+ * flat #ffaa00 used everywhere else, and this gradient's own look (and its
+ * per-theme tuning) must never be coupled to that.
  */
 @utility text-brand-gradient {
   background-image: linear-gradient(
     100deg,
-    #ffd75e 0%,
-    #ffc02b 45%,
-    #f5a302 100%
+    var(--brand-gradient-1) 0%,
+    var(--brand-gradient-2) 45%,
+    var(--brand-gradient-3) 100%
   );
   background-clip: text;
   -webkit-background-clip: text;

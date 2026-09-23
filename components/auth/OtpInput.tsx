@@ -80,10 +80,10 @@ export function OtpInput({
             aria-label={`Digit ${index + 1} of ${LENGTH}`}
             aria-invalid={error ? true : undefined}
             className={cn(
-              "h-14 w-full max-w-14 rounded-xl border bg-ink-950 text-center font-display text-xl font-bold text-white transition-colors duration-200 focus:outline-none",
+              "h-14 w-full max-w-14 rounded-xl border bg-ink-950 text-center font-display text-xl font-bold text-fg transition-colors duration-200 focus:outline-none",
               error
                 ? "border-brand focus:border-brand focus:ring-2 focus:ring-brand/25"
-                : "border-white/12 focus:border-brand/50 focus:ring-2 focus:ring-brand/25",
+                : "border-edge/12 focus:border-brand/50 focus:ring-2 focus:ring-brand/25",
             )}
           />
         ))}

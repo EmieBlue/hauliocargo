@@ -32,7 +32,7 @@ export function Checkbox({
         />
         <span
           aria-hidden
-          className="grid size-5 place-items-center rounded-md border border-white/20 bg-ink-950 transition-colors duration-200 peer-checked:border-brand peer-checked:bg-brand peer-focus-visible:ring-2 peer-focus-visible:ring-brand/40"
+          className="grid size-5 place-items-center rounded-md border border-edge/20 bg-ink-950 transition-colors duration-200 peer-checked:border-brand peer-checked:bg-brand peer-focus-visible:ring-2 peer-focus-visible:ring-brand/40"
         >
           {/*
            * Driven by the `checked` prop directly, not a `peer-checked`

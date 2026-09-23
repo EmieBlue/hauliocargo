@@ -93,7 +93,7 @@ export function MobileMenu({
               type="button"
               onClick={onClose}
               aria-label="Close menu"
-              className="grid size-12 place-items-center rounded-xl border border-white/10 text-mist transition-colors duration-300 hover:border-brand/40 hover:text-brand"
+              className="grid size-12 place-items-center rounded-xl border border-edge/10 text-mist transition-colors duration-300 hover:border-brand/40 hover:text-brand"
             >
               <X className="size-5" aria-hidden />
             </button>
@@ -107,12 +107,12 @@ export function MobileMenu({
                   initial={{ opacity: 0, x: -24 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.06 + index * 0.055, duration: 0.5, ease: EASE }}
-                  className="border-b border-white/8"
+                  className="border-b border-edge/8"
                 >
                   <a
                     href={link.href}
                     onClick={onClose}
-                    className="flex min-h-16 items-center font-display text-2xl font-semibold text-white transition-colors duration-300 hover:text-brand"
+                    className="flex min-h-16 items-center font-display text-2xl font-semibold text-fg transition-colors duration-300 hover:text-brand"
                   >
                     {link.label}
                   </a>

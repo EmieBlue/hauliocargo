@@ -41,7 +41,7 @@ export function RoleCard({
           <Icon className="size-6" aria-hidden />
         </span>
         <div className="flex flex-col gap-1.5">
-          <h3 className="font-display text-lg font-bold text-white">{title}</h3>
+          <h3 className="font-display text-lg font-bold text-fg">{title}</h3>
           <p className="text-[0.9rem] leading-relaxed text-muted">{body}</p>
         </div>
       </button>

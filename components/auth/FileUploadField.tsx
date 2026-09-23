@@ -35,7 +35,7 @@ export function FileUploadField({
         <span
           className={cn(
             "rounded-full px-2 py-0.5 text-[0.6rem] font-semibold tracking-[0.06em] normal-case",
-            required ? "bg-brand/15 text-brand" : "bg-white/8 text-muted",
+            required ? "bg-brand/15 text-brand" : "bg-edge/8 text-muted",
           )}
         >
           {required ? "Required" : "Optional"}
@@ -56,7 +56,7 @@ export function FileUploadField({
         onClick={() => inputRef.current?.click()}
         className={cn(
           "flex cursor-pointer items-center gap-3 rounded-xl border border-dashed bg-ink-950 px-4 py-3.5 transition-colors duration-200",
-          dragOver ? "border-brand bg-brand/[0.04]" : "border-white/15 hover:border-white/30",
+          dragOver ? "border-brand bg-brand/[0.04]" : "border-edge/15 hover:border-edge/30",
         )}
       >
         <input
@@ -71,7 +71,7 @@ export function FileUploadField({
         {fileName ? (
           <>
             <CheckCircle2 className="size-4 shrink-0 text-brand" aria-hidden />
-            <span className="truncate text-[0.85rem] text-white">{fileName}</span>
+            <span className="truncate text-[0.85rem] text-fg">{fileName}</span>
           </>
         ) : (
           <>

@@ -106,13 +106,13 @@ function Panel({
         exit={{ opacity: 0, y: 10, scale: 0.98 }}
         transition={{ duration: 0.4, ease: EASE }}
         onClick={(event) => event.stopPropagation()}
-        className="relative w-full max-w-md rounded-2xl border border-white/12 bg-ink-900 p-7 md:p-8"
+        className="relative w-full max-w-md rounded-2xl border border-edge/12 bg-ink-900 p-7 md:p-8"
       >
         <button
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="absolute top-4 right-4 grid size-9 place-items-center rounded-lg text-muted transition-colors duration-200 hover:bg-white/6 hover:text-white"
+          className="absolute top-4 right-4 grid size-9 place-items-center rounded-lg text-muted transition-colors duration-200 hover:bg-edge/6 hover:text-fg"
         >
           <X className="size-4" aria-hidden />
         </button>
@@ -130,7 +130,7 @@ function Panel({
           <>
             <h2
               id={`${inputId}-title`}
-              className="font-display text-2xl font-bold text-white"
+              className="font-display text-2xl font-bold text-fg"
             >
               {copy.title}
             </h2>
@@ -151,7 +151,7 @@ function Panel({
                   onChange={(event) => setEmail(event.target.value)}
                   placeholder="you@example.com"
                   autoComplete="email"
-                  className="h-12 rounded-xl border border-white/12 bg-ink-950 px-4 text-[0.95rem] text-white placeholder:text-muted/70 focus:border-brand/50 focus:ring-2 focus:ring-brand/25 focus:outline-none"
+                  className="h-12 rounded-xl border border-edge/12 bg-ink-950 px-4 text-[0.95rem] text-fg placeholder:text-muted/70 focus:border-brand/50 focus:ring-2 focus:ring-brand/25 focus:outline-none"
                 />
                 <Button type="submit" variant="primary" className="w-full">
                   {state === "sending" ? (
@@ -172,7 +172,7 @@ function Panel({
                 ) : null}
               </form>
             ) : (
-              <p className="mt-6 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3.5 text-[0.88rem] leading-relaxed text-muted">
+              <p className="mt-6 rounded-xl border border-edge/10 bg-edge/[0.03] px-4 py-3.5 text-[0.88rem] leading-relaxed text-muted">
                 The sign-up list is not connected yet — check back shortly.
               </p>
             )}

@@ -8,8 +8,10 @@ import { AuthVisual } from "@/components/three/AuthVisual";
 import { VideoBackdrop } from "@/components/layout/VideoBackdrop";
 import { Card } from "@/components/ui/Card";
 import { Logo } from "@/components/ui/Logo";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { riseIn, staggerParent } from "@/lib/motion";
 import { ROUTES } from "@/lib/site";
+import { useScrolled } from "@/lib/useScrolled";
 import { cn } from "@/lib/cn";
 
 /**
@@ -53,23 +55,41 @@ export function AuthShell({
   /** Horizontal placement of the content column when not `visual`. */
   align?: "center" | "left";
 }) {
+  const scrolled = useScrolled();
+
   return (
     <div className="relative flex min-h-svh flex-col overflow-hidden">
       <VideoBackdrop />
 
-      <header className="container-page relative flex h-20 shrink-0 items-center justify-between">
-        <Link href={ROUTES.homePage} className="shrink-0 transition-opacity duration-300 hover:opacity-85">
-          <Logo />
-        </Link>
-        {backHref ? (
-          <Link
-            href={backHref}
-            className="inline-flex items-center gap-1.5 font-display text-[0.72rem] font-semibold tracking-[0.08em] text-mist uppercase transition-colors duration-200 hover:text-brand"
-          >
-            <ArrowLeft className="size-3.5" aria-hidden />
-            {backLabel}
+      {/* Sticky, not `fixed` like the home navbar — keeps today's non-overlapping
+       * top-of-page layout on every auth screen exactly as it is, but pins it
+       * and swaps to the same yellow-on-scroll treatment once scrolled. */}
+      <header
+        className={cn(
+          "sticky top-0 z-60 shrink-0 transition-colors duration-500 ease-brand",
+          scrolled ? "bg-brand" : "bg-transparent",
+        )}
+      >
+        <div className="container-page relative flex h-20 items-center justify-between gap-3">
+          <Link href={ROUTES.homePage} className="shrink-0 transition-opacity duration-300 hover:opacity-85">
+            <Logo dark={scrolled} />
           </Link>
-        ) : null}
+          <div className="flex items-center gap-4">
+            {backHref ? (
+              <Link
+                href={backHref}
+                className={cn(
+                  "inline-flex items-center gap-1.5 font-display text-[0.72rem] font-semibold tracking-[0.08em] uppercase transition-colors duration-200",
+                  scrolled ? "text-black/70 hover:text-black" : "text-mist hover:text-brand",
+                )}
+              >
+                <ArrowLeft className="size-3.5" aria-hidden />
+                {backLabel}
+              </Link>
+            ) : null}
+            <ThemeToggle dark={scrolled} />
+          </div>
+        </div>
       </header>
 
       <div
@@ -111,7 +131,7 @@ export function AuthShell({
 
                 <motion.h1
                   variants={riseIn}
-                  className="mt-5 text-[clamp(2rem,4.4vw,2.7rem)] leading-[1.04] font-extrabold tracking-[-0.02em] text-white"
+                  className="mt-5 text-[clamp(2rem,4.4vw,2.7rem)] leading-[1.04] font-extrabold tracking-[-0.02em] text-fg"
                 >
                   {title}
                 </motion.h1>

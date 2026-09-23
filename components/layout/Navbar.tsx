@@ -10,6 +10,7 @@ import { NAV_LINKS, ROUTES } from "@/lib/site";
 import { useScrolled } from "@/lib/useScrolled";
 import { Button } from "@/components/ui/Button";
 import { Logo } from "@/components/ui/Logo";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { MobileMenu } from "./MobileMenu";
 
 export function Navbar() {
@@ -47,7 +48,7 @@ export function Navbar() {
                     href={link.href}
                     className={cn(
                       "group relative inline-flex h-11 items-center px-3.5 text-[0.86rem] font-medium transition-colors duration-300",
-                      scrolled ? "text-black/70 hover:text-black" : "text-mist hover:text-white",
+                      scrolled ? "text-black/70 hover:text-black" : "text-mist hover:text-fg",
                     )}
                   >
                     {link.label}
@@ -87,6 +88,8 @@ export function Navbar() {
               </Button>
             </span>
 
+            <ThemeToggle dark={scrolled} />
+
             <button
               type="button"
               onClick={() => setMenuOpen(true)}
@@ -96,7 +99,7 @@ export function Navbar() {
                 "grid size-12 place-items-center rounded-xl border transition-colors duration-300 lg:hidden",
                 scrolled
                   ? "border-black/15 bg-black/5 text-black/70 hover:border-black/30 hover:text-black"
-                  : "border-white/10 bg-white/[0.03] text-mist hover:border-brand/40 hover:text-brand",
+                  : "border-edge/10 bg-edge/[0.03] text-mist hover:border-brand/40 hover:text-brand",
               )}
             >
               <Menu className="size-5" aria-hidden />

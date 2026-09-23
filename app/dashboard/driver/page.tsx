@@ -40,7 +40,7 @@ export default function DriverDashboardPage() {
           <Icon className="size-3" aria-hidden />
           {copy.label}
         </Badge>
-        <h1 className="mt-5 text-[clamp(1.8rem,3.6vw,2.4rem)] font-extrabold tracking-[-0.02em] text-white">
+        <h1 className="mt-5 text-[clamp(1.8rem,3.6vw,2.4rem)] font-extrabold tracking-[-0.02em] text-fg">
           {status === "pending" ? "Application Submitted" : "Your Driver Account"}
         </h1>
         <p className="mt-3 text-[0.95rem] leading-relaxed text-muted">{copy.body}</p>

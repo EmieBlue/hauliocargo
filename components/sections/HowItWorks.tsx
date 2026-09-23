@@ -11,7 +11,7 @@ export function HowItWorks() {
   return (
     <section
       id={SECTION_IDS.howItWorks}
-      className="relative scroll-mt-24 border-t border-white/6 py-20 md:py-28"
+      className="relative scroll-mt-24 border-t border-edge/6 py-20 md:py-28"
     >
       <div aria-hidden className="absolute inset-0 bg-ink-950/60" />
       <div className="container-page relative">
@@ -49,7 +49,7 @@ export function HowItWorks() {
                       <span className="font-display text-[0.62rem] font-semibold tracking-[0.22em] text-brand uppercase">
                         Step {step.number}
                       </span>
-                      <h3 className="font-display text-xl font-bold text-white">
+                      <h3 className="font-display text-xl font-bold text-fg">
                         {step.title}
                       </h3>
                       <p className="text-[0.94rem] leading-relaxed text-muted text-pretty">

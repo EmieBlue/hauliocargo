@@ -44,7 +44,7 @@ export function Hero() {
         >
           <motion.span
             variants={riseIn}
-            className="inline-flex items-center gap-2.5 rounded-full border border-white/12 bg-white/[0.04] px-4 py-2 font-display text-[0.63rem] font-semibold tracking-[0.2em] text-mist uppercase backdrop-blur-sm"
+            className="inline-flex items-center gap-2.5 rounded-full border border-edge/12 bg-edge/[0.04] px-4 py-2 font-display text-[0.63rem] font-semibold tracking-[0.2em] text-mist uppercase backdrop-blur-sm"
           >
             <Truck className="size-3.5 text-brand" aria-hidden />
             Smart cargo &amp; truck booking
@@ -54,7 +54,7 @@ export function Hero() {
             variants={riseIn}
             className="mt-7 text-[clamp(2.6rem,7.6vw,4.6rem)] leading-[0.97] font-extrabold tracking-[-0.035em]"
           >
-            <span className="block text-white">{BRAND.heroLead}</span>
+            <span className="block text-fg">{BRAND.heroLead}</span>
             <span className="block text-brand-gradient">{BRAND.heroAccent}</span>
           </motion.h1>
 
@@ -91,7 +91,7 @@ export function Hero() {
         <span className="font-display text-[0.58rem] font-semibold tracking-[0.26em] uppercase">
           Scroll
         </span>
-        <span className="relative h-10 w-px overflow-hidden bg-white/15">
+        <span className="relative h-10 w-px overflow-hidden bg-edge/15">
           <motion.span
             className="absolute inset-x-0 top-0 h-4 bg-brand"
             animate={{ y: [-16, 40] }}

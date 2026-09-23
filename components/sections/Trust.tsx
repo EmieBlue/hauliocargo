@@ -17,7 +17,7 @@ export function Trust() {
   return (
     <section
       id={SECTION_IDS.about}
-      className="relative scroll-mt-24 overflow-hidden border-t border-white/6 py-20 md:py-28"
+      className="relative scroll-mt-24 overflow-hidden border-t border-edge/6 py-20 md:py-28"
     >
       <div aria-hidden className="absolute inset-0 bg-ink-950/60" />
       <div
@@ -55,7 +55,7 @@ export function Trust() {
                     <span className="grid size-14 place-items-center rounded-2xl bg-brand text-black transition-[filter] duration-500 group-hover/card:brightness-110">
                       <Icon className="size-6" aria-hidden />
                     </span>
-                    <h3 className="font-display text-base font-bold text-white">
+                    <h3 className="font-display text-base font-bold text-fg">
                       {point.title}
                     </h3>
                     <p className="max-w-xs text-[0.88rem] leading-relaxed text-muted text-pretty">
