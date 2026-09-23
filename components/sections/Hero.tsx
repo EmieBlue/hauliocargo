@@ -24,9 +24,12 @@ export function Hero() {
       {/* Starts at the very top of the section — the same line the fixed
        * topbar itself sits on — not partway down. Fades in on scroll, in
        * step with the navbar's own color change, rather than sitting there
-       * from the first paint. */}
+       * from the first paint. Pinned dark regardless of site theme (same
+       * `[data-theme="dark"]` mechanism as Footer.tsx and CargoScene's
+       * cards) — confirmed this one specifically should never lighten. */}
       <div
         aria-hidden
+        data-theme="dark"
         className={cn(
           "absolute inset-0 bg-ink-950/60 transition-opacity duration-500",
           scrolled ? "opacity-100" : "opacity-0",
