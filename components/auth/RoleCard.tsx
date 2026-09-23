@@ -34,14 +34,10 @@ export function RoleCard({
         data-testid={testId}
         className="flex w-full flex-col items-center gap-4 p-7 text-center md:p-8"
       >
-        <span
-          className={cn(
-            "grid size-14 place-items-center rounded-2xl border transition-colors duration-300",
-            selected
-              ? "border-brand/40 bg-brand text-black"
-              : "border-white/10 bg-ink-850 text-brand",
-          )}
-        >
+        {/* Yellow chip, black icon — same rule as every other icon chip on
+         * the site, regardless of `selected` (currently always `false` here,
+         * both cards are plain navigation, not a real selection). */}
+        <span className="grid size-14 place-items-center rounded-2xl border border-brand/40 bg-brand text-black">
           <Icon className="size-6" aria-hidden />
         </span>
         <div className="flex flex-col gap-1.5">

@@ -76,7 +76,6 @@ function RegisterContent() {
       subtitle={copy.subtitle}
       backHref={role ? ROUTES.register : ROUTES.homePage}
       wide={role !== null}
-      formCard={role !== null}
       align={role !== null ? "left" : "center"}
     >
       {!role ? (
