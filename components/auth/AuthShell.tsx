@@ -68,7 +68,7 @@ export function AuthShell({
        * compensate for the header no longer taking up flow space. */}
       <header
         className={cn(
-          "fixed inset-x-0 top-0 z-60 transition-colors duration-500 ease-brand",
+          "fixed inset-x-0 top-0 z-60 transition-colors duration-150 ease-brand",
           scrolled ? "bg-brand" : "bg-transparent",
         )}
       >

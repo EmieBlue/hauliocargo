@@ -1,9 +1,13 @@
+"use client";
+
 import { Boxes, Building2, Hammer, Sofa } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { CARGO_CATEGORIES, SECTION_IDS } from "@/lib/site";
 import { Card } from "@/components/ui/Card";
 import { RevealGroup, RevealItem } from "@/components/ui/Reveal";
 import { SectionHeading } from "@/components/ui/SectionHeading";
+import { useTheme } from "@/lib/useTheme";
+import { cn } from "@/lib/cn";
 
 const CATEGORY_ICONS: LucideIcon[] = [Boxes, Sofa, Building2, Hammer];
 
@@ -12,6 +16,8 @@ const CATEGORY_ICONS: LucideIcon[] = [Boxes, Sofa, Building2, Hammer];
  * HaulioCargo actually moves.
  */
 export function CargoScene() {
+  const [theme] = useTheme();
+
   return (
     <section
       id={SECTION_IDS.services}
@@ -47,19 +53,32 @@ export function CargoScene() {
               const Icon = CATEGORY_ICONS[index];
               return (
                 <RevealItem key={category.title}>
-                  <Card className="h-full" tilt={false}>
-                    <div className="flex h-full flex-col gap-3.5 p-6">
-                      <span className="grid size-12 place-items-center rounded-xl bg-brand text-black">
-                        <Icon className="size-5" aria-hidden />
-                      </span>
-                      <h3 className="font-display text-base font-bold text-fg">
-                        {category.title}
-                      </h3>
-                      <p className="text-[0.88rem] leading-relaxed text-muted text-pretty">
-                        {category.body}
-                      </p>
-                    </div>
-                  </Card>
+                  {/* Pinned dark regardless of site theme — see the
+                   * `[data-theme="dark"]` block in app/globals.css (same
+                   * mechanism Footer.tsx uses). */}
+                  <div data-theme="dark" className="h-full">
+                    <Card className="h-full" tilt={false}>
+                      <div className="flex h-full flex-col gap-3.5 p-6">
+                        <span
+                          className={cn(
+                            "grid size-12 place-items-center rounded-xl bg-brand",
+                            // Deliberately theme-driven, unlike every other
+                            // yellow-chip icon on the site (which stay
+                            // black-on-yellow always) — confirmed request.
+                            theme === "light" ? "text-white" : "text-black",
+                          )}
+                        >
+                          <Icon className="size-5" aria-hidden />
+                        </span>
+                        <h3 className="font-display text-base font-bold text-fg">
+                          {category.title}
+                        </h3>
+                        <p className="text-[0.88rem] leading-relaxed text-muted text-pretty">
+                          {category.body}
+                        </p>
+                      </div>
+                    </Card>
+                  </div>
                 </RevealItem>
               );
             })}
