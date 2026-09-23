@@ -86,6 +86,34 @@
   --brand-gradient-3: #6e4600;
 }
 
+/*
+ * Re-states the plain @theme (dark) defaults under the same attribute name,
+ * which looks redundant at the root — dark is already what no attribute
+ * means — but is what lets one element opt back OUT of an ambient light
+ * theme. Custom properties inherit down the DOM, so `<html data-theme="light">`
+ * with no matching rule on a descendant just keeps inheriting light; a
+ * descendant that sets `data-theme="dark"` on itself needs this rule to
+ * actually re-pin its subtree back to dark (see `Footer`, which always stays
+ * dark regardless of site theme, deliberately, per the brief).
+ */
+[data-theme="dark"] {
+  --color-ink-950: #050505;
+  --color-ink-900: #0a0a0b;
+  --color-ink-850: #111113;
+  --color-ink-800: #17171a;
+  --color-ink-700: #232328;
+
+  --color-mist: #e7e7ea;
+  --color-muted: #9a9aa3;
+
+  --color-fg: #ffffff;
+  --color-edge: #ffffff;
+
+  --brand-gradient-1: #ffd75e;
+  --brand-gradient-2: #ffc02b;
+  --brand-gradient-3: #f5a302;
+}
+
 @keyframes scan {
   0%,
   100% {

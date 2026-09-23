@@ -61,12 +61,14 @@ export function AuthShell({
     <div className="relative flex min-h-svh flex-col overflow-hidden">
       <VideoBackdrop />
 
-      {/* Sticky, not `fixed` like the home navbar — keeps today's non-overlapping
-       * top-of-page layout on every auth screen exactly as it is, but pins it
-       * and swaps to the same yellow-on-scroll treatment once scrolled. */}
+      {/* `fixed`, matching Navbar.tsx exactly — `sticky` looked right in
+       * Chromium testing but doesn't actually stick in WebKit/Safari inside
+       * this wrapper's `overflow-hidden` (confirmed live: the header just
+       * scrolls away with the page). The content below adds top padding to
+       * compensate for the header no longer taking up flow space. */}
       <header
         className={cn(
-          "sticky top-0 z-60 shrink-0 transition-colors duration-500 ease-brand",
+          "fixed inset-x-0 top-0 z-60 transition-colors duration-500 ease-brand",
           scrolled ? "bg-brand" : "bg-transparent",
         )}
       >
@@ -94,7 +96,8 @@ export function AuthShell({
 
       <div
         className={cn(
-          "container-page flex flex-1 flex-col py-8 lg:py-16",
+          // pt- clears the now-fixed header (h-20 = 80px); pb- unchanged.
+          "container-page flex flex-1 flex-col pt-28 pb-8 lg:pt-32 lg:pb-16",
           visual
             ? "lg:grid lg:grid-cols-2 lg:items-center lg:gap-12"
             : cn("justify-center", align === "left" ? "items-stretch" : "items-center"),

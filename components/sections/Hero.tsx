@@ -21,15 +21,14 @@ export function Hero() {
       id={SECTION_IDS.home}
       className="relative flex min-h-[100svh] flex-col overflow-hidden"
     >
-      {/* Panel starts partway down, roughly level with the badge below — the
-       * sky/navbar area above it stays clear video, matching the request to
-       * start "from where the badge is," not the very top of the section.
-       * Fades in on scroll, in step with the navbar's own color change,
-       * rather than sitting there from the first paint. */}
+      {/* Starts at the very top of the section — the same line the fixed
+       * topbar itself sits on — not partway down. Fades in on scroll, in
+       * step with the navbar's own color change, rather than sitting there
+       * from the first paint. */}
       <div
         aria-hidden
         className={cn(
-          "absolute inset-x-0 top-28 bottom-0 bg-ink-950/60 transition-opacity duration-500 md:top-64",
+          "absolute inset-0 bg-ink-950/60 transition-opacity duration-500",
           scrolled ? "opacity-100" : "opacity-0",
         )}
       />

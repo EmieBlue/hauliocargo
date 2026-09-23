@@ -5,7 +5,9 @@ import { SocialIcon } from "@/components/ui/SocialIcon";
 
 export function Footer() {
   return (
-    <footer className="relative overflow-hidden border-t border-edge/8 bg-ink-900">
+    // Always the dark look, regardless of the site's light/dark theme —
+    // see the `[data-theme="dark"]` block in app/globals.css.
+    <footer data-theme="dark" className="relative overflow-hidden border-t border-edge/8 bg-ink-900">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-brand/40 to-transparent"
