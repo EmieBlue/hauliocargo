@@ -24,7 +24,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-/** False until both env vars are set, in `.env.local` and in Netlify. */
+/** False until both env vars are set, in `.env.local` and in the host's project settings. */
 export const signupsEnabled = Boolean(url && anonKey);
 /** Same underlying check, named for where auth code reads it. */
 export const authEnabled = signupsEnabled;
