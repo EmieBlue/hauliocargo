@@ -1,8 +1,8 @@
 # Deploying HaulioCargo
 
 The landing page is a **static export** — `next build` emits plain files into
-`out/`, and Netlify serves them straight from its CDN. There is no Next.js
-runtime and no serverless function involved.
+`out/`, served straight from the host's CDN. There is no Next.js runtime and
+no serverless function involved, so any static host works.
 
 > When registration or booking needs a server, remove `output: "export"` from
 > `next.config.ts`. `next build` fails loudly if a server feature is added while
@@ -20,7 +20,22 @@ git remote add origin https://github.com/<you>/hauliocargo.git
 git push -u origin master
 ```
 
-## 2. Connect Netlify
+## 2. Connect a host
+
+**Currently deployed on Vercel** (moved from Netlify, which paused production
+deploys after exhausting its free plan's included build credits — Vercel's
+free tier does the same "push to `main`, it's live" job).
+
+### Vercel
+
+**Add New → Project → import from GitHub**, pick the repo. Vercel auto-detects
+Next.js and needs no build-command/output-directory changes. Before the first
+deploy, add the two environment variables from step 3 below under **Settings →
+Environment Variables**. `vercel.json` carries the same cache/security header
+rules `netlify.toml` has, translated to Vercel's syntax. The site goes live at
+`<name>.vercel.app`; every push to `main` redeploys automatically.
+
+### Netlify (kept working, not actively used)
 
 **Add new site → Import an existing project → GitHub**, pick the repo. The
 settings come from `netlify.toml` and should need no editing:
@@ -73,8 +88,9 @@ NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 ```
 
-On Netlify, the same two under **Site configuration → Environment variables**,
-then trigger a redeploy so the build picks them up.
+On the host, the same two under its own environment-variables settings
+(Vercel: **Settings → Environment Variables**; Netlify: **Site configuration →
+Environment variables**), then trigger a redeploy so the build picks them up.
 
 The `anon` key is designed to be public — it identifies the project and grants
 nothing on its own. Row-level security is what protects the table. The
