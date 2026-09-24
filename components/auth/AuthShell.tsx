@@ -61,6 +61,20 @@ export function AuthShell({
     <div className="relative flex min-h-svh flex-col overflow-hidden">
       <VideoBackdrop />
 
+      {/* Same scroll-in dark panel Hero.tsx has on the home page — invisible
+       * at rest, fades in once scrolling starts, pinned dark regardless of
+       * site theme. The root wrapper is sized to the whole page (not just
+       * one viewport), so `inset-0` here covers a long form all the way
+       * down, not just the first screen. */}
+      <div
+        aria-hidden
+        data-theme="dark"
+        className={cn(
+          "absolute inset-0 bg-ink-950/60 transition-opacity duration-500",
+          scrolled ? "opacity-100" : "opacity-0",
+        )}
+      />
+
       {/* `fixed`, matching Navbar.tsx exactly — `sticky` looked right in
        * Chromium testing but doesn't actually stick in WebKit/Safari inside
        * this wrapper's `overflow-hidden` (confirmed live: the header just
