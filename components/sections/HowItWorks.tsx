@@ -1,19 +1,25 @@
+"use client";
+
 import { Camera, ClipboardCheck, Truck } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { HOW_IT_WORKS_STEPS, SECTION_IDS } from "@/lib/site";
 import { Card } from "@/components/ui/Card";
 import { RevealGroup, RevealItem } from "@/components/ui/Reveal";
 import { SectionHeading } from "@/components/ui/SectionHeading";
+import { useTheme } from "@/lib/useTheme";
+import { cn } from "@/lib/cn";
 
 const STEP_ICONS: LucideIcon[] = [Camera, ClipboardCheck, Truck];
 
 export function HowItWorks() {
+  const [theme] = useTheme();
+
   return (
     <section
       id={SECTION_IDS.howItWorks}
       className="relative scroll-mt-24 border-t border-edge/6 py-20 md:py-28"
     >
-      <div aria-hidden className="absolute inset-0 bg-ink-950/60" />
+      <div aria-hidden data-theme="dark" className="absolute inset-0 bg-ink-950/60" />
       <div className="container-page relative">
         <SectionHeading
           eyebrow="How it works"
@@ -41,7 +47,12 @@ export function HowItWorks() {
                       {step.number}
                     </span>
 
-                    <span className="relative grid size-12 place-items-center rounded-xl bg-brand text-black">
+                    <span
+                      className={cn(
+                        "relative grid size-12 place-items-center rounded-xl bg-brand",
+                        theme === "light" ? "text-white" : "text-black",
+                      )}
+                    >
                       <Icon className="size-5" aria-hidden />
                     </span>
 

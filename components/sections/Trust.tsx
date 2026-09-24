@@ -1,9 +1,13 @@
+"use client";
+
 import { BadgeCheck, MapPin, Receipt, ShieldCheck } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { BRAND, SECTION_IDS, TRUST_POINTS } from "@/lib/site";
 import { Card } from "@/components/ui/Card";
 import { RevealGroup, RevealItem } from "@/components/ui/Reveal";
 import { SectionHeading } from "@/components/ui/SectionHeading";
+import { useTheme } from "@/lib/useTheme";
+import { cn } from "@/lib/cn";
 
 const TRUST_ICONS: LucideIcon[] = [BadgeCheck, Receipt, MapPin, ShieldCheck];
 
@@ -14,12 +18,14 @@ const TRUST_ICONS: LucideIcon[] = [BadgeCheck, Receipt, MapPin, ShieldCheck];
  * are no driver counts or delivery totals to quote.
  */
 export function Trust() {
+  const [theme] = useTheme();
+
   return (
     <section
       id={SECTION_IDS.about}
       className="relative scroll-mt-24 overflow-hidden border-t border-edge/6 py-20 md:py-28"
     >
-      <div aria-hidden className="absolute inset-0 bg-ink-950/60" />
+      <div aria-hidden data-theme="dark" className="absolute inset-0 bg-ink-950/60" />
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 opacity-60"
@@ -52,7 +58,12 @@ export function Trust() {
               <RevealItem key={point.title}>
                 <Card className="h-full">
                   <div className="flex h-full flex-col items-center gap-3.5 p-6 text-center">
-                    <span className="grid size-14 place-items-center rounded-2xl bg-brand text-black transition-[filter] duration-500 group-hover/card:brightness-110">
+                    <span
+                      className={cn(
+                        "grid size-14 place-items-center rounded-2xl bg-brand transition-[filter] duration-500 group-hover/card:brightness-110",
+                        theme === "light" ? "text-white" : "text-black",
+                      )}
+                    >
                       <Icon className="size-6" aria-hidden />
                     </span>
                     <h3 className="font-display text-base font-bold text-fg">

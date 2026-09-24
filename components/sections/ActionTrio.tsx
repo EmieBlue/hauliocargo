@@ -9,6 +9,8 @@ import type { SignupIntent } from "@/lib/supabase";
 import { Card } from "@/components/ui/Card";
 import { RevealGroup, RevealItem } from "@/components/ui/Reveal";
 import { SignupDialog } from "@/components/ui/SignupDialog";
+import { useTheme } from "@/lib/useTheme";
+import { cn } from "@/lib/cn";
 
 type Action = {
   id?: string;
@@ -53,20 +55,26 @@ const ACTIONS: Action[] = [
  */
 export function ActionTrio() {
   const [intent, setIntent] = useState<SignupIntent | null>(null);
+  const [theme] = useTheme();
 
   return (
     <section
       id={SECTION_IDS.getStarted}
       className="relative scroll-mt-24 border-t border-edge/6 py-20 md:py-28"
     >
-      <div aria-hidden className="absolute inset-0 bg-ink-950/60" />
+      <div aria-hidden data-theme="dark" className="absolute inset-0 bg-ink-950/60" />
       <div className="container-page relative">
         <RevealGroup className="grid gap-5 md:grid-cols-3" stagger={0.12}>
           {ACTIONS.map(({ id, icon: Icon, title, body, cta, href, intent: cardIntent }) => (
             <RevealItem key={title} id={id} className="scroll-mt-28">
               <Card className="h-full">
                 <CardBody href={href} onOpen={cardIntent ? () => setIntent(cardIntent) : undefined}>
-                  <span className="grid size-12 place-items-center rounded-xl bg-brand text-black transition-[filter] duration-500 group-hover/card:brightness-110">
+                  <span
+                    className={cn(
+                      "grid size-12 place-items-center rounded-xl bg-brand transition-[filter] duration-500 group-hover/card:brightness-110",
+                      theme === "light" ? "text-white" : "text-black",
+                    )}
+                  >
                     <Icon className="size-5" aria-hidden />
                   </span>
 

@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { RevealGroup, RevealItem } from "@/components/ui/Reveal";
 import { SectionHeading } from "@/components/ui/SectionHeading";
+import { useTheme } from "@/lib/useTheme";
+import { cn } from "@/lib/cn";
 
 type Node = {
   icon: LucideIcon;
@@ -43,12 +45,14 @@ const NODES: Node[] = [
  * SmartLoad is labelled COMING SOON precisely because it has not been built.
  */
 export function SmartLoad() {
+  const [theme] = useTheme();
+
   return (
     <section
       id={SECTION_IDS.smartload}
       className="relative scroll-mt-24 overflow-hidden border-t border-edge/6 py-20 md:py-28"
     >
-      <div aria-hidden className="absolute inset-0 bg-ink-950/60" />
+      <div aria-hidden data-theme="dark" className="absolute inset-0 bg-ink-950/60" />
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-brand/30 to-transparent"
@@ -77,7 +81,12 @@ export function SmartLoad() {
               <RevealItem key={title}>
                 <Card className="h-full">
                   <div className="flex h-full flex-col items-center gap-4 p-7 text-center md:p-8">
-                    <span className="relative grid size-16 place-items-center overflow-hidden rounded-2xl bg-brand text-black">
+                    <span
+                      className={cn(
+                        "relative grid size-16 place-items-center overflow-hidden rounded-2xl bg-brand",
+                        theme === "light" ? "text-white" : "text-black",
+                      )}
+                    >
                       <Icon className="size-6" aria-hidden />
                       {/* Scan sweep on the analysis node only */}
                       {index === 1 ? (
@@ -116,7 +125,12 @@ export function SmartLoad() {
               style={{ left: `${(index * 100) / 3}%` }}
               className="pointer-events-none absolute top-16 hidden -translate-x-1/2 -translate-y-1/2 place-items-center md:grid"
             >
-              <span className="grid size-8 place-items-center rounded-full bg-brand text-black">
+              <span
+                className={cn(
+                  "grid size-8 place-items-center rounded-full bg-brand",
+                  theme === "light" ? "text-white" : "text-black",
+                )}
+              >
                 <ChevronRight className="size-4" aria-hidden />
               </span>
             </motion.span>

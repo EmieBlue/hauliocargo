@@ -24,8 +24,9 @@ export function CargoScene() {
       className="relative scroll-mt-24 overflow-hidden border-t border-edge/6 py-20 md:py-28"
     >
       {/* Same dark panel treatment as every sibling section — only the card
-       * row below gets the solid yellow, not this heading. */}
-      <div aria-hidden className="absolute inset-0 bg-ink-950/60" />
+       * row below gets the solid yellow, not this heading. Pinned dark
+       * regardless of site theme, same as every sibling section's panel. */}
+      <div aria-hidden data-theme="dark" className="absolute inset-0 bg-ink-950/60" />
       <div className="container-page relative">
         <SectionHeading
           eyebrow="Services"
@@ -53,32 +54,26 @@ export function CargoScene() {
               const Icon = CATEGORY_ICONS[index];
               return (
                 <RevealItem key={category.title}>
-                  {/* Pinned dark regardless of site theme — see the
-                   * `[data-theme="dark"]` block in app/globals.css (same
-                   * mechanism Footer.tsx uses). */}
-                  <div data-theme="dark" className="h-full">
-                    <Card className="h-full" tilt={false}>
-                      <div className="flex h-full flex-col gap-3.5 p-6">
-                        <span
-                          className={cn(
-                            "grid size-12 place-items-center rounded-xl bg-brand",
-                            // Deliberately theme-driven, unlike every other
-                            // yellow-chip icon on the site (which stay
-                            // black-on-yellow always) — confirmed request.
-                            theme === "light" ? "text-white" : "text-black",
-                          )}
-                        >
-                          <Icon className="size-5" aria-hidden />
-                        </span>
-                        <h3 className="font-display text-base font-bold text-fg">
-                          {category.title}
-                        </h3>
-                        <p className="text-[0.88rem] leading-relaxed text-muted text-pretty">
-                          {category.body}
-                        </p>
-                      </div>
-                    </Card>
-                  </div>
+                  <Card className="h-full" tilt={false}>
+                    <div className="flex h-full flex-col gap-3.5 p-6">
+                      <span
+                        className={cn(
+                          "grid size-12 place-items-center rounded-xl bg-brand",
+                          // White in light theme, black in dark — same rule
+                          // as every other yellow-chip icon on the site.
+                          theme === "light" ? "text-white" : "text-black",
+                        )}
+                      >
+                        <Icon className="size-5" aria-hidden />
+                      </span>
+                      <h3 className="font-display text-base font-bold text-fg">
+                        {category.title}
+                      </h3>
+                      <p className="text-[0.88rem] leading-relaxed text-muted text-pretty">
+                        {category.body}
+                      </p>
+                    </div>
+                  </Card>
                 </RevealItem>
               );
             })}

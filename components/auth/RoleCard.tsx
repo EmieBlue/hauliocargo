@@ -3,6 +3,7 @@
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { Card } from "@/components/ui/Card";
+import { useTheme } from "@/lib/useTheme";
 
 export function RoleCard({
   icon: Icon,
@@ -20,6 +21,8 @@ export function RoleCard({
   /** Stable hook for tests — the DOM position of Customer vs. Driver isn't. */
   testId?: string;
 }) {
+  const [theme] = useTheme();
+
   return (
     <Card
       className={cn(
@@ -34,10 +37,16 @@ export function RoleCard({
         data-testid={testId}
         className="flex w-full flex-col items-center gap-4 p-7 text-center md:p-8"
       >
-        {/* Yellow chip, black icon — same rule as every other icon chip on
-         * the site, regardless of `selected` (currently always `false` here,
-         * both cards are plain navigation, not a real selection). */}
-        <span className="grid size-14 place-items-center rounded-2xl border border-brand/40 bg-brand text-black">
+        {/* Yellow chip — same rule as every other icon chip on the site:
+         * black icon in dark theme, white in light theme. `selected` is
+         * currently always `false` here, both cards are plain navigation,
+         * not a real selection. */}
+        <span
+          className={cn(
+            "grid size-14 place-items-center rounded-2xl border border-brand/40 bg-brand",
+            theme === "light" ? "text-white" : "text-black",
+          )}
+        >
           <Icon className="size-6" aria-hidden />
         </span>
         <div className="flex flex-col gap-1.5">
