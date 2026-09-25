@@ -83,7 +83,7 @@ export function AuthShell({
       <header
         className={cn(
           "fixed inset-x-0 top-0 z-60 transition-[background-color,backdrop-filter] duration-150 ease-brand",
-          scrolled ? "bg-brand/90 backdrop-blur-md" : "bg-transparent",
+          scrolled ? "bg-brand/75 backdrop-blur-xl" : "bg-transparent",
         )}
       >
         <div className="container-page relative flex h-20 items-center justify-between gap-3">
