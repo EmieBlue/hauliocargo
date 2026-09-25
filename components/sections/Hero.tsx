@@ -6,6 +6,7 @@ import { EASE, riseIn, staggerParent } from "@/lib/motion";
 import { BRAND, ROUTES, SECTION_IDS } from "@/lib/site";
 import { cn } from "@/lib/cn";
 import { useScrolled } from "@/lib/useScrolled";
+import { useTheme } from "@/lib/useTheme";
 import { Button } from "@/components/ui/Button";
 
 /**
@@ -15,6 +16,7 @@ import { Button } from "@/components/ui/Button";
  */
 export function Hero() {
   const scrolled = useScrolled();
+  const [theme] = useTheme();
 
   return (
     <section
@@ -57,12 +59,17 @@ export function Hero() {
             className="mt-7 text-[clamp(2.6rem,7.6vw,4.6rem)] leading-[0.97] font-extrabold tracking-[-0.035em]"
           >
             <span className="block text-fg">{BRAND.heroLead}</span>
-            <span className="block text-brand-gradient">{BRAND.heroAccent}</span>
+            <span className={cn("block", theme === "light" ? "text-brand" : "text-brand-gradient")}>
+              {BRAND.heroAccent}
+            </span>
           </motion.h1>
 
           <motion.p
             variants={riseIn}
-            className="mt-6 max-w-md text-[clamp(1rem,1.9vw,1.15rem)] leading-relaxed text-muted text-pretty lg:max-w-lg"
+            className={cn(
+              "mt-6 max-w-md text-[clamp(1rem,1.9vw,1.15rem)] leading-relaxed text-pretty lg:max-w-lg",
+              theme === "light" ? "text-fg" : "text-muted",
+            )}
           >
             {BRAND.heroSub}
           </motion.p>
