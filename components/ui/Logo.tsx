@@ -1,4 +1,7 @@
+"use client";
+
 import { cn } from "@/lib/cn";
+import { useTheme } from "@/lib/useTheme";
 
 /**
  * Mark + wordmark, kept as separate elements deliberately.
@@ -11,15 +14,22 @@ import { cn } from "@/lib/cn";
  * any size a browser renders it.
  */
 export function Logo({ className, dark = false }: { className?: string; dark?: boolean }) {
+  const [theme] = useTheme();
+
+  // `dark` here means "sitting on the solid yellow scrolled bar" — always
+  // nav-mark-dark.png regardless of site theme ("not when scrolling", per
+  // the brief). Otherwise: the default mark is white + yellow, tuned for the
+  // dark video backdrop; in light theme that backdrop is deliberately
+  // lightened, so nav-mark-light.png (black + yellow) takes over instead.
+  const markSrc = dark
+    ? "/brand/nav-mark-dark.png"
+    : theme === "light"
+      ? "/brand/nav-mark-light.png"
+      : "/brand/nav-mark.png";
+
   return (
     <span className={cn("inline-flex items-center gap-2.5", className)}>
-      {/* The default mark is white + yellow, which disappears on the yellow
-       * scrolled navbar — `dark` swaps in the black + white version. */}
-      <img
-        src={dark ? "/brand/nav-mark-dark.png" : "/brand/nav-mark.png"}
-        alt=""
-        className="h-7 w-auto"
-      />
+      <img src={markSrc} alt="" className="h-7 w-auto" />
       <span className="font-display text-[1.05rem] leading-none font-extrabold tracking-[0.02em]">
         <span className={dark ? "text-white" : "text-brand"}>HAULIO</span>
         <span className={dark ? "text-black" : "text-white"}>CARGO</span>

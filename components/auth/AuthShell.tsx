@@ -82,8 +82,8 @@ export function AuthShell({
        * compensate for the header no longer taking up flow space. */}
       <header
         className={cn(
-          "fixed inset-x-0 top-0 z-60 transition-colors duration-150 ease-brand",
-          scrolled ? "bg-brand" : "bg-transparent",
+          "fixed inset-x-0 top-0 z-60 transition-[background-color,backdrop-filter] duration-150 ease-brand",
+          scrolled ? "bg-brand/90 backdrop-blur-md" : "bg-transparent",
         )}
       >
         <div className="container-page relative flex h-20 items-center justify-between gap-3">
