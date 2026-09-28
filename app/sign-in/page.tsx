@@ -10,11 +10,14 @@ import { PasswordField } from "@/components/auth/PasswordField";
 import { TextField } from "@/components/auth/TextField";
 import { Button } from "@/components/ui/Button";
 import { getSessionProfile, redirectPathFor, signIn } from "@/lib/auth";
+import { cn } from "@/lib/cn";
 import { riseIn } from "@/lib/motion";
 import { ROUTES } from "@/lib/site";
+import { useTheme } from "@/lib/useTheme";
 
 export default function SignInPage() {
   const router = useRouter();
+  const [theme] = useTheme();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -88,7 +91,12 @@ export default function SignInPage() {
           </motion.p>
         ) : null}
 
-        <Button type="submit" variant="primary" className="w-full" disabled={submitting}>
+        <Button
+          type="submit"
+          variant="primary"
+          className={cn("w-full", theme === "light" && "!text-white")}
+          disabled={submitting}
+        >
           {submitting ? (
             <>
               <Loader2 className="size-4 animate-spin" aria-hidden />

@@ -9,7 +9,9 @@ import { PasswordRequirements } from "@/components/auth/PasswordRequirements";
 import { TextField } from "@/components/auth/TextField";
 import { Button } from "@/components/ui/Button";
 import { signUpDriver, uploadDriverDocument } from "@/lib/auth";
+import { cn } from "@/lib/cn";
 import { ROUTES } from "@/lib/site";
+import { useTheme } from "@/lib/useTheme";
 import { isValidEmail, passwordMeetsRequirements } from "@/lib/validation";
 
 type Fields = {
@@ -53,6 +55,7 @@ export function DriverRegisterForm({
 }: {
   onSubmitted: (email: string, uploadWarning: boolean) => void;
 }) {
+  const [theme] = useTheme();
   const [fields, setFields] = useState<Fields>(EMPTY);
   const [documents, setDocuments] = useState<Partial<Record<DocumentKind, File>>>({});
   const [agreed, setAgreed] = useState(false);
@@ -281,7 +284,12 @@ export function DriverRegisterForm({
         </p>
       ) : null}
 
-      <Button type="submit" variant="primary" className="w-full" disabled={submitting || !agreed}>
+      <Button
+        type="submit"
+        variant="primary"
+        className={cn("w-full", theme === "light" && "!text-white")}
+        disabled={submitting || !agreed}
+      >
         {submitting ? (
           <>
             <Loader2 className="size-4 animate-spin" aria-hidden />

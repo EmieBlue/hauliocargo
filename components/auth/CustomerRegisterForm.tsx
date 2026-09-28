@@ -8,7 +8,9 @@ import { PasswordRequirements } from "@/components/auth/PasswordRequirements";
 import { TextField } from "@/components/auth/TextField";
 import { Button } from "@/components/ui/Button";
 import { signUpCustomer } from "@/lib/auth";
+import { cn } from "@/lib/cn";
 import { ROUTES } from "@/lib/site";
+import { useTheme } from "@/lib/useTheme";
 import { isValidEmail, passwordMeetsRequirements } from "@/lib/validation";
 
 type Fields = {
@@ -34,6 +36,7 @@ const EMPTY: Fields = {
 };
 
 export function CustomerRegisterForm({ onSubmitted }: { onSubmitted: (email: string) => void }) {
+  const [theme] = useTheme();
   const [fields, setFields] = useState<Fields>(EMPTY);
   const [agreed, setAgreed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -162,7 +165,12 @@ export function CustomerRegisterForm({ onSubmitted }: { onSubmitted: (email: str
         </p>
       ) : null}
 
-      <Button type="submit" variant="primary" className="w-full" disabled={submitting || !agreed}>
+      <Button
+        type="submit"
+        variant="primary"
+        className={cn("w-full", theme === "light" && "!text-white")}
+        disabled={submitting || !agreed}
+      >
         {submitting ? (
           <>
             <Loader2 className="size-4 animate-spin" aria-hidden />
