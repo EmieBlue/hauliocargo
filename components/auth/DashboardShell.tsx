@@ -4,6 +4,7 @@ import { LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { Logo } from "@/components/ui/Logo";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { signOut } from "@/lib/auth";
 import { ROUTES } from "@/lib/site";
 
@@ -25,14 +26,17 @@ export function DashboardShell({ children }: { children: ReactNode }) {
     <div className="flex min-h-svh flex-col bg-ink-950">
       <header className="container-page flex h-20 items-center justify-between border-b border-edge/6">
         <Logo />
-        <button
-          type="button"
-          onClick={handleSignOut}
-          className="inline-flex items-center gap-1.5 font-display text-[0.72rem] font-semibold tracking-[0.08em] text-mist uppercase transition-colors duration-200 hover:text-brand"
-        >
-          <LogOut className="size-3.5" aria-hidden />
-          Sign Out
-        </button>
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={handleSignOut}
+            className="inline-flex items-center gap-1.5 font-display text-[0.72rem] font-semibold tracking-[0.08em] text-mist uppercase transition-colors duration-200 hover:text-brand"
+          >
+            <LogOut className="size-3.5" aria-hidden />
+            Sign Out
+          </button>
+          <ThemeToggle />
+        </div>
       </header>
       <div className="container-page flex flex-1 items-center py-16">{children}</div>
     </div>
