@@ -12,6 +12,7 @@ import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { riseIn, staggerParent } from "@/lib/motion";
 import { ROUTES } from "@/lib/site";
 import { useScrolled } from "@/lib/useScrolled";
+import { useTheme } from "@/lib/useTheme";
 import { cn } from "@/lib/cn";
 
 /**
@@ -56,6 +57,7 @@ export function AuthShell({
   align?: "center" | "left";
 }) {
   const scrolled = useScrolled();
+  const [theme] = useTheme();
 
   return (
     <div className="relative flex min-h-svh flex-col overflow-hidden">
@@ -140,7 +142,10 @@ export function AuthShell({
                 {eyebrow ? (
                   <motion.span
                     variants={riseIn}
-                    className="inline-flex items-center gap-2 rounded-full border border-brand/25 bg-brand/[0.06] px-3.5 py-1.5 font-display text-[0.62rem] font-semibold tracking-[0.18em] text-brand uppercase"
+                    className={cn(
+                      "inline-flex items-center gap-2 rounded-full bg-brand px-3.5 py-1.5 font-display text-[0.62rem] font-semibold tracking-[0.18em] uppercase",
+                      theme === "light" ? "text-white" : "text-black",
+                    )}
                   >
                     {eyebrow}
                   </motion.span>
