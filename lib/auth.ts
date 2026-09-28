@@ -20,6 +20,13 @@ import { authEnabled, getClient } from "./supabase";
 export type Role = "customer" | "driver" | "admin";
 export type DriverStatus = "pending" | "verified" | "rejected";
 
+/**
+ * sessionStorage key the registration form stashes profile fields under, and
+ * the verify screen reads them back from once a session actually exists.
+ * Shared constant so the two sides can't drift apart on the key name.
+ */
+export const PENDING_CUSTOMER_PROFILE_KEY = "haulio:pending-customer-profile";
+
 export type CustomerFields = {
   email: string;
   password: string;
@@ -112,15 +119,37 @@ export async function signUpCustomer(fields: CustomerFields): Promise<AuthResult
   if (!authEnabled) return { ok: false, message: NOT_CONFIGURED };
   const supabase = client();
 
-  const { data, error } = await supabase.auth.signUp({
+  const { error } = await supabase.auth.signUp({
     email: fields.email.trim().toLowerCase(),
     password: fields.password,
   });
   if (error) return { ok: false, message: friendlyAuthError(error) };
-  if (!data.user) return { ok: false, message: friendlyAuthError(new Error("no user")) };
 
-  const { error: profileError } = await supabase.from("profiles").insert({
-    id: data.user.id,
+  return { ok: true, data: undefined };
+}
+
+/**
+ * Creates the `profiles` row for a customer. Deliberately separate from
+ * `signUpCustomer`: right after `auth.signUp()` there is no session yet (the
+ * account still needs OTP verification), and `profiles`' own insert policy
+ * requires `auth.uid() = id` — so this can only run once verification has
+ * actually granted a session, from the verify screen, not during the initial
+ * registration submit. `upsert`, not `insert`, so a retry after a transient
+ * failure is safe rather than colliding on the primary key.
+ */
+export async function completeCustomerProfile(
+  fields: Omit<CustomerFields, "email" | "password">,
+): Promise<AuthResult> {
+  if (!authEnabled) return { ok: false, message: NOT_CONFIGURED };
+  const supabase = client();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: friendlyAuthError(new Error("no user")) };
+
+  const { error: profileError } = await supabase.from("profiles").upsert({
+    id: user.id,
     role: "customer",
     first_name: fields.firstName.trim(),
     last_name: fields.lastName.trim(),

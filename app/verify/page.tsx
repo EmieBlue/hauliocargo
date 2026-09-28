@@ -8,7 +8,14 @@ import { OtpInput } from "@/components/auth/OtpInput";
 import { PasswordField } from "@/components/auth/PasswordField";
 import { PasswordRequirements } from "@/components/auth/PasswordRequirements";
 import { Button } from "@/components/ui/Button";
-import { resendOtp, updatePassword, verifyOtp, type OtpPurpose } from "@/lib/auth";
+import {
+  completeCustomerProfile,
+  PENDING_CUSTOMER_PROFILE_KEY,
+  resendOtp,
+  updatePassword,
+  verifyOtp,
+  type OtpPurpose,
+} from "@/lib/auth";
 import { ROUTES } from "@/lib/site";
 import { passwordMeetsRequirements } from "@/lib/validation";
 
@@ -23,7 +30,7 @@ export default function VerifyPage() {
   );
 }
 
-type Stage = "code" | "driver-submitted" | "new-password" | "password-updated";
+type Stage = "code" | "driver-submitted" | "new-password" | "password-updated" | "profile-error";
 
 function VerifyContent() {
   const router = useRouter();
@@ -69,6 +76,37 @@ function VerifyContent() {
       setStage("driver-submitted");
       return;
     }
+    await finishCustomerSignup();
+  }
+
+  /**
+   * `profiles` can only be created now — verification just granted the
+   * session `completeCustomerProfile`'s insert policy requires. Reads the
+   * fields `CustomerRegisterForm` stashed before redirecting here, since
+   * they couldn't be written at registration time. Also the retry target
+   * from the `profile-error` stage, so a transient failure isn't a dead end.
+   */
+  async function finishCustomerSignup() {
+    const raw = sessionStorage.getItem(PENDING_CUSTOMER_PROFILE_KEY);
+    if (!raw) {
+      // Nothing to complete (e.g. a stale reload) — best effort, fall back
+      // to the pre-fix behavior rather than stranding the visitor here.
+      router.push(ROUTES.dashboardCustomer);
+      return;
+    }
+
+    setSubmitting(true);
+    setError(null);
+    const result = await completeCustomerProfile(JSON.parse(raw));
+    setSubmitting(false);
+
+    if (!result.ok) {
+      setError(result.message);
+      setStage("profile-error");
+      return;
+    }
+
+    sessionStorage.removeItem(PENDING_CUSTOMER_PROFILE_KEY);
     router.push(ROUTES.dashboardCustomer);
   }
 
@@ -105,6 +143,35 @@ function VerifyContent() {
       return;
     }
     setStage("password-updated");
+  }
+
+  if (stage === "profile-error") {
+    return (
+      <AuthShell eyebrow="Verification" title="Almost There" backHref={ROUTES.signin}>
+        <div className="flex flex-col gap-6">
+          <p className="text-[0.95rem] leading-relaxed text-muted">
+            Your code was verified, but we couldn&rsquo;t finish setting up your account.
+          </p>
+          {error ? <ErrorBanner message={error} /> : null}
+          <Button
+            type="button"
+            variant="primary"
+            className="w-full"
+            disabled={submitting}
+            onClick={finishCustomerSignup}
+          >
+            {submitting ? (
+              <>
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+                Trying Again
+              </>
+            ) : (
+              "Try Again"
+            )}
+          </Button>
+        </div>
+      </AuthShell>
+    );
   }
 
   if (stage === "driver-submitted") {

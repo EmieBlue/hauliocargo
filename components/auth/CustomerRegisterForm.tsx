@@ -7,7 +7,7 @@ import { PasswordField } from "@/components/auth/PasswordField";
 import { PasswordRequirements } from "@/components/auth/PasswordRequirements";
 import { TextField } from "@/components/auth/TextField";
 import { Button } from "@/components/ui/Button";
-import { signUpCustomer } from "@/lib/auth";
+import { PENDING_CUSTOMER_PROFILE_KEY, signUpCustomer } from "@/lib/auth";
 import { cn } from "@/lib/cn";
 import { ROUTES } from "@/lib/site";
 import { useTheme } from "@/lib/useTheme";
@@ -72,6 +72,20 @@ export function CustomerRegisterForm({ onSubmitted }: { onSubmitted: (email: str
       setError(result.message);
       return;
     }
+
+    // The `profiles` row can't be created yet — no session exists until the
+    // verify screen confirms the OTP. Stash the rest of the form here so it
+    // can finish the job once one does.
+    sessionStorage.setItem(
+      PENDING_CUSTOMER_PROFILE_KEY,
+      JSON.stringify({
+        firstName: fields.firstName,
+        lastName: fields.lastName,
+        phone: fields.phone,
+        city: fields.city,
+        area: fields.area,
+      }),
+    );
     onSubmitted(fields.email);
   }
 
