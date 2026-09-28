@@ -95,7 +95,10 @@ export function Hero() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.5, duration: 0.9, ease: EASE }}
-        className="absolute bottom-7 left-1/2 hidden -translate-x-1/2 flex-col items-center gap-2.5 text-muted transition-colors duration-300 hover:text-brand lg:flex"
+        className={cn(
+          "absolute bottom-7 left-1/2 hidden -translate-x-1/2 flex-col items-center gap-2.5 transition-colors duration-300 hover:text-brand lg:flex",
+          theme === "light" ? "text-fg" : "text-muted",
+        )}
       >
         <span className="font-display text-[0.58rem] font-semibold tracking-[0.26em] uppercase">
           Scroll

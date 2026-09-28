@@ -36,17 +36,24 @@ export function Trust() {
       />
 
       <div className="container-page relative">
-        <SectionHeading
-          align="center"
-          eyebrow="About us"
-          title={
-            <>
-              Built to be the part you{" "}
-              <span className="text-brand-gradient">don&rsquo;t have to worry about</span>
-            </>
-          }
-          sub={BRAND.about}
-        />
+        {/* Scoped to just the heading — the scrim above is a decorative
+         * sibling, not a real ancestor, so it can't pin this content's own
+         * tokens via CSS inheritance. This div is the actual ancestor doing
+         * that job. Deliberately wraps only the heading, not the Card row
+         * below: those cards must keep following site theme. */}
+        <div data-theme="dark">
+          <SectionHeading
+            align="center"
+            eyebrow="About us"
+            title={
+              <>
+                Built to be the part you{" "}
+                <span className="text-brand-gradient">don&rsquo;t have to worry about</span>
+              </>
+            }
+            sub={BRAND.about}
+          />
+        </div>
 
         <RevealGroup
           className="mt-14 grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-4"

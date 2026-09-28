@@ -21,16 +21,23 @@ export function HowItWorks() {
     >
       <div aria-hidden data-theme="dark" className="absolute inset-0 bg-ink-950/60" />
       <div className="container-page relative">
-        <SectionHeading
-          eyebrow="How it works"
-          title={
-            <>
-              Three steps from{" "}
-              <span className="text-brand-gradient">packed to delivered</span>
-            </>
-          }
-          sub="No guesswork about vehicle size, no surprises when the driver arrives."
-        />
+        {/* Scoped to just the heading — the scrim above is a decorative
+         * sibling, not a real ancestor, so it can't pin this content's own
+         * tokens via CSS inheritance. This div is the actual ancestor doing
+         * that job. Deliberately wraps only the heading, not the Card row
+         * below: those cards must keep following site theme. */}
+        <div data-theme="dark">
+          <SectionHeading
+            eyebrow="How it works"
+            title={
+              <>
+                Three steps from{" "}
+                <span className="text-brand-gradient">packed to delivered</span>
+              </>
+            }
+            sub="No guesswork about vehicle size, no surprises when the driver arrives."
+          />
+        </div>
 
         <RevealGroup className="mt-14 grid gap-5 md:grid-cols-3" stagger={0.14}>
           {HOW_IT_WORKS_STEPS.map((step, index) => {
