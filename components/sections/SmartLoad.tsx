@@ -61,24 +61,19 @@ export function SmartLoad() {
       <div className="container-page relative">
         <div className="flex flex-col items-center gap-6 text-center">
           <Badge pulse>Coming Soon</Badge>
-          {/* Scoped to just the heading — the scrim above is a decorative
-           * sibling, not a real ancestor, so it can't pin this content's own
-           * tokens via CSS inheritance. This div is the actual ancestor doing
-           * that job. Deliberately wraps only the heading, not the Card row
-           * below: those cards must keep following site theme. */}
-          <div data-theme="dark">
-            <SectionHeading
-              align="center"
-              eyebrow="Haulio SmartLoad&trade;"
-              title={
-                <>
-                  Not sure which truck{" "}
-                  <span className="text-brand-gradient">you need?</span>
-                </>
-              }
-              sub="Load smarter. Haulio SmartLoad™ recommends the right vehicle for your cargo."
-            />
-          </div>
+          <SectionHeading
+            align="center"
+            eyebrow="Haulio SmartLoad&trade;"
+            title={
+              <>
+                Not sure which truck{" "}
+                <span className={theme === "light" ? "text-brand" : "text-brand-gradient"}>
+                  you need?
+                </span>
+              </>
+            }
+            sub="Load smarter. Haulio SmartLoad™ recommends the right vehicle for your cargo."
+          />
         </div>
 
         {/* Flow: horizontal on desktop, stacked on mobile */}
@@ -145,12 +140,14 @@ export function SmartLoad() {
         </div>
 
         <motion.p
-          data-theme="dark"
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={VIEWPORT}
           transition={{ duration: 0.8, ease: EASE, delay: 0.3 }}
-          className="mx-auto mt-10 max-w-xl text-center text-[0.82rem] leading-relaxed text-muted/70"
+          className={cn(
+            "mx-auto mt-10 max-w-xl text-center text-[0.82rem] leading-relaxed",
+            theme === "light" ? "text-fg/70" : "text-muted/70",
+          )}
         >
           SmartLoad™ is in development. Vehicle recommendations are intended as
           assistance — you stay in control of the truck you book.

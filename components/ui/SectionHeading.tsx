@@ -1,5 +1,8 @@
+"use client";
+
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
+import { useTheme } from "@/lib/useTheme";
 import { RevealGroup, RevealItem } from "./Reveal";
 
 type SectionHeadingProps = {
@@ -25,6 +28,7 @@ export function SectionHeading({
   className,
   tone = "dark",
 }: SectionHeadingProps) {
+  const [siteTheme] = useTheme();
   const centered = align === "center";
   const light = tone === "light";
 
@@ -70,7 +74,10 @@ export function SectionHeading({
           as="p"
           className={cn(
             "max-w-xl text-[clamp(0.95rem,1.6vw,1.06rem)] leading-relaxed text-pretty",
-            light ? "text-black/65" : "text-muted",
+            // Video backdrop never lightens, so this reacts to site theme
+            // the same way Hero's own subtitle does — near-black in light
+            // theme rather than the too-faint light-theme --color-muted.
+            light ? "text-black/65" : siteTheme === "light" ? "text-fg" : "text-muted",
           )}
         >
           {sub}

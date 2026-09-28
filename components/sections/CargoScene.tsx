@@ -28,24 +28,19 @@ export function CargoScene() {
        * regardless of site theme, same as every sibling section's panel. */}
       <div aria-hidden data-theme="dark" className="absolute inset-0 bg-ink-950/60" />
       <div className="container-page relative">
-        {/* Scoped to just the heading — the scrim above is a decorative
-         * sibling, not a real ancestor, so it can't pin this content's own
-         * tokens via CSS inheritance. This div is the actual ancestor doing
-         * that job. Deliberately wraps only the heading, not the Card row
-         * below: those cards must keep following site theme. */}
-        <div data-theme="dark">
-          <SectionHeading
-            eyebrow="Services"
-            align="center"
-            title={
-              <>
-                Whatever you&rsquo;re moving,{" "}
-                <span className="text-brand-gradient">there&rsquo;s a truck for it</span>
-              </>
-            }
-            sub="Household goods, furniture and appliances, business stock or building materials — tell us what it is and we help match it to the right vehicle."
-          />
-        </div>
+        <SectionHeading
+          eyebrow="Services"
+          align="center"
+          title={
+            <>
+              Whatever you&rsquo;re moving,{" "}
+              <span className={theme === "light" ? "text-brand" : "text-brand-gradient"}>
+                there&rsquo;s a truck for it
+              </span>
+            </>
+          }
+          sub="Household goods, furniture and appliances, business stock or building materials — tell us what it is and we help match it to the right vehicle."
+        />
       </div>
 
       {/* Solid brand yellow, bounded to just this band (not the whole
