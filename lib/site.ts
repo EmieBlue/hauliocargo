@@ -35,6 +35,9 @@ export const ROUTES = {
   dashboardCustomer: "/dashboard/customer",
   dashboardDriver: "/dashboard/driver",
   dashboardAdmin: "/dashboard/admin",
+  bookMove: "/dashboard/customer/move",
+  bookSend: "/dashboard/customer/send",
+  bookReceive: "/dashboard/customer/receive",
 
   // --- Placeholders: these products do not exist yet ---
   book: `#${SECTION_IDS.getStarted}`,
