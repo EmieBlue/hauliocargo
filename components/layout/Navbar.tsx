@@ -8,6 +8,7 @@ import { cn } from "@/lib/cn";
 import { EASE } from "@/lib/motion";
 import { NAV_LINKS, ROUTES } from "@/lib/site";
 import { useScrolled } from "@/lib/useScrolled";
+import { useTheme } from "@/lib/useTheme";
 import { Button } from "@/components/ui/Button";
 import { Logo } from "@/components/ui/Logo";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
@@ -15,6 +16,7 @@ import { MobileMenu } from "./MobileMenu";
 
 export function Navbar() {
   const scrolled = useScrolled();
+  const [theme] = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const closeMenu = useCallback(() => setMenuOpen(false), []);
@@ -66,24 +68,39 @@ export function Navbar() {
           </nav>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            <Link
-              href={ROUTES.signin}
-              className={cn(
-                "hidden h-11 items-center px-3 font-display text-[0.72rem] font-semibold tracking-[0.09em] uppercase transition-colors duration-300 sm:inline-flex",
-                scrolled ? "text-black/70 hover:text-black" : "text-mist hover:text-brand",
-              )}
-            >
-              Sign In
-            </Link>
-
             {/*
              * Visibility lives on a wrapper, not on the Button. The Button's
              * own base class sets `inline-flex`, and Tailwind emits that after
              * `.hidden` — so `hidden` on the Button itself loses and the
              * button leaks onto small screens.
              */}
+            {scrolled ? (
+              <Link
+                href={ROUTES.signin}
+                className="hidden h-11 items-center px-3 font-display text-[0.72rem] font-semibold tracking-[0.09em] uppercase text-black/70 transition-colors duration-300 hover:text-black sm:inline-flex"
+              >
+                Sign In
+              </Link>
+            ) : (
+              <span className="hidden sm:block">
+                <Button
+                  href={ROUTES.signin}
+                  size="sm"
+                  variant="primary"
+                  className={theme === "light" ? "!text-white" : undefined}
+                >
+                  Sign In
+                </Button>
+              </span>
+            )}
+
             <span className="hidden sm:block">
-              <Button href={ROUTES.register} size="sm" variant={scrolled ? "dark" : "primary"}>
+              <Button
+                href={ROUTES.register}
+                size="sm"
+                variant={scrolled ? "dark" : "primary"}
+                className={!scrolled && theme === "light" ? "!text-white" : undefined}
+              >
                 Register
               </Button>
             </span>
