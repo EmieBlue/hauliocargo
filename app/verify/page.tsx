@@ -4,7 +4,7 @@ import { Loader2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { AuthShell } from "@/components/auth/AuthShell";
-import { OtpInput } from "@/components/auth/OtpInput";
+import { OtpInput, OTP_LENGTH } from "@/components/auth/OtpInput";
 import { PasswordField } from "@/components/auth/PasswordField";
 import { PasswordRequirements } from "@/components/auth/PasswordRequirements";
 import { Button } from "@/components/ui/Button";
@@ -56,7 +56,7 @@ function VerifyContent() {
   }, [cooldown]);
 
   async function handleVerify() {
-    if (submitting || code.length < 6) return;
+    if (submitting || code.length < OTP_LENGTH) return;
     setSubmitting(true);
     setError(null);
 
@@ -264,7 +264,7 @@ function VerifyContent() {
           type="button"
           variant="primary"
           className="w-full"
-          disabled={submitting || code.length < 6}
+          disabled={submitting || code.length < OTP_LENGTH}
           onClick={handleVerify}
         >
           {submitting ? (

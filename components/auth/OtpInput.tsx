@@ -3,11 +3,18 @@
 import { useRef } from "react";
 import { cn } from "@/lib/cn";
 
-const LENGTH = 6;
+/**
+ * Supabase's actual email OTP for this project is 8 digits, not the 6 the
+ * UI originally assumed (confirmed against a real received code) — exported
+ * so the verify screen gates submission on the same number rather than
+ * hardcoding its own and drifting out of sync again.
+ */
+export const OTP_LENGTH = 8;
+const LENGTH = OTP_LENGTH;
 
 /**
- * Six digit boxes acting as one value. Handles paste (a full code dropped
- * into any box fills all six) and backspace-to-previous, since a real user
+ * Digit boxes acting as one value. Handles paste (a full code dropped into
+ * any box fills the rest) and backspace-to-previous, since a real user
  * pastes a code from their email/SMS app far more often than they type it
  * digit by digit.
  */
