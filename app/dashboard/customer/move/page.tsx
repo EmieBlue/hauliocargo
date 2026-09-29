@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { DashboardLoading, DashboardShell } from "@/components/auth/DashboardShell";
 import { TextField } from "@/components/auth/TextField";
+import { LocationAutocompleteField } from "@/components/dashboard/LocationAutocompleteField";
 import { Button } from "@/components/ui/Button";
 import { createBooking } from "@/lib/bookings";
 import { cn } from "@/lib/cn";
@@ -115,19 +116,19 @@ export default function MoveWithYouPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-          <TextField
+          <LocationAutocompleteField
             label="Pickup Location"
             placeholder="Where should the driver pick you up?"
             required
             value={pickupLocation}
-            onChange={(e) => setPickupLocation(e.target.value)}
+            onChange={setPickupLocation}
           />
-          <TextField
+          <LocationAutocompleteField
             label="Drop-off Location"
             placeholder="Where are you headed?"
             required
             value={dropoffLocation}
-            onChange={(e) => setDropoffLocation(e.target.value)}
+            onChange={setDropoffLocation}
           />
 
           <div className="flex flex-col gap-2">
