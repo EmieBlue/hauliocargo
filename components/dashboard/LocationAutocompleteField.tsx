@@ -3,49 +3,28 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 
-const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY;
-const SCRIPT_ID = "google-places-script";
+const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 const DEBOUNCE_MS = 250;
 
-let scriptLoadPromise: Promise<void> | null = null;
+type MapboxFeature = {
+  id: string;
+  place_name: string;
+};
 
-/**
- * Loads the Maps JS API once per page, on demand — not globally in
- * `app/layout.tsx`, since only screens with a location field need it. Safe
- * to call from multiple mounted instances of this component; they all share
- * the one in-flight load.
- */
-function loadPlacesScript(): Promise<void> {
-  if (typeof window === "undefined") return Promise.resolve();
-  if (window.google?.maps?.places) return Promise.resolve();
-  if (scriptLoadPromise) return scriptLoadPromise;
-
-  scriptLoadPromise = new Promise((resolve, reject) => {
-    const existing = document.getElementById(SCRIPT_ID);
-    if (existing) {
-      existing.addEventListener("load", () => resolve());
-      existing.addEventListener("error", () => reject(new Error("Failed to load Google Maps script")));
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.id = SCRIPT_ID;
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY}&libraries=places`;
-    script.async = true;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error("Failed to load Google Maps script"));
-    document.head.appendChild(script);
-  });
-
-  return scriptLoadPromise;
+async function fetchPredictions(query: string): Promise<MapboxFeature[]> {
+  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${MAPBOX_TOKEN}&country=gh&autocomplete=true&limit=5`;
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`Mapbox geocoding failed: ${response.status}`);
+  const data = await response.json();
+  return (data.features ?? []) as MapboxFeature[];
 }
 
 /**
- * Address input with live Google Places suggestions, styled to match
- * `TextField` rather than Google's own default-styled Autocomplete widget —
- * uses `AutocompleteService` (predictions only, no attached UI) for that
- * reason. Degrades to a plain text input if `NEXT_PUBLIC_GOOGLE_PLACES_API_KEY`
- * isn't set, same "works without the key, just without the feature" pattern
+ * Address input with live Mapbox suggestions, styled to match `TextField`.
+ * Mapbox's Geocoding API is a plain REST endpoint — no script tag or SDK to
+ * load, unlike Google's Maps JS API, so this is just a debounced `fetch`.
+ * Degrades to a plain text input if `NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN` isn't
+ * set, same "works without the key, just without the feature" pattern
  * already used for Supabase (`lib/supabase.ts`'s `authEnabled`).
  */
 export function LocationAutocompleteField({
@@ -63,40 +42,32 @@ export function LocationAutocompleteField({
 }) {
   const inputId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
-  const serviceRef = useRef<google.maps.places.AutocompleteService | null>(null);
-  const [predictions, setPredictions] = useState<google.maps.places.AutocompletePrediction[]>([]);
+  const [predictions, setPredictions] = useState<MapboxFeature[]>([]);
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    if (!API_KEY) return;
-    loadPlacesScript()
-      .then(() => {
-        serviceRef.current = new window.google.maps.places.AutocompleteService();
-      })
-      .catch((error) => console.error("places script", error));
-  }, []);
-
-  useEffect(() => {
-    if (!serviceRef.current || !value.trim()) {
+    if (!MAPBOX_TOKEN || !value.trim()) {
       setPredictions([]);
       return;
     }
 
+    let cancelled = false;
     const timer = window.setTimeout(() => {
-      serviceRef.current?.getPlacePredictions(
-        { input: value, componentRestrictions: { country: "gh" } },
-        (results, status) => {
-          if (status !== window.google.maps.places.PlacesServiceStatus.OK || !results) {
-            setPredictions([]);
-            return;
-          }
+      fetchPredictions(value)
+        .then((results) => {
+          if (cancelled) return;
           setPredictions(results);
           setOpen(true);
-        },
-      );
+        })
+        .catch((error) => {
+          if (!cancelled) console.error("mapbox geocoding", error);
+        });
     }, DEBOUNCE_MS);
 
-    return () => window.clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
   }, [value]);
 
   useEffect(() => {
@@ -119,8 +90,8 @@ export function LocationAutocompleteField({
     };
   }, [open]);
 
-  function selectPrediction(description: string) {
-    onChange(description);
+  function selectPrediction(placeName: string) {
+    onChange(placeName);
     setPredictions([]);
     setOpen(false);
   }
@@ -152,17 +123,17 @@ export function LocationAutocompleteField({
         >
           {predictions.map((prediction) => (
             <button
-              key={prediction.place_id}
+              key={prediction.id}
               type="button"
               role="option"
               aria-selected={false}
-              onClick={() => selectPrediction(prediction.description)}
+              onClick={() => selectPrediction(prediction.place_name)}
               className={cn(
                 "block w-full px-4 py-2.5 text-left text-[0.88rem] text-fg transition-colors duration-150",
                 "hover:bg-edge/[0.05]",
               )}
             >
-              {prediction.description}
+              {prediction.place_name}
             </button>
           ))}
         </div>
