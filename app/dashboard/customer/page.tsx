@@ -1,12 +1,12 @@
 "use client";
 
-import { Package, Send, Truck } from "lucide-react";
+import { BadgeCheck, MapPin, Package, Receipt, Send, ShieldCheck, Truck } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { DashboardLoading, DashboardShell } from "@/components/auth/DashboardShell";
 import { cn } from "@/lib/cn";
-import { ROUTES } from "@/lib/site";
+import { ROUTES, TRUST_POINTS } from "@/lib/site";
 import { getClient } from "@/lib/supabase";
 import { useRequireRole } from "@/lib/useRequireRole";
 import { useTheme } from "@/lib/useTheme";
@@ -16,6 +16,9 @@ const QUICK_ACTIONS = [
   { icon: Send, label: "Send Only", href: ROUTES.bookSend },
   { icon: Package, label: "Package Delivery", href: ROUTES.bookReceive },
 ] as const;
+
+// Same pairing components/sections/Trust.tsx uses for these same four points.
+const TRUST_ICONS: LucideIcon[] = [BadgeCheck, Receipt, MapPin, ShieldCheck];
 
 export default function CustomerDashboardPage() {
   const { loading } = useRequireRole("customer");
@@ -58,6 +61,33 @@ export default function CustomerDashboardPage() {
               onSelect={() => router.push(action.href)}
             />
           ))}
+        </div>
+
+        <div className="mt-16">
+          <h2 className="font-display text-[0.68rem] font-semibold tracking-[0.22em] text-mist uppercase">
+            Why HaulioCargo
+          </h2>
+          <div className="mt-5 grid gap-x-8 gap-y-6 sm:grid-cols-2">
+            {TRUST_POINTS.map((point, index) => {
+              const Icon = TRUST_ICONS[index];
+              return (
+                <div key={point.title} className="flex items-start gap-3.5">
+                  <span
+                    className={cn(
+                      "grid size-10 shrink-0 place-items-center rounded-xl bg-brand",
+                      theme === "light" ? "text-white" : "text-black",
+                    )}
+                  >
+                    <Icon className="size-4.5" aria-hidden />
+                  </span>
+                  <div>
+                    <h3 className="font-display text-[0.9rem] font-bold text-fg">{point.title}</h3>
+                    <p className="mt-0.5 text-[0.85rem] leading-relaxed text-muted">{point.body}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </DashboardShell>

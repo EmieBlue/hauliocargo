@@ -37,7 +37,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
           </div>
         </div>
       </header>
-      <div className="container-page flex flex-1 items-center pt-28 pb-16">{children}</div>
+      <div className="container-page flex flex-1 items-center justify-center pt-28 pb-16">{children}</div>
     </div>
   );
 }
