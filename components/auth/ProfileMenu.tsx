@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { signOut } from "@/lib/auth";
+import { cn } from "@/lib/cn";
 import { ROUTES } from "@/lib/site";
 import { getClient } from "@/lib/supabase";
 
@@ -18,7 +19,7 @@ import { getClient } from "@/lib/supabase";
  * Escape are hand-rolled here, the same way `MobileMenu` handles its own —
  * just a small positioned panel instead of a full-screen takeover.
  */
-export function ProfileMenu() {
+export function ProfileMenu({ dark = false }: { dark?: boolean }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
@@ -62,7 +63,12 @@ export function ProfileMenu() {
         onClick={() => setOpen((value) => !value)}
         aria-label="Account menu"
         aria-expanded={open}
-        className="grid size-10 shrink-0 place-items-center rounded-xl border border-edge/10 bg-edge/[0.03] text-mist transition-colors duration-300 hover:border-brand/40 hover:text-brand"
+        className={cn(
+          "grid size-10 shrink-0 place-items-center rounded-xl border transition-colors duration-300",
+          dark
+            ? "border-black/15 bg-black/5 text-black/70 hover:border-black/30 hover:text-black"
+            : "border-edge/10 bg-edge/[0.03] text-mist hover:border-brand/40 hover:text-brand",
+        )}
       >
         <User className="size-4.5" aria-hidden />
       </button>
