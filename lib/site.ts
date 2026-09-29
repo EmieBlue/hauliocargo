@@ -38,6 +38,8 @@ export const ROUTES = {
   bookMove: "/dashboard/customer/move",
   bookSend: "/dashboard/customer/send",
   bookReceive: "/dashboard/customer/receive",
+  profile: "/dashboard/profile",
+  bookings: "/dashboard/bookings",
 
   // --- Placeholders: these products do not exist yet ---
   book: `#${SECTION_IDS.getStarted}`,
