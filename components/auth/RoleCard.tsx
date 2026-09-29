@@ -26,7 +26,7 @@ export function RoleCard({
   return (
     <Card
       className={cn(
-        "cursor-pointer transition-[border-color,background-color] duration-300",
+        "h-full cursor-pointer transition-[border-color,background-color] duration-300",
         selected && "border-brand bg-brand/[0.06] shadow-[0_28px_70px_-40px_rgba(255,170,0,0.55)]",
       )}
     >
@@ -35,7 +35,7 @@ export function RoleCard({
         onClick={onSelect}
         aria-pressed={selected}
         data-testid={testId}
-        className="flex w-full flex-col items-center gap-4 p-7 text-center md:p-8"
+        className="flex h-full w-full flex-col items-center gap-4 p-7 text-center md:p-8"
       >
         {/* Yellow chip — same rule as every other icon chip on the site:
          * black icon in dark theme, white in light theme. `selected` is
