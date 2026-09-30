@@ -1,6 +1,7 @@
 "use client";
 
-import { Loader2, Sparkles } from "lucide-react";
+import { Boxes, Building2, Hammer, Loader2, Sofa, Sparkles } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { DashboardLoading, DashboardShell } from "@/components/auth/DashboardShell";
@@ -14,6 +15,12 @@ import { CARGO_CATEGORIES, ROUTES } from "@/lib/site";
 import { useRequireRole } from "@/lib/useRequireRole";
 
 type When = "now" | "later";
+
+// Same order as CARGO_CATEGORIES in lib/site.ts, and the same icon choices
+// as the marketing site's Services section (components/sections/CargoScene.tsx)
+// — one consistent icon per category across the whole site, not a second
+// set invented just for this form.
+const CATEGORY_ICONS: LucideIcon[] = [Boxes, Sofa, Building2, Hammer];
 
 /**
  * "Move With You" — the ride-along booking form. Modeled on Uber's own
@@ -211,22 +218,32 @@ export default function MoveWithYouPage() {
               Vehicle Size
             </span>
             <div className="grid gap-2.5 sm:grid-cols-2">
-              {CARGO_CATEGORIES.map((category) => (
-                <button
-                  key={category.title}
-                  type="button"
-                  onClick={() => setVehicleCategory(category.title)}
-                  aria-pressed={vehicleCategory === category.title}
-                  className={cn(
-                    "rounded-xl border px-4 py-3 text-left text-[0.85rem] font-semibold text-fg transition-colors duration-200",
-                    vehicleCategory === category.title
-                      ? "border-brand bg-brand/[0.06]"
-                      : "border-edge/12 bg-ink-950 hover:border-brand/40",
-                  )}
-                >
-                  {category.title}
-                </button>
-              ))}
+              {CARGO_CATEGORIES.map((category, index) => {
+                const Icon = CATEGORY_ICONS[index];
+                const active = vehicleCategory === category.title;
+                return (
+                  <button
+                    key={category.title}
+                    type="button"
+                    onClick={() => setVehicleCategory(category.title)}
+                    aria-pressed={active}
+                    className={cn(
+                      "flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors duration-200",
+                      active ? "border-brand bg-brand/[0.06]" : "border-edge/12 bg-ink-950 hover:border-brand/40",
+                    )}
+                  >
+                    {/* Brand-yellow chip is a fixed color regardless of the
+                     * site's light/dark toggle, and this form always renders
+                     * on DashboardShell's pinned-dark backdrop — black icon
+                     * is the correct contrast here, same rule CargoScene
+                     * applies for dark theme, not something to branch on. */}
+                    <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-brand text-black">
+                      <Icon className="size-4" aria-hidden />
+                    </span>
+                    <span className="text-[0.85rem] font-semibold text-fg">{category.title}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 

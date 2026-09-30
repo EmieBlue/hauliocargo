@@ -138,6 +138,20 @@ export function LocationAutocompleteField({
           ))}
         </div>
       ) : null}
+
+      {/*
+       * Mapbox's Ghana coverage is decent but not exhaustive — a specific
+       * address (a named building, a small local landmark) may never show up
+       * as a suggestion even though the general area does. This is a real
+       * gap, not a bug to chase: the input is a plain controlled text field
+       * underneath the dropdown, so whatever the customer types is already
+       * what gets submitted if they never tap a suggestion. This line just
+       * makes that fallback visible instead of leaving the customer unsure
+       * whether they're allowed to keep going without picking one.
+       */}
+      <p className="text-[0.72rem] text-muted/70">
+        Can&rsquo;t find the exact spot? Keep typing — we&rsquo;ll use exactly what you enter.
+      </p>
     </div>
   );
 }
