@@ -19,6 +19,7 @@ import { useTheme } from "@/lib/useTheme";
 
 type When = "now" | "later";
 type AiChoice = "yes" | "no" | null;
+type Category = (typeof CARGO_CATEGORIES)[number]["title"];
 
 // Same order as CARGO_CATEGORIES in lib/site.ts. Truck-family icons rather
 // than CargoScene's generic category icons (Boxes/Sofa/Building2/Hammer) —
@@ -34,13 +35,17 @@ const CATEGORY_ICONS: LucideIcon[] = [Van, Truck, Container, Forklift];
  * public ride page (pickup/dropoff/"pickup now" + a single request button,
  * no live map), adapted to cargo.
  *
- * Everything after "What Are You Moving?" is a short step-by-step flow
- * rather than always showing every field at once: a Yes/No question on
- * whether to let SmartLoad™'s AI suggest a truck size from a photo, then
- * either path lands on the same truck-size picker (Small/Middle/Big) —
- * that's the real final answer on the booking. The cargo-category grid only
- * shows up on the manual (No) path now, as a step toward the size picker,
- * not the final answer itself.
+ * Everything after "What Are You Moving?" is a short step-by-step flow: a
+ * Yes/No question on whether to let SmartLoad™'s AI suggest a cargo type +
+ * truck size from a photo, then either path lands on the same truck-size
+ * guide (10ft/15ft/20ft/26ft, captions specific to the cargo type) — that's
+ * the real final answer on the booking.
+ *
+ * Both paths always resolve a cargo type now — the size guide's captions
+ * are type-specific (see `TRUCK_SIZE_GUIDE` in lib/site.ts), so there's no
+ * guide to show without one. The AI path tries to get both from one photo;
+ * if it only manages the size (or neither), the cargo-type grid appears as
+ * a fallback so the customer is never stuck.
  */
 export default function MoveWithYouPage() {
   const { loading } = useRequireRole("customer");
@@ -53,7 +58,7 @@ export default function MoveWithYouPage() {
   const [scheduledFor, setScheduledFor] = useState("");
   const [cargoDescription, setCargoDescription] = useState("");
   const [aiChoice, setAiChoice] = useState<AiChoice>(null);
-  const [vehicleCategory, setVehicleCategory] = useState<string | null>(null);
+  const [vehicleCategory, setVehicleCategory] = useState<Category | null>(null);
   const [vehicleSize, setVehicleSize] = useState<string | null>(null);
   const [cargoPhoto, setCargoPhoto] = useState<File | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
@@ -78,6 +83,7 @@ export default function MoveWithYouPage() {
   async function handlePhotoSelected(file: File | null) {
     setCargoPhoto(file);
     setSmartLoadNote(null);
+    setVehicleCategory(null);
     setVehicleSize(null);
     if (!file) return;
 
@@ -89,11 +95,19 @@ export default function MoveWithYouPage() {
       setSmartLoadNote(result.message);
       return;
     }
-    if (result.data.size) {
-      setVehicleSize(result.data.size);
-      setSmartLoadNote(`SmartLoad™ suggests a ${result.data.size} truck — tap a different size below to change it.`);
+
+    const { category, size } = result.data;
+    if (category) setVehicleCategory(category as Category);
+    if (size) setVehicleSize(size);
+
+    if (category && size) {
+      setSmartLoadNote(`SmartLoad™ suggests ${category} — a ${size} truck. Tap a different size below to change it.`);
+    } else if (category) {
+      setSmartLoadNote(`SmartLoad™ suggests ${category}, but wasn't sure on a size — please choose below.`);
+    } else if (size) {
+      setSmartLoadNote(`SmartLoad™ suggests a ${size} truck — please confirm what you're moving below to see the full guide.`);
     } else {
-      setSmartLoadNote("SmartLoad™ wasn't sure from that photo — please choose a size below.");
+      setSmartLoadNote("SmartLoad™ wasn't sure from that photo — please choose below.");
     }
   }
 
@@ -112,6 +126,10 @@ export default function MoveWithYouPage() {
     }
     if (!aiChoice) {
       setError("Please answer the SmartLoad™ question above.");
+      return;
+    }
+    if (!vehicleCategory) {
+      setError("Please choose what you're moving.");
       return;
     }
     if (!vehicleSize) {
@@ -137,8 +155,8 @@ export default function MoveWithYouPage() {
       pickupLocation,
       dropoffLocation,
       cargoDescription,
-      vehicleSize,
       vehicleCategory,
+      vehicleSize,
       cargoPhotoUrl,
       scheduledFor: when === "later" ? new Date(scheduledFor).toISOString() : null,
     });
@@ -170,6 +188,12 @@ export default function MoveWithYouPage() {
       </DashboardShell>
     );
   }
+
+  // Manual path: the grid is always the first thing shown. AI path: it's a
+  // fallback, shown only once the photo's been analyzed and SmartLoad™
+  // still doesn't have a category to work with.
+  const showCategoryGrid =
+    aiChoice === "no" || (aiChoice === "yes" && cargoPhoto !== null && !analyzing && !vehicleCategory);
 
   return (
     <DashboardShell>
@@ -237,7 +261,7 @@ export default function MoveWithYouPage() {
               Want SmartLoad™ to Help?
             </span>
             <p className="text-[0.8rem] text-muted">
-              Upload a photo and let AI suggest the right truck size — or choose one yourself.
+              Upload a photo and let AI suggest the right truck — or choose one yourself.
             </p>
             <div className="flex gap-2.5">
               <ToggleButton label="Yes, use AI" active={aiChoice === "yes"} onClick={() => handleAiChoice("yes")} />
@@ -259,56 +283,20 @@ export default function MoveWithYouPage() {
                   {smartLoadNote}
                 </p>
               ) : null}
-              {cargoPhoto && !analyzing ? (
-                <TruckSizePicker value={vehicleSize} onChange={setVehicleSize} />
-              ) : null}
             </>
           ) : null}
 
-          {aiChoice === "no" ? (
-            <>
-              <div className="flex flex-col gap-2">
-                <span className="font-display text-[0.72rem] font-semibold tracking-[0.08em] text-mist uppercase">
-                  Cargo Type
-                </span>
-                <div className="grid gap-2.5 sm:grid-cols-2">
-                  {CARGO_CATEGORIES.map((category, index) => {
-                    const Icon = CATEGORY_ICONS[index];
-                    const active = vehicleCategory === category.title;
-                    return (
-                      <button
-                        key={category.title}
-                        type="button"
-                        onClick={() => setVehicleCategory(category.title)}
-                        aria-pressed={active}
-                        className={cn(
-                          "flex flex-col items-center gap-2.5 rounded-xl border px-4 py-4 text-center transition-colors duration-200",
-                          active ? "border-brand bg-brand/[0.06]" : "border-edge/12 bg-ink-950 hover:border-brand/40",
-                        )}
-                      >
-                        {/* Brand-yellow chip is a fixed color regardless of
-                         * theme, so the icon needs to branch instead — same
-                         * white/black contrast rule as QuickAction's icon
-                         * chips on the customer dashboard home and
-                         * CargoScene on the marketing site. */}
-                        <span
-                          className={cn(
-                            "grid size-12 shrink-0 place-items-center rounded-xl bg-brand",
-                            theme === "light" ? "text-white" : "text-black",
-                            !reducedMotion && "icon-drive",
-                          )}
-                          style={reducedMotion ? undefined : { animationDelay: `${index * 0.25}s` }}
-                        >
-                          <Icon className="size-6" aria-hidden />
-                        </span>
-                        <span className="text-[0.85rem] font-semibold text-fg">{category.title}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-              {vehicleCategory ? <TruckSizePicker value={vehicleSize} onChange={setVehicleSize} /> : null}
-            </>
+          {showCategoryGrid ? (
+            <CargoTypeGrid
+              value={vehicleCategory}
+              onChange={setVehicleCategory}
+              theme={theme}
+              reducedMotion={reducedMotion}
+            />
+          ) : null}
+
+          {vehicleCategory ? (
+            <TruckSizePicker category={vehicleCategory} value={vehicleSize} onChange={setVehicleSize} />
           ) : null}
 
           {error ? (
@@ -346,5 +334,59 @@ function ToggleButton({ label, active, onClick }: { label: string; active: boole
     >
       {label}
     </button>
+  );
+}
+
+function CargoTypeGrid({
+  value,
+  onChange,
+  theme,
+  reducedMotion,
+}: {
+  value: Category | null;
+  onChange: (category: Category) => void;
+  theme: "light" | "dark";
+  reducedMotion: boolean;
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <span className="font-display text-[0.72rem] font-semibold tracking-[0.08em] text-mist uppercase">
+        Cargo Type
+      </span>
+      <div className="grid gap-2.5 sm:grid-cols-2">
+        {CARGO_CATEGORIES.map((category, index) => {
+          const Icon = CATEGORY_ICONS[index];
+          const active = value === category.title;
+          return (
+            <button
+              key={category.title}
+              type="button"
+              onClick={() => onChange(category.title)}
+              aria-pressed={active}
+              className={cn(
+                "flex flex-col items-center gap-2.5 rounded-xl border px-4 py-4 text-center transition-colors duration-200",
+                active ? "border-brand bg-brand/[0.06]" : "border-edge/12 bg-ink-950 hover:border-brand/40",
+              )}
+            >
+              {/* Brand-yellow chip is a fixed color regardless of theme, so
+               * the icon needs to branch instead — same white/black
+               * contrast rule as QuickAction's icon chips on the customer
+               * dashboard home and CargoScene on the marketing site. */}
+              <span
+                className={cn(
+                  "grid size-12 shrink-0 place-items-center rounded-xl bg-brand",
+                  theme === "light" ? "text-white" : "text-black",
+                  !reducedMotion && "icon-drive",
+                )}
+                style={reducedMotion ? undefined : { animationDelay: `${index * 0.25}s` }}
+              >
+                <Icon className="size-6" aria-hidden />
+              </span>
+              <span className="text-[0.85rem] font-semibold text-fg">{category.title}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }

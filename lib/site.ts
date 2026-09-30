@@ -143,11 +143,46 @@ export const CARGO_CATEGORIES = [
 /**
  * The actual truck sizes a booking is made against — the final answer on
  * Move With You, reached either via SmartLoad™'s AI suggestion or picked
- * manually. Mirrored in `supabase/functions/analyze-cargo/index.ts` (Deno
- * can't import this file directly) — keep both in sync if these ever change.
+ * manually. Literal truck lengths (matching the size-guide reference the
+ * user sent) rather than relative labels — a 20ft truck is a 20ft truck
+ * regardless of what's being moved, so the size itself stays the same
+ * across every cargo category; only the caption next to it changes (see
+ * `TRUCK_SIZE_GUIDE` below). Mirrored in
+ * `supabase/functions/analyze-cargo/index.ts` (Deno can't import this file
+ * directly) — keep both in sync if these ever change.
  */
 export const TRUCK_SIZES = [
-  { title: "Small", body: "A few boxes or a small load." },
-  { title: "Middle", body: "A studio or one-bedroom move." },
-  { title: "Big", body: "A full household or bulky goods." },
+  { title: "10ft" },
+  { title: "15ft" },
+  { title: "20ft" },
+  { title: "26ft" },
 ] as const;
+
+/**
+ * One "Best for" caption per truck size, per cargo category — same order as
+ * `TRUCK_SIZES`. The reference image the user sent only covers household
+ * moves ("Studio / 1 Bedroom / 2–3 Bedroom / 3–4 Bedroom"); this extends
+ * that same idea to the other three categories with wording suited to what
+ * they actually carry.
+ */
+export const TRUCK_SIZE_GUIDE: Record<(typeof CARGO_CATEGORIES)[number]["title"], readonly string[]> = {
+  "Household Moves": ["Studio / Small Apartment", "1 Bedroom Home", "2–3 Bedroom Home", "3–4 Bedroom Home"],
+  "Furniture & Appliances": [
+    "A single large item — sofa, fridge or wardrobe",
+    "A few pieces of furniture",
+    "A living room or bedroom set",
+    "A full house of furniture & appliances",
+  ],
+  "Business Goods": [
+    "A small stock run or a few parcels",
+    "Pallet-sized stock or equipment",
+    "A shop's worth of stock",
+    "Bulk stock or heavy equipment",
+  ],
+  "Building Materials": [
+    "A few bags, boards or pipes",
+    "A small renovation's worth",
+    "A room's worth of materials",
+    "A full building-materials load",
+  ],
+};

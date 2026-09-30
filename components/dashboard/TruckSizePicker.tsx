@@ -2,38 +2,39 @@
 
 import { useId } from "react";
 import { cn } from "@/lib/cn";
-import { TRUCK_SIZES } from "@/lib/site";
+import { CARGO_CATEGORIES, TRUCK_SIZE_GUIDE, TRUCK_SIZES } from "@/lib/site";
 import { useSettledReducedMotion } from "@/lib/useSettledReducedMotion";
 
-type Size = "Small" | "Middle" | "Big";
+type Size = "10ft" | "15ft" | "20ft" | "26ft";
+type Category = (typeof CARGO_CATEGORIES)[number]["title"];
 
 /**
- * Three small vector trucks — cab, windshield, a diagonal gloss streak on
- * the box, closer to a real "truck size guide" illustration than the plain
- * boxes this started as (reference: a moving-company size-guide graphic the
- * user sent). Still the same brand palette as the hero's `TruckSilhouette`
- * (yellow box, dark chassis) rather than switching to the reference's plain
- * white — every other truck on this site is branded yellow, this one
- * shouldn't be the odd one out.
+ * Four vector trucks — cab, windshield, a diagonal gloss streak on the box —
+ * closer to a real "truck size guide" illustration than a plain box
+ * (reference: a moving-company size-guide graphic the user sent). Same
+ * brand palette as the hero's `TruckSilhouette` (yellow box, dark chassis)
+ * rather than the reference's plain white — every other truck on this site
+ * is branded yellow, this one shouldn't be the odd one out.
  *
  * Wheels spin using `.wheel-spin` — the exact same class/keyframe the hero
  * truck's own wheels use (see app/globals.css and
- * components/three/TruckSilhouette.tsx) — reused rather than inventing a
- * second "truck is moving" treatment. Gated behind `useSettledReducedMotion`
- * like every other motion effect on this project.
+ * components/three/TruckSilhouette.tsx) — reused rather than a second
+ * "truck is moving" treatment. Gated behind `useSettledReducedMotion` like
+ * every other motion effect on this project.
  *
- * All three share one viewBox; the truck occupies more of the frame as size
+ * All four share one viewBox; the truck occupies more of the frame as size
  * increases, which is what actually reads as "bigger" at a glance rather
- * than three same-sized trucks with different labels.
+ * than four same-sized trucks with different labels.
  *
  * Gradient ids are suffixed with a `useId()` value in the picker below —
- * without that, three copies on one page would collide on the same id.
+ * without that, four copies on one page would collide on the same id.
  */
 function TruckIllustration({ size, gradientId, animate }: { size: Size; gradientId: string; animate: boolean }) {
   const spans: Record<Size, { boxX: number; boxW: number; boxH: number; cabW: number; wheelR: number }> = {
-    Small: { boxX: 100, boxW: 56, boxH: 32, cabW: 34, wheelR: 12 },
-    Middle: { boxX: 62, boxW: 90, boxH: 40, cabW: 38, wheelR: 14 },
-    Big: { boxX: 18, boxW: 130, boxH: 48, cabW: 42, wheelR: 16 },
+    "10ft": { boxX: 112, boxW: 44, boxH: 28, cabW: 28, wheelR: 10 },
+    "15ft": { boxX: 82, boxW: 70, boxH: 34, cabW: 32, wheelR: 12 },
+    "20ft": { boxX: 48, boxW: 100, boxH: 42, cabW: 36, wheelR: 14 },
+    "26ft": { boxX: 10, boxW: 138, boxH: 50, cabW: 40, wheelR: 16 },
   };
   const s = spans[size];
   const groundY = 96;
@@ -122,22 +123,26 @@ function TruckIllustration({ size, gradientId, animate }: { size: Size; gradient
 }
 
 export function TruckSizePicker({
+  category,
   value,
   onChange,
 }: {
+  /** Which category's "Best for" captions to show — see `TRUCK_SIZE_GUIDE`. */
+  category: Category;
   value: string | null;
   onChange: (size: string) => void;
 }) {
   const idBase = useId();
   const reducedMotion = useSettledReducedMotion();
+  const captions = TRUCK_SIZE_GUIDE[category];
 
   return (
     <div className="flex flex-col gap-2">
       <span className="font-display text-[0.72rem] font-semibold tracking-[0.08em] text-mist uppercase">
         Truck Size
       </span>
-      <div className="grid gap-2.5 sm:grid-cols-3">
-        {TRUCK_SIZES.map((size) => {
+      <div className="grid grid-cols-2 gap-2.5">
+        {TRUCK_SIZES.map((size, index) => {
           const active = value === size.title;
           return (
             <button
@@ -153,8 +158,8 @@ export function TruckSizePicker({
               <div className="w-full max-w-32 text-fg">
                 <TruckIllustration size={size.title as Size} gradientId={`${idBase}-${size.title}`} animate={!reducedMotion} />
               </div>
-              <span className="text-[0.85rem] font-semibold text-fg">{size.title}</span>
-              <span className="text-[0.72rem] leading-snug text-muted">{size.body}</span>
+              <span className="text-[0.85rem] font-semibold text-fg">{size.title} Truck</span>
+              <span className="text-[0.72rem] leading-snug text-muted">Best for: {captions[index]}</span>
             </button>
           );
         })}
