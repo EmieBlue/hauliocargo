@@ -13,6 +13,7 @@ import { analyzeCargoPhoto, createBooking, uploadCargoPhoto } from "@/lib/bookin
 import { cn } from "@/lib/cn";
 import { CARGO_CATEGORIES, ROUTES } from "@/lib/site";
 import { useRequireRole } from "@/lib/useRequireRole";
+import { useSettledReducedMotion } from "@/lib/useSettledReducedMotion";
 
 type When = "now" | "later";
 
@@ -36,6 +37,7 @@ const CATEGORY_ICONS: LucideIcon[] = [Van, Truck, Container, Forklift];
  */
 export default function MoveWithYouPage() {
   const { loading } = useRequireRole("customer");
+  const reducedMotion = useSettledReducedMotion();
 
   const [pickupLocation, setPickupLocation] = useState("");
   const [dropoffLocation, setDropoffLocation] = useState("");
@@ -241,7 +243,13 @@ export default function MoveWithYouPage() {
                      * on DashboardShell's pinned-dark backdrop — black icon
                      * is the correct contrast here, same rule CargoScene
                      * applies for dark theme, not something to branch on. */}
-                    <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-brand text-black">
+                    <span
+                      className={cn(
+                        "grid size-12 shrink-0 place-items-center rounded-xl bg-brand text-black",
+                        !reducedMotion && "icon-bob",
+                      )}
+                      style={reducedMotion ? undefined : { animationDelay: `${index * 0.25}s` }}
+                    >
                       <Icon className="size-6" aria-hidden />
                     </span>
                     <span className="text-[0.85rem] font-semibold text-fg">{category.title}</span>
