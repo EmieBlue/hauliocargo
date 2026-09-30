@@ -14,6 +14,7 @@ import { cn } from "@/lib/cn";
 import { CARGO_CATEGORIES, ROUTES } from "@/lib/site";
 import { useRequireRole } from "@/lib/useRequireRole";
 import { useSettledReducedMotion } from "@/lib/useSettledReducedMotion";
+import { useTheme } from "@/lib/useTheme";
 
 type When = "now" | "later";
 
@@ -38,6 +39,7 @@ const CATEGORY_ICONS: LucideIcon[] = [Van, Truck, Container, Forklift];
 export default function MoveWithYouPage() {
   const { loading } = useRequireRole("customer");
   const reducedMotion = useSettledReducedMotion();
+  const [theme] = useTheme();
 
   const [pickupLocation, setPickupLocation] = useState("");
   const [dropoffLocation, setDropoffLocation] = useState("");
@@ -238,14 +240,15 @@ export default function MoveWithYouPage() {
                       active ? "border-brand bg-brand/[0.06]" : "border-edge/12 bg-ink-950 hover:border-brand/40",
                     )}
                   >
-                    {/* Brand-yellow chip is a fixed color regardless of the
-                     * site's light/dark toggle, and this form always renders
-                     * on DashboardShell's pinned-dark backdrop — black icon
-                     * is the correct contrast here, same rule CargoScene
-                     * applies for dark theme, not something to branch on. */}
+                    {/* Brand-yellow chip is a fixed color regardless of
+                     * theme, so the icon needs to branch instead — same
+                     * white/black contrast rule as QuickAction's icon chips
+                     * on the customer dashboard home and CargoScene on the
+                     * marketing site, not a one-off invented here. */}
                     <span
                       className={cn(
-                        "grid size-12 shrink-0 place-items-center rounded-xl bg-brand text-black",
+                        "grid size-12 shrink-0 place-items-center rounded-xl bg-brand",
+                        theme === "light" ? "text-white" : "text-black",
                         !reducedMotion && "icon-drive",
                       )}
                       style={reducedMotion ? undefined : { animationDelay: `${index * 0.25}s` }}

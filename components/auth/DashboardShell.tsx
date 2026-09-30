@@ -19,19 +19,18 @@ import { ProfileMenu } from "./ProfileMenu";
  * transparent over the backdrop's own scrim, matching how `Navbar` sits over
  * `VideoBackdrop`.
  *
- * Pinned `data-theme="dark"` throughout, regardless of the site's own
- * light/dark toggle — same reasoning as `CargoScene`/`HowItWorks`/`Trust` on
- * the marketing site: `DashboardBackdrop` is a permanently dark, heavily
- * scrimmed image (not Hero's variable-brightness video), so light theme's
- * near-black `text-fg` etc. would be illegible against it. Confirmed via
- * screenshot: without the pin, light theme's default text tokens render
- * unreadable against this backdrop.
+ * Inherits the site's real light/dark theme like every other page — this
+ * used to force `data-theme="dark"` here regardless of the toggle, but that
+ * left the theme button on every dashboard page doing nothing visible, which
+ * read as broken. The color tokens (`ink-950` etc., see app/globals.css)
+ * already invert role-for-role per theme, so `DashboardBackdrop`'s scrim
+ * lightens correctly in light mode without needing a forced pin.
  */
 export function DashboardShell({ children }: { children: ReactNode }) {
   const scrolled = useScrolled();
 
   return (
-    <div data-theme="dark" className="relative flex min-h-svh flex-col">
+    <div className="relative flex min-h-svh flex-col">
       <DashboardBackdrop />
       <header
         className={cn(
