@@ -139,3 +139,15 @@ export const CARGO_CATEGORIES = [
   { title: "Business Goods", body: "Stock, equipment and deliveries for your operation." },
   { title: "Building Materials", body: "Heavier loads matched to a vehicle that can take them." },
 ] as const;
+
+/**
+ * The actual truck sizes a booking is made against — the final answer on
+ * Move With You, reached either via SmartLoad™'s AI suggestion or picked
+ * manually. Mirrored in `supabase/functions/analyze-cargo/index.ts` (Deno
+ * can't import this file directly) — keep both in sync if these ever change.
+ */
+export const TRUCK_SIZES = [
+  { title: "Small", body: "A few boxes or a small load." },
+  { title: "Middle", body: "A studio or one-bedroom move." },
+  { title: "Big", body: "A full household or bulky goods." },
+] as const;

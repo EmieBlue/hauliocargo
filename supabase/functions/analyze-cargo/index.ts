@@ -1,6 +1,6 @@
-// Haulio SmartLoad™ — looks at a cargo photo and suggests one of the site's
-// existing vehicle-size categories. This is the project's first server-side
-// code of any kind: everything else (auth, bookings, storage) is called
+// Haulio SmartLoad™ — looks at a cargo photo and suggests a truck size
+// (Small/Middle/Big). This is the project's first server-side code of any
+// kind: everything else (auth, bookings, storage) is called
 // straight from the browser with Supabase's public anon key, which is safe
 // because row-level security — not secrecy — is what protects it. An
 // Anthropic API key is a different kind of credential: it's secret, with no
@@ -22,21 +22,16 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Mirrors lib/site.ts's CARGO_CATEGORIES titles. Deno can't import straight
-// from the Next app, so this list is kept here deliberately — if the
-// categories in lib/site.ts ever change, update this array to match.
-const VEHICLE_CATEGORIES = [
-  "Household Moves",
-  "Furniture & Appliances",
-  "Business Goods",
-  "Building Materials",
-] as const;
+// Mirrors lib/site.ts's TRUCK_SIZES titles. Deno can't import straight from
+// the Next app, so this list is kept here deliberately — if the sizes in
+// lib/site.ts ever change, update this array to match.
+const VEHICLE_SIZES = ["Small", "Middle", "Big"] as const;
 
-const PROMPT = `You are helping size a delivery vehicle for a cargo photo. Look at the photo and choose exactly one of these categories that best matches what's shown:
+const PROMPT = `You are helping size a delivery truck for a cargo photo. Look at how much is shown — a few boxes, a room's worth of furniture, a full household or bulky goods — and choose exactly one truck size that best fits it:
 
-${VEHICLE_CATEGORIES.map((c) => `- ${c}`).join("\n")}
+${VEHICLE_SIZES.map((s) => `- ${s}`).join("\n")}
 
-Reply with only the category name, exactly as written above, and nothing else.`;
+Reply with only the size name, exactly as written above, and nothing else.`;
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -101,9 +96,9 @@ Deno.serve(async (req) => {
 
     const data = await response.json();
     const raw = (data?.content?.[0]?.text ?? "").trim();
-    const category = VEHICLE_CATEGORIES.find((c) => c.toLowerCase() === raw.toLowerCase()) ?? null;
+    const size = VEHICLE_SIZES.find((s) => s.toLowerCase() === raw.toLowerCase()) ?? null;
 
-    return jsonResponse({ category });
+    return jsonResponse({ size });
   } catch (error) {
     console.error("analyze-cargo failed", error);
     return jsonResponse({ error: "SmartLoad couldn't look at that photo right now." }, 500);

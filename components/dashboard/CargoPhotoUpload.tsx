@@ -86,7 +86,7 @@ export function CargoPhotoUpload({
         >
           <Camera className="size-4 shrink-0 text-muted" aria-hidden />
           <span className="text-[0.85rem] text-muted">
-            Add a photo and SmartLoad™ will suggest a vehicle size
+            Add a photo and SmartLoad™ will suggest a truck size
           </span>
         </div>
       )}

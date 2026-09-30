@@ -11,7 +11,10 @@ export type BookingFields = {
   /** ISO datetime string, or null for "as soon as possible". */
   scheduledFor: string | null;
   cargoDescription: string;
-  vehicleCategory: string;
+  /** The real final answer — Small/Middle/Big, reached via AI or manually. */
+  vehicleSize: string;
+  /** Only set on the manual path — the AI path never collects a category. */
+  vehicleCategory?: string | null;
   /** Storage path from `uploadCargoPhoto`, or null if no photo was attached. */
   cargoPhotoUrl?: string | null;
 };
@@ -44,7 +47,8 @@ export async function createBooking(
     dropoff_location: fields.dropoffLocation.trim(),
     scheduled_for: fields.scheduledFor,
     cargo_description: fields.cargoDescription.trim(),
-    vehicle_category: fields.vehicleCategory,
+    vehicle_size: fields.vehicleSize,
+    vehicle_category: fields.vehicleCategory ?? null,
     cargo_photo_url: fields.cargoPhotoUrl ?? null,
   });
   if (error) {
@@ -83,13 +87,13 @@ export async function uploadCargoPhoto(file: File): Promise<AuthResult<string>> 
   return { ok: true, data: path };
 }
 
-export type CargoAnalysis = { category: string | null };
+export type CargoAnalysis = { size: string | null };
 
 /**
  * Sends a cargo photo to the `analyze-cargo` Supabase Edge Function, which
- * holds the Anthropic API key server-side and returns a suggested vehicle
- * category — see supabase/functions/analyze-cargo/index.ts for why this
- * can't happen directly from the browser the way Mapbox's calls do.
+ * holds the Anthropic API key server-side and returns a suggested truck
+ * size — see supabase/functions/analyze-cargo/index.ts for why this can't
+ * happen directly from the browser the way Mapbox's calls do.
  */
 export async function analyzeCargoPhoto(file: File): Promise<AuthResult<CargoAnalysis>> {
   if (!authEnabled) return { ok: false, message: NOT_CONFIGURED };

@@ -12,6 +12,7 @@ whole set after a change never needs a rollback first.
 005_bookings.sql                   one row per booking request (move/send/receive)
 006_cargo_photos_storage.sql       private bucket for SmartLoad™ cargo photo uploads
 007_bookings_cargo_photo.sql       adds bookings.cargo_photo_url
+008_bookings_vehicle_size.sql      adds bookings.vehicle_size, makes vehicle_category optional
 ```
 
 If `001` and `002` already exist from earlier setup, running them again is harmless — `create table if not
