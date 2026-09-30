@@ -1,6 +1,6 @@
 "use client";
 
-import { Boxes, Building2, Hammer, Loader2, Sofa, Sparkles } from "lucide-react";
+import { Container, Forklift, Loader2, Sparkles, Truck, Van } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
@@ -16,11 +16,15 @@ import { useRequireRole } from "@/lib/useRequireRole";
 
 type When = "now" | "later";
 
-// Same order as CARGO_CATEGORIES in lib/site.ts, and the same icon choices
-// as the marketing site's Services section (components/sections/CargoScene.tsx)
-// — one consistent icon per category across the whole site, not a second
-// set invented just for this form.
-const CATEGORY_ICONS: LucideIcon[] = [Boxes, Sofa, Building2, Hammer];
+// Same order as CARGO_CATEGORIES in lib/site.ts. Truck-family icons rather
+// than CargoScene's generic category icons (Boxes/Sofa/Building2/Hammer) —
+// the user asked for something closer to a fleet of moving trucks here,
+// Uber-picker style. Plain `Truck` alone for all four was considered and
+// dropped: `Truck` is already the icon for "Move With You" itself one level
+// up (the customer dashboard's quick actions, and the homepage's SmartLoad
+// teaser), so every option would both collide with that and look identical
+// apart from the label.
+const CATEGORY_ICONS: LucideIcon[] = [Van, Truck, Container, Forklift];
 
 /**
  * "Move With You" — the ride-along booking form. Modeled on Uber's own
@@ -228,7 +232,7 @@ export default function MoveWithYouPage() {
                     onClick={() => setVehicleCategory(category.title)}
                     aria-pressed={active}
                     className={cn(
-                      "flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors duration-200",
+                      "flex flex-col items-center gap-2.5 rounded-xl border px-4 py-4 text-center transition-colors duration-200",
                       active ? "border-brand bg-brand/[0.06]" : "border-edge/12 bg-ink-950 hover:border-brand/40",
                     )}
                   >
@@ -237,8 +241,8 @@ export default function MoveWithYouPage() {
                      * on DashboardShell's pinned-dark backdrop — black icon
                      * is the correct contrast here, same rule CargoScene
                      * applies for dark theme, not something to branch on. */}
-                    <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-brand text-black">
-                      <Icon className="size-4" aria-hidden />
+                    <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-brand text-black">
+                      <Icon className="size-6" aria-hidden />
                     </span>
                     <span className="text-[0.85rem] font-semibold text-fg">{category.title}</span>
                   </button>
