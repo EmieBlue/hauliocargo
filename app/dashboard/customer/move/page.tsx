@@ -246,7 +246,7 @@ export default function MoveWithYouPage() {
                     <span
                       className={cn(
                         "grid size-12 shrink-0 place-items-center rounded-xl bg-brand text-black",
-                        !reducedMotion && "icon-bob",
+                        !reducedMotion && "icon-drive",
                       )}
                       style={reducedMotion ? undefined : { animationDelay: `${index * 0.25}s` }}
                     >

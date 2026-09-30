@@ -232,6 +232,25 @@
   animation: icon-bob 2.6s ease-in-out infinite;
 }
 
+/*
+ * A vertical bob (.icon-bob, above) reads as bouncing, not driving. This is
+ * the same idea — small fixed-pixel amplitude, so it's visible at icon
+ * size — but horizontal, which is what actually reads as "a car moving."
+ */
+@keyframes icon-drive {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(4px, 0, 0);
+  }
+}
+
+.icon-drive {
+  animation: icon-drive 2.6s ease-in-out infinite;
+}
+
 @keyframes pulse-ring {
   0% {
     transform: scale(0.85);
