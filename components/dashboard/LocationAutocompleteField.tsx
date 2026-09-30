@@ -113,7 +113,7 @@ export function LocationAutocompleteField({
         onChange={(event) => onChange(event.target.value)}
         onFocus={() => predictions.length > 0 && setOpen(true)}
         autoComplete="off"
-        className="h-12 rounded-xl border border-edge/12 bg-ink-950 px-4 text-[0.95rem] text-fg placeholder:text-muted/70 transition-colors duration-200 focus:border-brand/50 focus:ring-2 focus:ring-brand/25 focus:outline-none"
+        className="h-12 rounded-xl border border-edge/12 bg-ink-950 px-4 text-[0.95rem] text-fg placeholder:text-muted transition-colors duration-200 focus:border-brand/50 focus:ring-2 focus:ring-brand/25 focus:outline-none"
       />
 
       {open && predictions.length > 0 ? (

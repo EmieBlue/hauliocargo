@@ -76,7 +76,12 @@
   --color-ink-700: #cfcfd4;
 
   --color-mist: #3f3f46;
-  --color-muted: #6b6b74;
+  /* Was #6b6b74 — too light in real viewing conditions (a rendered
+     screenshot on a controlled backdrop doesn't show this the way an
+     actual phone screen outdoors does). ~7:1 against white now, with
+     real headroom above the 4.5:1 minimum, and still visibly lighter
+     than --color-mist so body text stays subordinate to labels. */
+  --color-muted: #52525b;
 
   --color-fg: #0a0a0b;
   --color-edge: #0a0a0b;

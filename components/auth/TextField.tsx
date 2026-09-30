@@ -40,7 +40,7 @@ export function TextField({
         aria-invalid={error ? true : undefined}
         aria-describedby={cn(hintId, errorId) || undefined}
         className={cn(
-          "h-12 rounded-xl border bg-ink-950 px-4 text-[0.95rem] text-fg placeholder:text-muted/70 transition-colors duration-200 focus:outline-none",
+          "h-12 rounded-xl border bg-ink-950 px-4 text-[0.95rem] text-fg placeholder:text-muted transition-colors duration-200 focus:outline-none",
           // No separate "error red" exists in this palette — one brand
           // yellow, per the colour-unification pass. Error state reads via
           // the message + a brighter border, not a different hue.
