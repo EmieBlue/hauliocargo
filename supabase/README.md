@@ -1,14 +1,17 @@
 # Database setup
 
-Four migration files, run in order, each in Supabase → **SQL Editor** → New query → paste → Run. Every file is
+Migration files, run in order, each in Supabase → **SQL Editor** → New query → paste → Run. Every file is
 safe to run more than once — nothing errors on a second run, which is what "idempotent" buys: re-running the
 whole set after a change never needs a rollback first.
 
 ```
-001_signups.sql               the early-access list (landing page)
-002_profiles.sql              one row per authenticated user
-003_driver_applications.sql   vehicle details + verification status
+001_signups.sql                    the early-access list (landing page)
+002_profiles.sql                   one row per authenticated user
+003_driver_applications.sql        vehicle details + verification status
 004_driver_documents_storage.sql   private bucket for licence/registration/insurance uploads
+005_bookings.sql                   one row per booking request (move/send/receive)
+006_cargo_photos_storage.sql       private bucket for SmartLoad™ cargo photo uploads
+007_bookings_cargo_photo.sql       adds bookings.cargo_photo_url
 ```
 
 If `001` and `002` already exist from earlier setup, running them again is harmless — `create table if not
@@ -56,3 +59,23 @@ reset role;
    elevated access masking a missing policy.
 4. For the storage bucket: after a driver registration with an uploaded document, confirm the file exists in
    **Storage → driver-documents** under a path starting with that user's id.
+
+---
+
+## Edge Function: `analyze-cargo` (Haulio SmartLoad™)
+
+The one server-side piece in this project — everything else is a direct browser call using the public anon
+key, safe because RLS (not secrecy) protects it. An Anthropic API key is a real secret with no
+domain-restriction option, so it can only live here, never in browser code. Source:
+`supabase/functions/analyze-cargo/index.ts`.
+
+**Deploy** — Supabase → **Edge Functions** → **Deploy a new function** → name it `analyze-cargo` → paste in
+the contents of that file → Deploy. (The dashboard's own code editor is enough; no command line needed.)
+
+**Secret** — Supabase → **Project Settings** → **Edge Functions** → **Secrets** → add `ANTHROPIC_API_KEY` with
+a real Anthropic API key. The function returns a clear "not configured yet" response until this is set, rather
+than failing oddly.
+
+**Verify**: on Move With You, add a cargo photo — within a couple of seconds a vehicle size should highlight
+itself with a "SmartLoad™ suggests…" note. Tapping a different size still overrides it; nothing here forces
+the AI's pick.

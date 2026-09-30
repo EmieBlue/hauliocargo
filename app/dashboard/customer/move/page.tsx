@@ -1,13 +1,14 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { DashboardLoading, DashboardShell } from "@/components/auth/DashboardShell";
 import { TextField } from "@/components/auth/TextField";
+import { CargoPhotoUpload } from "@/components/dashboard/CargoPhotoUpload";
 import { LocationAutocompleteField } from "@/components/dashboard/LocationAutocompleteField";
 import { Button } from "@/components/ui/Button";
-import { createBooking } from "@/lib/bookings";
+import { analyzeCargoPhoto, createBooking, uploadCargoPhoto } from "@/lib/bookings";
 import { cn } from "@/lib/cn";
 import { CARGO_CATEGORIES, ROUTES } from "@/lib/site";
 import { useRequireRole } from "@/lib/useRequireRole";
@@ -31,11 +32,35 @@ export default function MoveWithYouPage() {
   const [scheduledFor, setScheduledFor] = useState("");
   const [cargoDescription, setCargoDescription] = useState("");
   const [vehicleCategory, setVehicleCategory] = useState<string | null>(null);
+  const [cargoPhoto, setCargoPhoto] = useState<File | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [smartLoadNote, setSmartLoadNote] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   if (loading) return <DashboardLoading />;
+
+  async function handlePhotoSelected(file: File | null) {
+    setCargoPhoto(file);
+    setSmartLoadNote(null);
+    if (!file) return;
+
+    setAnalyzing(true);
+    const result = await analyzeCargoPhoto(file);
+    setAnalyzing(false);
+
+    if (!result.ok) {
+      setSmartLoadNote(result.message);
+      return;
+    }
+    if (result.data.category) {
+      setVehicleCategory(result.data.category);
+      setSmartLoadNote(`SmartLoad™ suggests ${result.data.category} — tap a different size below to change it.`);
+    } else {
+      setSmartLoadNote("SmartLoad™ wasn't sure from that photo — please choose a size below.");
+    }
+  }
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -60,11 +85,21 @@ export default function MoveWithYouPage() {
     }
 
     setSubmitting(true);
+
+    // A photo failing to upload shouldn't block the booking itself — the
+    // request still has everything it needs without it.
+    let cargoPhotoUrl: string | null = null;
+    if (cargoPhoto) {
+      const uploadResult = await uploadCargoPhoto(cargoPhoto);
+      if (uploadResult.ok) cargoPhotoUrl = uploadResult.data;
+    }
+
     const result = await createBooking("move", {
       pickupLocation,
       dropoffLocation,
       cargoDescription,
       vehicleCategory,
+      cargoPhotoUrl,
       scheduledFor: when === "later" ? new Date(scheduledFor).toISOString() : null,
     });
     setSubmitting(false);
@@ -156,6 +191,20 @@ export default function MoveWithYouPage() {
             value={cargoDescription}
             onChange={(e) => setCargoDescription(e.target.value)}
           />
+
+          <CargoPhotoUpload onFileSelected={handlePhotoSelected} />
+
+          {analyzing ? (
+            <p className="flex items-center gap-2 text-[0.8rem] text-muted">
+              <Loader2 className="size-3.5 animate-spin" aria-hidden />
+              SmartLoad™ is looking at your photo…
+            </p>
+          ) : smartLoadNote ? (
+            <p className="flex items-start gap-2 text-[0.8rem] text-brand">
+              <Sparkles className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+              {smartLoadNote}
+            </p>
+          ) : null}
 
           <div className="flex flex-col gap-2">
             <span className="font-display text-[0.72rem] font-semibold tracking-[0.08em] text-mist uppercase">
