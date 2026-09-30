@@ -149,7 +149,7 @@ export function LocationAutocompleteField({
        * makes that fallback visible instead of leaving the customer unsure
        * whether they're allowed to keep going without picking one.
        */}
-      <p className="text-[0.72rem] text-muted/70">
+      <p className="text-[0.72rem] text-muted">
         Can&rsquo;t find the exact spot? Keep typing — we&rsquo;ll use exactly what you enter.
       </p>
     </div>
