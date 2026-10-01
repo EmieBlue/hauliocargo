@@ -141,7 +141,13 @@ export function TruckSizePicker({
       <span className="font-display text-[0.72rem] font-semibold tracking-[0.08em] text-mist uppercase">
         Truck Size
       </span>
-      <div className="grid grid-cols-2 gap-2.5">
+      {/* Pinned light, matching the reference image — always white/cream
+       * regardless of the site's own theme toggle, same data-theme pinning
+       * technique used everywhere else on this site (Footer, CargoScene,
+       * CargoTypeGrid right above this on Move With You), just the
+       * light-pinned direction. The existing bg-ink-950/border-edge classes
+       * below already resolve correctly from this pin alone. */}
+      <div data-theme="light" className="grid grid-cols-2 gap-2.5">
         {TRUCK_SIZES.map((size, index) => {
           const active = value === size.title;
           return (
@@ -152,7 +158,14 @@ export function TruckSizePicker({
               aria-pressed={active}
               className={cn(
                 "flex flex-col items-center gap-2 rounded-xl border px-3 py-3.5 text-center transition-colors duration-200",
-                active ? "border-brand bg-brand/[0.06]" : "border-edge/12 bg-ink-950 hover:border-brand/40",
+                // Solid color-mix instead of a transparent wash — see the
+                // comment on this same pattern in CargoTypeGrid
+                // (app/dashboard/customer/move/page.tsx): a transparent
+                // background on a card that's pinned light would otherwise
+                // let the dark photo backdrop bleed through when selected.
+                active
+                  ? "border-brand bg-[color-mix(in_oklab,var(--color-brand)_8%,var(--color-ink-950))]"
+                  : "border-edge/12 bg-ink-950 hover:border-brand/40",
               )}
             >
               <div className="w-full max-w-32 text-fg">

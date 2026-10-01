@@ -15,7 +15,6 @@ import { cn } from "@/lib/cn";
 import { CARGO_CATEGORIES, ROUTES } from "@/lib/site";
 import { useRequireRole } from "@/lib/useRequireRole";
 import { useSettledReducedMotion } from "@/lib/useSettledReducedMotion";
-import { useTheme } from "@/lib/useTheme";
 
 type When = "now" | "later";
 type AiChoice = "yes" | "no" | null;
@@ -50,7 +49,6 @@ const CATEGORY_ICONS: LucideIcon[] = [Van, Truck, Container, Forklift];
 export default function MoveWithYouPage() {
   const { loading } = useRequireRole("customer");
   const reducedMotion = useSettledReducedMotion();
-  const [theme] = useTheme();
 
   const [pickupLocation, setPickupLocation] = useState("");
   const [dropoffLocation, setDropoffLocation] = useState("");
@@ -330,7 +328,6 @@ export default function MoveWithYouPage() {
             <CargoTypeGrid
               value={vehicleCategory}
               onChange={setVehicleCategory}
-              theme={theme}
               reducedMotion={reducedMotion}
               hint={
                 aiChoice === "yes"
@@ -385,13 +382,11 @@ function ToggleButton({ label, active, onClick }: { label: string; active: boole
 function CargoTypeGrid({
   value,
   onChange,
-  theme,
   reducedMotion,
   hint,
 }: {
   value: Category | null;
   onChange: (category: Category) => void;
-  theme: "light" | "dark";
   reducedMotion: boolean;
   /** Only passed on the AI-path fallback — not true on the manual path. */
   hint?: string;
@@ -402,7 +397,15 @@ function CargoTypeGrid({
         Cargo Type
       </span>
       {hint ? <p className="text-[0.8rem] text-muted">{hint}</p> : null}
-      <div className="grid gap-2.5 sm:grid-cols-2">
+      {/* Pinned light, same as the reference image — these cards are always
+       * white/cream regardless of the site's own theme toggle, same
+       * data-theme pinning technique used everywhere else on this site for
+       * "this surface must always look like X" (Footer, CargoScene, the
+       * SmartLoad banner above), just the light-pinned direction instead of
+       * the usual dark one. The existing bg-ink-950/border-edge/text-fg
+       * classes below already resolve correctly from this pin alone — no
+       * class changes needed, only the attribute. */}
+      <div data-theme="light" className="grid gap-2.5 sm:grid-cols-2">
         {CARGO_CATEGORIES.map((category, index) => {
           const Icon = CATEGORY_ICONS[index];
           const active = value === category.title;
@@ -414,17 +417,29 @@ function CargoTypeGrid({
               aria-pressed={active}
               className={cn(
                 "flex flex-col items-center gap-2.5 rounded-xl border px-4 py-4 text-center transition-colors duration-200",
-                active ? "border-brand bg-brand/[0.06]" : "border-edge/12 bg-ink-950 hover:border-brand/40",
+                // `bg-brand/[0.06]` (a transparent wash) was fine when this
+                // sat on the page's own theme-reactive backdrop, but it has
+                // no solid base — now that the card is pinned light, a
+                // selected card shows the dark photo backdrop bleeding
+                // through instead of a white card. `color-mix` against the
+                // pinned ink-950 base gives a solid, always-opaque tint
+                // instead.
+                active
+                  ? "border-brand bg-[color-mix(in_oklab,var(--color-brand)_8%,var(--color-ink-950))]"
+                  : "border-edge/12 bg-ink-950 hover:border-brand/40",
               )}
             >
-              {/* Brand-yellow chip is a fixed color regardless of theme, so
-               * the icon needs to branch instead — same white/black
-               * contrast rule as QuickAction's icon chips on the customer
-               * dashboard home and CargoScene on the marketing site. */}
+              {/* Brand-yellow chip is a fixed color regardless of theme. The
+               * card itself is now always presented in the light-theme
+               * visual language (see the pin above), so the icon
+               * consistently uses the light-theme contrast rule too
+               * (white-on-yellow) rather than branching on the site's real
+               * theme — same white/black contrast rule as QuickAction's icon
+               * chips on the customer dashboard home and CargoScene on the
+               * marketing site, just fixed to one side of it here. */}
               <span
                 className={cn(
-                  "grid size-12 shrink-0 place-items-center rounded-xl bg-brand",
-                  theme === "light" ? "text-white" : "text-black",
+                  "grid size-12 shrink-0 place-items-center rounded-xl bg-brand text-white",
                   !reducedMotion && "icon-drive",
                 )}
                 style={reducedMotion ? undefined : { animationDelay: `${index * 0.25}s` }}
