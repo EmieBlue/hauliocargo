@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { cn } from "@/lib/cn";
+import { ROUTES } from "@/lib/site";
 import { useTheme } from "@/lib/useTheme";
 
 /**
@@ -12,6 +14,13 @@ import { useTheme } from "@/lib/useTheme";
  * slot turn to mush and stop reading as text at all — confirmed by actually
  * screenshotting it, not assumed. Text has no such floor; it stays crisp at
  * any size a browser renders it.
+ *
+ * Always links to the homepage — this used to be wrapped by hand at each
+ * call site (`AuthShell`'s own `Link`, `Navbar`'s own `<a>`), which is how
+ * three of the five usages (`DashboardShell`, `Footer`, `MobileMenu`) ended
+ * up not clickable at all. Baked in here instead so every usage, current or
+ * future, gets it for free. Callers must not wrap this in another
+ * link/anchor themselves — nesting one inside another is invalid HTML.
  */
 export function Logo({ className, dark = false }: { className?: string; dark?: boolean }) {
   const [theme] = useTheme();
@@ -28,12 +37,15 @@ export function Logo({ className, dark = false }: { className?: string; dark?: b
       : "/brand/nav-mark.png";
 
   return (
-    <span className={cn("inline-flex items-center gap-2.5", className)}>
+    <Link
+      href={ROUTES.homePage}
+      className={cn("inline-flex items-center gap-2.5 transition-opacity duration-300 hover:opacity-85", className)}
+    >
       <img src={markSrc} alt="" className="h-7 w-auto" />
       <span className="font-display text-[1.05rem] leading-none font-extrabold tracking-[0.02em]">
         <span className={dark ? "text-white" : "text-brand"}>HAULIO</span>
         <span className={dark || theme === "light" ? "text-black" : "text-white"}>CARGO</span>
       </span>
-    </span>
+    </Link>
   );
 }

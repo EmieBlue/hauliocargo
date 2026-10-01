@@ -35,12 +35,7 @@ export function Navbar() {
         )}
       >
         <div className="container-page flex h-18 items-center justify-between gap-6 md:h-20">
-          <a
-            href={ROUTES.home}
-            className="shrink-0 transition-opacity duration-300 hover:opacity-85"
-          >
-            <Logo dark={scrolled} />
-          </a>
+          <Logo dark={scrolled} className="shrink-0" />
 
           <nav aria-label="Primary" className="hidden lg:block">
             <ul className="flex items-center gap-1">

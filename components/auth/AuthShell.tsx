@@ -10,7 +10,6 @@ import { Card } from "@/components/ui/Card";
 import { Logo } from "@/components/ui/Logo";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { riseIn, staggerParent } from "@/lib/motion";
-import { ROUTES } from "@/lib/site";
 import { useScrolled } from "@/lib/useScrolled";
 import { useTheme } from "@/lib/useTheme";
 import { cn } from "@/lib/cn";
@@ -89,9 +88,7 @@ export function AuthShell({
         )}
       >
         <div className="container-page relative flex h-20 items-center justify-between gap-3">
-          <Link href={ROUTES.homePage} className="shrink-0 transition-opacity duration-300 hover:opacity-85">
-            <Logo dark={scrolled} />
-          </Link>
+          <Logo dark={scrolled} className="shrink-0" />
           <div className="flex items-center gap-4">
             {backHref ? (
               <Link
