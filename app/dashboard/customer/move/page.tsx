@@ -63,6 +63,12 @@ export default function MoveWithYouPage() {
   const [cargoPhoto, setCargoPhoto] = useState<File | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [smartLoadNote, setSmartLoadNote] = useState<string | null>(null);
+  // Whether smartLoadNote describes an actual suggestion (shown as the
+  // bannered "SmartLoad Suggestion" callout) vs. a genuine failure — a
+  // dropped API call or an inconclusive photo (plain muted/brand text,
+  // same as before; dressing a non-result up as a "suggestion" would be
+  // misleading).
+  const [smartLoadHasSuggestion, setSmartLoadHasSuggestion] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -78,11 +84,13 @@ export default function MoveWithYouPage() {
     setVehicleSize(null);
     setCargoPhoto(null);
     setSmartLoadNote(null);
+    setSmartLoadHasSuggestion(false);
   }
 
   async function handlePhotoSelected(file: File | null) {
     setCargoPhoto(file);
     setSmartLoadNote(null);
+    setSmartLoadHasSuggestion(false);
     setVehicleCategory(null);
     setVehicleSize(null);
     if (!file) return;
@@ -93,6 +101,7 @@ export default function MoveWithYouPage() {
 
     if (!result.ok) {
       setSmartLoadNote(result.message);
+      setSmartLoadHasSuggestion(false);
       return;
     }
 
@@ -102,12 +111,16 @@ export default function MoveWithYouPage() {
 
     if (category && size) {
       setSmartLoadNote(`SmartLoad™ suggests ${category} — a ${size} truck. Tap a different size below to change it.`);
+      setSmartLoadHasSuggestion(true);
     } else if (category) {
       setSmartLoadNote(`SmartLoad™ suggests ${category}, but wasn't sure on a size — please choose below.`);
+      setSmartLoadHasSuggestion(true);
     } else if (size) {
       setSmartLoadNote(`SmartLoad™ suggests a ${size} truck — please confirm what you're moving below to see the full guide.`);
+      setSmartLoadHasSuggestion(true);
     } else {
       setSmartLoadNote("SmartLoad™ wasn't sure from that photo — please choose below.");
+      setSmartLoadHasSuggestion(false);
     }
   }
 
@@ -206,8 +219,11 @@ export default function MoveWithYouPage() {
         </Link>
 
         <div>
-          <h1 className="text-[clamp(1.8rem,3.6vw,2.4rem)] font-extrabold tracking-[-0.02em] text-fg">
+          <p className="font-display text-[0.68rem] font-semibold tracking-[0.22em] text-mist uppercase">
             Move With You
+          </p>
+          <h1 className="mt-1.5 text-[clamp(1.8rem,3.6vw,2.4rem)] font-extrabold tracking-[-0.02em] text-fg">
+            You&rsquo;ll ride with the load.
           </h1>
           <p className="mt-3 text-[0.95rem] leading-relaxed text-muted">
             You&rsquo;ll travel with the driver and your cargo all the way to the destination.
@@ -215,20 +231,29 @@ export default function MoveWithYouPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-          <LocationAutocompleteField
-            label="Pickup Location"
-            placeholder="Where should the driver pick you up?"
-            required
-            value={pickupLocation}
-            onChange={setPickupLocation}
-          />
-          <LocationAutocompleteField
-            label="Drop-off Location"
-            placeholder="Where are you headed?"
-            required
-            value={dropoffLocation}
-            onChange={setDropoffLocation}
-          />
+          <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col divide-y divide-edge/10 rounded-xl border border-edge/12 bg-ink-950 px-4">
+              <LocationAutocompleteField
+                label="Pickup Location"
+                placeholder="Where should the driver pick you up?"
+                required
+                value={pickupLocation}
+                onChange={setPickupLocation}
+                bare
+              />
+              <LocationAutocompleteField
+                label="Drop-off Location"
+                placeholder="Where are you headed?"
+                required
+                value={dropoffLocation}
+                onChange={setDropoffLocation}
+                bare
+              />
+            </div>
+            <p className="text-[0.72rem] text-muted">
+              Can&rsquo;t find the exact spot? Keep typing — we&rsquo;ll use exactly what you enter.
+            </p>
+          </div>
 
           <div className="flex flex-col gap-2">
             <span className="font-display text-[0.72rem] font-semibold tracking-[0.08em] text-mist uppercase">
@@ -277,7 +302,22 @@ export default function MoveWithYouPage() {
                   <Loader2 className="size-3.5 animate-spin" aria-hidden />
                   SmartLoad™ is looking at your photo…
                 </p>
+              ) : smartLoadNote && smartLoadHasSuggestion ? (
+                // A real result — dressed up as a proper callout rather than
+                // a plain line, pinned dark regardless of site theme (same
+                // reasoning as Footer/CargoScene/the dashboard photo card:
+                // this needs to read consistently as "a highlighted note,"
+                // not blend into whichever theme the page happens to be in).
+                <div data-theme="dark" className="rounded-xl border border-edge/12 bg-ink-950 px-4 py-3.5">
+                  <p className="font-display text-[0.65rem] font-semibold tracking-[0.15em] text-brand uppercase">
+                    SmartLoad Suggestion
+                  </p>
+                  <p className="mt-1 text-[0.85rem] leading-relaxed text-white/90">{smartLoadNote}</p>
+                </div>
               ) : smartLoadNote ? (
+                // A genuine failure (the call itself failed, or nothing was
+                // found) — not a result, so it stays plain text rather than
+                // being presented as a "suggestion" that didn't happen.
                 <p className="flex items-start gap-2 text-[0.8rem] text-brand">
                   <Sparkles className="mt-0.5 size-3.5 shrink-0" aria-hidden />
                   {smartLoadNote}
@@ -292,6 +332,11 @@ export default function MoveWithYouPage() {
               onChange={setVehicleCategory}
               theme={theme}
               reducedMotion={reducedMotion}
+              hint={
+                aiChoice === "yes"
+                  ? "AI is on. Pick the cargo, then SmartLoad suggests a truck. You can still change it."
+                  : undefined
+              }
             />
           ) : null}
 
@@ -342,17 +387,21 @@ function CargoTypeGrid({
   onChange,
   theme,
   reducedMotion,
+  hint,
 }: {
   value: Category | null;
   onChange: (category: Category) => void;
   theme: "light" | "dark";
   reducedMotion: boolean;
+  /** Only passed on the AI-path fallback — not true on the manual path. */
+  hint?: string;
 }) {
   return (
     <div className="flex flex-col gap-2">
       <span className="font-display text-[0.72rem] font-semibold tracking-[0.08em] text-mist uppercase">
         Cargo Type
       </span>
+      {hint ? <p className="text-[0.8rem] text-muted">{hint}</p> : null}
       <div className="grid gap-2.5 sm:grid-cols-2">
         {CARGO_CATEGORIES.map((category, index) => {
           const Icon = CATEGORY_ICONS[index];

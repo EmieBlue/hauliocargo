@@ -33,12 +33,21 @@ export function LocationAutocompleteField({
   onChange,
   placeholder,
   required,
+  bare = false,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   required?: boolean;
+  /**
+   * For grouping two or more of these inside one external card (e.g.
+   * Pickup/Drop-off sharing a single bordered card with a divider, instead
+   * of each field being its own card) — drops this field's own
+   * border/background and its own hint line, so the caller can supply a
+   * shared card and a single hint instead.
+   */
+  bare?: boolean;
 }) {
   const inputId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -97,7 +106,7 @@ export function LocationAutocompleteField({
   }
 
   return (
-    <div ref={rootRef} className="relative flex flex-col gap-1.5">
+    <div ref={rootRef} className={cn("relative flex flex-col gap-1.5", bare && "py-3")}>
       <label
         htmlFor={inputId}
         className="font-display text-[0.72rem] font-semibold tracking-[0.08em] text-mist uppercase"
@@ -113,7 +122,12 @@ export function LocationAutocompleteField({
         onChange={(event) => onChange(event.target.value)}
         onFocus={() => predictions.length > 0 && setOpen(true)}
         autoComplete="off"
-        className="h-12 rounded-xl border border-edge/12 bg-ink-950 px-4 text-[0.95rem] text-fg placeholder:text-muted transition-colors duration-200 focus:border-brand/50 focus:ring-2 focus:ring-brand/25 focus:outline-none"
+        className={cn(
+          "h-12 text-[0.95rem] text-fg placeholder:text-muted transition-colors duration-200 focus:outline-none",
+          bare
+            ? "border-0 bg-transparent px-0"
+            : "rounded-xl border border-edge/12 bg-ink-950 px-4 focus:border-brand/50 focus:ring-2 focus:ring-brand/25",
+        )}
       />
 
       {open && predictions.length > 0 ? (
@@ -148,10 +162,15 @@ export function LocationAutocompleteField({
        * what gets submitted if they never tap a suggestion. This line just
        * makes that fallback visible instead of leaving the customer unsure
        * whether they're allowed to keep going without picking one.
+       *
+       * Skipped in `bare` mode — the caller shows one shared copy of this
+       * below the whole group instead of one per field.
        */}
-      <p className="text-[0.72rem] text-muted">
-        Can&rsquo;t find the exact spot? Keep typing — we&rsquo;ll use exactly what you enter.
-      </p>
+      {!bare ? (
+        <p className="text-[0.72rem] text-muted">
+          Can&rsquo;t find the exact spot? Keep typing — we&rsquo;ll use exactly what you enter.
+        </p>
+      ) : null}
     </div>
   );
 }
