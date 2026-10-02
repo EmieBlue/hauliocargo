@@ -119,6 +119,25 @@
   --brand-gradient-3: #f5a302;
 }
 
+/*
+ * Brief, scoped transition — only applied while `useTheme.ts`'s `setTheme`
+ * has this class on <html>, right around an actual theme flip. Deliberately
+ * not a permanent sitewide rule: that would blur every hover/interaction
+ * transition components already hand-tune for themselves the rest of the
+ * time. `!important` wins over whatever duration-NNN utility an element
+ * already has, so the whole page eases in sync for this one moment instead
+ * of each element drifting at its own normal speed.
+ */
+html.theme-transitioning,
+html.theme-transitioning * {
+  transition:
+    background-color 0.42s var(--ease-brand),
+    color 0.42s var(--ease-brand),
+    border-color 0.42s var(--ease-brand),
+    fill 0.42s var(--ease-brand),
+    stroke 0.42s var(--ease-brand) !important;
+}
+
 @keyframes scan {
   0%,
   100% {

@@ -7,6 +7,16 @@ export type Theme = "dark" | "light";
 const STORAGE_KEY = "haulio-theme";
 const listeners = new Set<() => void>();
 
+// A short-lived class, not a permanent rule — see the matching
+// `html.theme-transitioning` block in app/globals.css. Added right before
+// `data-theme` flips and removed a beat later, so an actual theme switch
+// eases the whole page instead of every token snapping instantly, without
+// touching the hover/interaction transition timings components already
+// hand-tune for themselves the rest of the time.
+const TRANSITION_CLASS = "theme-transitioning";
+const TRANSITION_MS = 420;
+let transitionTimeoutId: number | undefined;
+
 function apply(theme: Theme) {
   // No attribute = dark, the default — mirrors the inline script in
   // app/layout.tsx and app/globals.css's `[data-theme="light"]` override.
@@ -42,6 +52,13 @@ export function useTheme(): [Theme, (next: Theme) => void] {
   const theme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   const setTheme = useCallback((next: Theme) => {
+    const root = document.documentElement;
+    root.classList.add(TRANSITION_CLASS);
+    window.clearTimeout(transitionTimeoutId);
+    transitionTimeoutId = window.setTimeout(() => {
+      root.classList.remove(TRANSITION_CLASS);
+    }, TRANSITION_MS);
+
     apply(next);
     try {
       localStorage.setItem(STORAGE_KEY, next);
