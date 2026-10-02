@@ -1,5 +1,7 @@
 "use client";
 
+import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { DashboardBackdrop } from "@/components/layout/DashboardBackdrop";
 import { Logo } from "@/components/ui/Logo";
@@ -26,7 +28,16 @@ import { ProfileMenu } from "./ProfileMenu";
  * already invert role-for-role per theme, so `DashboardBackdrop`'s scrim
  * lightens correctly in light mode without needing a forced pin.
  */
-export function DashboardShell({ children }: { children: ReactNode }) {
+export function DashboardShell({
+  children,
+  backLink,
+}: {
+  children: ReactNode;
+  /** Optional "back" link shown in the fixed header, next to the logo — for
+   * sub-pages deep in a flow (e.g. Move With You) where a plain in-content
+   * text link reads as buried. Most dashboard pages omit this. */
+  backLink?: { href: string; label: string };
+}) {
   const scrolled = useScrolled();
 
   return (
@@ -39,7 +50,22 @@ export function DashboardShell({ children }: { children: ReactNode }) {
         )}
       >
         <div className="container-page flex h-20 items-center justify-between">
-          <Logo dark={scrolled} />
+          <div className="flex items-center gap-5">
+            <Logo dark={scrolled} />
+            {backLink ? (
+              <Link
+                href={backLink.href}
+                aria-label={backLink.label}
+                className={cn(
+                  "inline-flex items-center gap-1.5 text-[0.82rem] font-medium transition-colors duration-300",
+                  scrolled ? "text-black/70 hover:text-black" : "text-mist hover:text-fg",
+                )}
+              >
+                <ArrowLeft className="size-3.5 shrink-0" aria-hidden />
+                <span className="hidden sm:inline">{backLink.label}</span>
+              </Link>
+            ) : null}
+          </div>
           <div className="flex items-center gap-4">
             <ThemeToggle dark={scrolled} />
             <ProfileMenu dark={scrolled} />

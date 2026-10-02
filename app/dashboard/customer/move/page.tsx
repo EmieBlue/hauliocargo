@@ -2,7 +2,6 @@
 
 import { Box, Forklift, Loader2, Sparkles, Truck } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { DashboardLoading, DashboardShell } from "@/components/auth/DashboardShell";
 import { CargoPhotoUpload } from "@/components/dashboard/CargoPhotoUpload";
@@ -191,7 +190,7 @@ export default function MoveWithYouPage() {
 
   if (submitted) {
     return (
-      <DashboardShell>
+      <DashboardShell backLink={{ href: ROUTES.dashboardCustomer, label: "Dashboard" }}>
         <div className="flex max-w-lg flex-col gap-6">
           <h1 className="text-[clamp(1.8rem,3.6vw,2.4rem)] font-extrabold tracking-[-0.02em] text-fg">
             Request Received
@@ -210,15 +209,8 @@ export default function MoveWithYouPage() {
   }
 
   return (
-    <DashboardShell>
+    <DashboardShell backLink={{ href: ROUTES.dashboardCustomer, label: "Dashboard" }}>
       <div className="flex w-full max-w-xl flex-col gap-6">
-        <Link
-          href={ROUTES.dashboardCustomer}
-          className="self-start text-[0.8rem] font-medium text-muted transition-colors duration-200 hover:text-brand"
-        >
-          ← Back to dashboard
-        </Link>
-
         <div>
           <p className="font-display text-[0.68rem] font-semibold tracking-[0.22em] text-mist uppercase">
             Move With You
