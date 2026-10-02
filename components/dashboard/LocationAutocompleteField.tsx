@@ -9,6 +9,7 @@ const DEBOUNCE_MS = 250;
 type MapboxFeature = {
   id: string;
   place_name: string;
+  center: [number, number];
 };
 
 async function fetchPredictions(query: string): Promise<MapboxFeature[]> {
@@ -31,6 +32,7 @@ export function LocationAutocompleteField({
   label,
   value,
   onChange,
+  onLocationSelected,
   placeholder,
   required,
   bare = false,
@@ -38,6 +40,14 @@ export function LocationAutocompleteField({
   label: string;
   value: string;
   onChange: (value: string) => void;
+  /**
+   * Fires only when the customer actually taps a suggestion — not on plain
+   * typing — with the exact coordinates Mapbox already returned for that
+   * place (no extra geocode call). Typed-but-never-selected text still just
+   * updates `value` via `onChange`, same accepted gap described below; this
+   * is the "upgrade path" to real coordinates, e.g. for dropping a map pin.
+   */
+  onLocationSelected?: (feature: { placeName: string; center: [number, number] }) => void;
   placeholder?: string;
   required?: boolean;
   /**
@@ -56,8 +66,11 @@ export function LocationAutocompleteField({
 
   useEffect(() => {
     if (!MAPBOX_TOKEN || !value.trim()) {
-      setPredictions([]);
-      return;
+      // Deferred rather than called synchronously in the effect body, same
+      // async pattern as the fetch branch below — avoids a same-tick
+      // setState-in-effect cascade for what's otherwise an identical result.
+      const clearTimer = window.setTimeout(() => setPredictions([]), 0);
+      return () => window.clearTimeout(clearTimer);
     }
 
     let cancelled = false;
@@ -99,8 +112,9 @@ export function LocationAutocompleteField({
     };
   }, [open]);
 
-  function selectPrediction(placeName: string) {
-    onChange(placeName);
+  function selectPrediction(feature: MapboxFeature) {
+    onChange(feature.place_name);
+    onLocationSelected?.({ placeName: feature.place_name, center: feature.center });
     setPredictions([]);
     setOpen(false);
   }
@@ -141,7 +155,7 @@ export function LocationAutocompleteField({
               type="button"
               role="option"
               aria-selected={false}
-              onClick={() => selectPrediction(prediction.place_name)}
+              onClick={() => selectPrediction(prediction)}
               className={cn(
                 "block w-full px-4 py-2.5 text-left text-[0.88rem] text-fg transition-colors duration-150",
                 "hover:bg-edge/[0.05]",

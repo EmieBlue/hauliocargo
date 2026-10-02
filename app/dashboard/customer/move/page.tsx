@@ -2,17 +2,35 @@
 
 import { Box, Forklift, Loader2, Sparkles, Truck } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { Outfit } from "next/font/google";
 import { useState, type FormEvent } from "react";
 import { DashboardLoading, DashboardShell } from "@/components/auth/DashboardShell";
 import { CargoPhotoUpload } from "@/components/dashboard/CargoPhotoUpload";
 import { LocationAutocompleteField } from "@/components/dashboard/LocationAutocompleteField";
+import type { LocationPoint } from "@/components/dashboard/MoveMap";
+import { MoveMapPanel } from "@/components/dashboard/MoveMapPanel";
 import { TruckSizePicker } from "@/components/dashboard/TruckSizePicker";
 import { Button } from "@/components/ui/Button";
 import { analyzeCargoPhoto, createBooking, uploadCargoPhoto } from "@/lib/bookings";
 import { cn } from "@/lib/cn";
 import { CARGO_CATEGORIES, DEFAULT_TRUCK_SIZE, ROUTES } from "@/lib/site";
+import { useMediaQuery } from "@/lib/useMediaQuery";
 import { useRequireRole } from "@/lib/useRequireRole";
 import { useSettledReducedMotion } from "@/lib/useSettledReducedMotion";
+
+const outfit = Outfit({ subsets: ["latin"], weight: ["400", "500", "600", "700", "800"] });
+
+// Move With You's own cream/amber look, confirmed with the user as a
+// deliberate exception to the site's shared dark-card tokens — these cards
+// float on the real (unchanged) dark photo backdrop, they just don't borrow
+// its color system. See the plan for the full reasoning; `TruckSizePicker`
+// uses the same constants.
+const INK = "#17181c";
+const MUTED = "#6b6b74";
+const CREAM = "#f6f3ed";
+const AMBER = "#f0b429";
+const AMBER_BORDER = "#e2b04a";
+const AMBER_FILL = "#fff6df";
 
 type When = "now" | "later";
 type AiChoice = "yes" | "no" | null;
@@ -43,34 +61,32 @@ const CATEGORY_SHORT_BODY: Record<Category, string> = {
 };
 
 /**
- * "Move With You" — the ride-along booking form. Uses the real
+ * "Move With You" — the ride-along booking form. Shell is the real
  * `DashboardShell` (dark photo backdrop, working theme toggle, scroll-to-
- * real-brand-yellow header) like every other dashboard page — an earlier
- * pass replaced this with a one-off cream shell to match a written spec's
- * literal hex colors, which read as broken (a theme toggle with no visible
- * effect, a yellow that didn't match the rest of the site). The content
- * improvements from that spec stay; only the shell reverted.
+ * real-brand-yellow header) like every other dashboard page — that part
+ * stays untouched. This page's own cards/buttons/text, on top of that
+ * backdrop, use a page-scoped cream/amber look (see the `INK`/`AMBER`/etc
+ * constants above) instead of the shared dark tokens, confirmed directly
+ * with the user as a deliberate, page-only exception.
  *
- * Cargo Type and Truck Size's cards stay pinned `data-theme="light"` (always
- * white) — a separate, already-approved fix matching the spec's own "white
- * cards" request, never contradicted by this revert — everything else goes
- * back to the standard theme-reactive token classes DashboardShell's other
- * content already uses.
- *
- * Stage reveal: Cargo Type shows as soon as Yes/No is answered (not gated on
- * a photo finishing analysis — the photo upload is an optional, parallel way
- * to get a suggestion, not a prerequisite). Truck Size shows as soon as a
- * category is picked. On the Yes path, once a category is known, the
- * SmartLoad Suggestion banner always has something to say — the AI's real
- * size if a photo was analyzed, otherwise `DEFAULT_TRUCK_SIZE`'s per-category
- * fallback — rather than only appearing when a photo happened to be used.
+ * Pickup/Drop-off also now feed a live map (`MoveMapPanel`) once a
+ * suggestion is actually selected (not just typed) — `LocationAutocomplete
+ * Field`'s `onLocationSelected` hands back real Mapbox coordinates for
+ * that.
  */
 export default function MoveWithYouPage() {
   const { loading } = useRequireRole("customer");
   const reducedMotion = useSettledReducedMotion();
+  // Exactly one `MoveMapPanel` ever mounts — gated in JS, not just hidden
+  // via CSS, so there's only ever one live `mapboxgl.Map` instance (two
+  // CSS-toggled copies would both quietly fetch tiles/styles and hold a
+  // WebGL context even while one sat at `display: none`).
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
 
   const [pickupLocation, setPickupLocation] = useState("");
   const [dropoffLocation, setDropoffLocation] = useState("");
+  const [pickupPoint, setPickupPoint] = useState<LocationPoint | null>(null);
+  const [dropoffPoint, setDropoffPoint] = useState<LocationPoint | null>(null);
   const [when, setWhen] = useState<When>("now");
   const [scheduledFor, setScheduledFor] = useState("");
   const [cargoDescription, setCargoDescription] = useState("");
@@ -85,6 +101,25 @@ export default function MoveWithYouPage() {
   const [error, setError] = useState<string | null>(null);
 
   if (loading) return <DashboardLoading />;
+
+  // Typing after a selection invalidates it — the map pin shouldn't keep
+  // pointing at an address the customer has since edited away from.
+  function handlePickupChange(value: string) {
+    setPickupLocation(value);
+    setPickupPoint(null);
+  }
+  function handleDropoffChange(value: string) {
+    setDropoffLocation(value);
+    setDropoffPoint(null);
+  }
+  function handlePickupSelected(feature: LocationPoint) {
+    setPickupLocation(feature.placeName);
+    setPickupPoint(feature);
+  }
+  function handleDropoffSelected(feature: LocationPoint) {
+    setDropoffLocation(feature.placeName);
+    setDropoffPoint(feature);
+  }
 
   // Switching the AI/manual answer clears whatever belonged to the other
   // path — a leftover category or a leftover AI-suggested size would be
@@ -210,204 +245,231 @@ export default function MoveWithYouPage() {
 
   return (
     <DashboardShell backLink={{ href: ROUTES.dashboardCustomer, label: "Dashboard" }}>
-      <div className="flex w-full max-w-xl flex-col gap-6">
-        <div>
-          <p className="font-display text-[0.68rem] font-semibold tracking-[0.22em] text-mist uppercase">
-            Move With You
-          </p>
-          <h1 className="mt-1.5 text-[clamp(1.8rem,3.6vw,2.4rem)] font-extrabold tracking-[-0.02em] text-fg">
-            You&rsquo;ll ride with the load.
-          </h1>
-          <p className="mt-3 text-[0.95rem] leading-relaxed text-muted">
-            You&rsquo;ll travel with the driver and your cargo all the way to the destination.
-          </p>
+      <div className={cn("flex w-full max-w-6xl flex-col gap-6 lg:flex-row lg:items-start", outfit.className)}>
+        <div className="flex w-full flex-col gap-6 lg:w-[27rem] lg:shrink-0">
+          <div>
+            <p className="font-display text-[0.68rem] font-semibold tracking-[0.22em] text-mist uppercase">
+              Move With You
+            </p>
+            <h1 className="mt-1.5 text-[clamp(1.8rem,3.6vw,2.4rem)] font-extrabold tracking-[-0.02em] text-fg">
+              You&rsquo;ll ride with the load.
+            </h1>
+            <p className="mt-3 text-[0.95rem] leading-relaxed text-muted">
+              You&rsquo;ll travel with the driver and your cargo all the way to the destination.
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+            {/* Stage 1 — always visible */}
+            <div className="flex flex-col gap-1.5">
+              <div
+                className="flex flex-col divide-y rounded-2xl border px-4"
+                style={{ borderColor: "rgba(0,0,0,0.08)", background: CREAM, color: INK }}
+              >
+                <LocationAutocompleteField
+                  label="Pickup Location"
+                  placeholder="Where should the driver pick you up?"
+                  required
+                  value={pickupLocation}
+                  onChange={handlePickupChange}
+                  onLocationSelected={handlePickupSelected}
+                  bare
+                />
+                <LocationAutocompleteField
+                  label="Drop-off Location"
+                  placeholder="Where are you headed?"
+                  required
+                  value={dropoffLocation}
+                  onChange={handleDropoffChange}
+                  onLocationSelected={handleDropoffSelected}
+                  bare
+                />
+              </div>
+              <p className="text-[0.72rem]" style={{ color: MUTED }}>
+                Can&rsquo;t find the exact spot? Keep typing — we&rsquo;ll use exactly what you enter.
+              </p>
+            </div>
+
+            {/* Map — right after Pickup/Drop-off below the `lg` breakpoint,
+             * since that's the moment it has something to show; the desktop
+             * column sits to the right instead (below). Only one of the two
+             * call sites is ever actually mounted — see `isDesktop` above. */}
+            {!isDesktop ? <MoveMapPanel pickup={pickupPoint} dropoff={dropoffPoint} /> : null}
+
+            <div className="flex flex-col gap-2">
+              <span className="text-[0.72rem] font-semibold tracking-[0.08em] uppercase" style={{ color: MUTED }}>
+                When
+              </span>
+              <div className="flex gap-2.5">
+                <SegmentButton label="Now" active={when === "now"} onClick={() => setWhen("now")} />
+                <SegmentButton label="Schedule" active={when === "later"} onClick={() => setWhen("later")} />
+              </div>
+              {when === "later" ? (
+                <input
+                  type="datetime-local"
+                  value={scheduledFor}
+                  onChange={(e) => setScheduledFor(e.target.value)}
+                  className="h-12 rounded-2xl border px-4 text-[0.95rem] transition-colors duration-200 focus:outline-none"
+                  style={{ borderColor: "rgba(0,0,0,0.08)", background: CREAM, color: INK }}
+                />
+              ) : null}
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="cargo-description"
+                className="text-[0.72rem] font-semibold tracking-[0.08em] uppercase"
+                style={{ color: MUTED }}
+              >
+                What Are You Moving?
+              </label>
+              <textarea
+                id="cargo-description"
+                required
+                rows={3}
+                placeholder="e.g. 2-bedroom household move, sofa and boxes"
+                value={cargoDescription}
+                onChange={(e) => setCargoDescription(e.target.value)}
+                className="resize-none rounded-2xl border px-4 py-3 text-[0.95rem] transition-colors duration-200 focus:outline-none"
+                style={{ borderColor: "rgba(0,0,0,0.08)", background: CREAM, color: INK }}
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <span className="text-[0.72rem] font-semibold tracking-[0.08em] uppercase" style={{ color: MUTED }}>
+                Want SmartLoad™ to Help?
+              </span>
+              <p className="text-[0.8rem]" style={{ color: MUTED }}>
+                Upload a photo and let AI suggest the right truck — or choose one yourself.
+              </p>
+              <div className="flex gap-2.5">
+                <SegmentButton label="Yes, use AI" active={aiChoice === "yes"} onClick={() => handleAiChoice("yes")} />
+                <SegmentButton label="No, I'll choose" active={aiChoice === "no"} onClick={() => handleAiChoice("no")} />
+              </div>
+            </div>
+
+            {/* Stage 2 — cargo type, as soon as Yes or No is answered */}
+            {aiChoice ? (
+              <>
+                {aiChoice === "yes" ? (
+                  <>
+                    <CargoPhotoUpload onFileSelected={handlePhotoSelected} />
+                    {analyzing ? (
+                      <p className="flex items-center gap-2 text-[0.8rem]" style={{ color: MUTED }}>
+                        <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                        SmartLoad™ is looking at your photo…
+                      </p>
+                    ) : photoError ? (
+                      <p className="flex items-start gap-2 text-[0.8rem]" style={{ color: AMBER }}>
+                        <Sparkles className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+                        {photoError}
+                      </p>
+                    ) : null}
+                  </>
+                ) : null}
+
+                <div className="flex flex-col gap-2">
+                  <span className="text-[0.72rem] font-semibold tracking-[0.08em] uppercase" style={{ color: MUTED }}>
+                    Cargo Type
+                  </span>
+                  <p className="text-[0.8rem]" style={{ color: MUTED }}>
+                    {aiChoice === "yes"
+                      ? "AI is on. Pick the cargo, then SmartLoad suggests a truck. You can still change it."
+                      : "You'll choose the truck yourself. Pick the cargo first."}
+                  </p>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {CARGO_CATEGORIES.map((category, index) => {
+                      const Icon = CATEGORY_ICONS[index];
+                      const active = vehicleCategory === category.title;
+                      return (
+                        <button
+                          key={category.title}
+                          type="button"
+                          onClick={() => handleCategorySelected(category.title)}
+                          aria-pressed={active}
+                          className="flex flex-col items-start gap-2.5 rounded-2xl border p-4 text-left transition-colors duration-200"
+                          style={{
+                            borderColor: active ? AMBER_BORDER : "rgba(0,0,0,0.08)",
+                            background: active ? AMBER_FILL : CREAM,
+                          }}
+                        >
+                          <span
+                            className={cn("grid size-11 shrink-0 place-items-center rounded-xl text-white", !reducedMotion && "icon-drive")}
+                            style={{ background: AMBER, animationDelay: reducedMotion ? undefined : `${index * 0.25}s` }}
+                          >
+                            <Icon className="size-5" aria-hidden />
+                          </span>
+                          <span>
+                            <span className="block text-[0.85rem] font-semibold" style={{ color: INK }}>
+                              {CATEGORY_DISPLAY[category.title]}
+                            </span>
+                            <span className="mt-0.5 block text-[0.75rem]" style={{ color: MUTED }}>
+                              {CATEGORY_SHORT_BODY[category.title]}
+                            </span>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </>
+            ) : null}
+
+            {/* Stage 3 — truck size, as soon as a cargo type is picked */}
+            {vehicleCategory ? (
+              <>
+                {aiChoice === "yes" ? (
+                  <div className="rounded-2xl border border-white/10 bg-black px-4 py-3.5">
+                    <p
+                      className="text-[0.65rem] font-semibold tracking-[0.15em] uppercase"
+                      style={{ color: AMBER }}
+                    >
+                      SmartLoad Suggestion
+                    </p>
+                    <p className="mt-1 text-[0.85rem] leading-relaxed text-white/90">
+                      For {CATEGORY_DISPLAY[vehicleCategory]}, SmartLoad suggests the {vehicleSize} truck. Tap another
+                      size if you want.
+                    </p>
+                  </div>
+                ) : null}
+                <TruckSizePicker category={vehicleCategory} value={vehicleSize} onChange={setVehicleSize} />
+              </>
+            ) : null}
+
+            {error ? (
+              <p
+                role="alert"
+                className="rounded-2xl border px-4 py-3 text-[0.85rem]"
+                style={{ borderColor: AMBER_BORDER, background: AMBER_FILL, color: INK }}
+              >
+                {error}
+              </p>
+            ) : null}
+
+            <Button
+              type="submit"
+              variant="primary"
+              className="w-full"
+              style={{ background: canSubmit && !submitting ? AMBER : undefined }}
+              disabled={!canSubmit || submitting}
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" aria-hidden />
+                  Requesting
+                </>
+              ) : (
+                "Request This Move"
+              )}
+            </Button>
+          </form>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-          {/* Stage 1 — always visible */}
-          <div className="flex flex-col gap-1.5">
-            <div className="flex flex-col divide-y divide-edge/10 rounded-xl border border-edge/12 bg-ink-950 px-4">
-              <LocationAutocompleteField
-                label="Pickup Location"
-                placeholder="Where should the driver pick you up?"
-                required
-                value={pickupLocation}
-                onChange={setPickupLocation}
-                bare
-              />
-              <LocationAutocompleteField
-                label="Drop-off Location"
-                placeholder="Where are you headed?"
-                required
-                value={dropoffLocation}
-                onChange={setDropoffLocation}
-                bare
-              />
-            </div>
-            <p className="text-[0.72rem] text-muted">
-              Can&rsquo;t find the exact spot? Keep typing — we&rsquo;ll use exactly what you enter.
-            </p>
+        {isDesktop ? (
+          <div className="lg:sticky lg:top-28 lg:flex-1 lg:self-start">
+            <MoveMapPanel pickup={pickupPoint} dropoff={dropoffPoint} className="h-[42rem]" />
           </div>
-
-          <div className="flex flex-col gap-2">
-            <span className="font-display text-[0.72rem] font-semibold tracking-[0.08em] text-mist uppercase">
-              When
-            </span>
-            <div className="flex gap-2.5">
-              <SegmentButton label="Now" active={when === "now"} onClick={() => setWhen("now")} />
-              <SegmentButton label="Schedule" active={when === "later"} onClick={() => setWhen("later")} />
-            </div>
-            {when === "later" ? (
-              <input
-                type="datetime-local"
-                value={scheduledFor}
-                onChange={(e) => setScheduledFor(e.target.value)}
-                className="h-12 rounded-xl border border-edge/12 bg-ink-950 px-4 text-[0.95rem] text-fg transition-colors duration-200 focus:border-brand/50 focus:ring-2 focus:ring-brand/25 focus:outline-none"
-              />
-            ) : null}
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <label
-              htmlFor="cargo-description"
-              className="font-display text-[0.72rem] font-semibold tracking-[0.08em] text-mist uppercase"
-            >
-              What Are You Moving?
-            </label>
-            <textarea
-              id="cargo-description"
-              required
-              rows={3}
-              placeholder="e.g. 2-bedroom household move, sofa and boxes"
-              value={cargoDescription}
-              onChange={(e) => setCargoDescription(e.target.value)}
-              className="resize-none rounded-xl border border-edge/12 bg-ink-950 px-4 py-3 text-[0.95rem] text-fg placeholder:text-muted transition-colors duration-200 focus:border-brand/50 focus:ring-2 focus:ring-brand/25 focus:outline-none"
-            />
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <span className="font-display text-[0.72rem] font-semibold tracking-[0.08em] text-mist uppercase">
-              Want SmartLoad™ to Help?
-            </span>
-            <p className="text-[0.8rem] text-muted">
-              Upload a photo and let AI suggest the right truck — or choose one yourself.
-            </p>
-            <div className="flex gap-2.5">
-              <SegmentButton label="Yes, use AI" active={aiChoice === "yes"} onClick={() => handleAiChoice("yes")} />
-              <SegmentButton label="No, I’ll choose" active={aiChoice === "no"} onClick={() => handleAiChoice("no")} />
-            </div>
-          </div>
-
-          {/* Stage 2 — cargo type, as soon as Yes or No is answered */}
-          {aiChoice ? (
-            <>
-              {aiChoice === "yes" ? (
-                <>
-                  <CargoPhotoUpload onFileSelected={handlePhotoSelected} />
-                  {analyzing ? (
-                    <p className="flex items-center gap-2 text-[0.8rem] text-muted">
-                      <Loader2 className="size-3.5 animate-spin" aria-hidden />
-                      SmartLoad™ is looking at your photo…
-                    </p>
-                  ) : photoError ? (
-                    <p className="flex items-start gap-2 text-[0.8rem] text-brand">
-                      <Sparkles className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-                      {photoError}
-                    </p>
-                  ) : null}
-                </>
-              ) : null}
-
-              <div className="flex flex-col gap-2">
-                <span className="font-display text-[0.72rem] font-semibold tracking-[0.08em] text-mist uppercase">
-                  Cargo Type
-                </span>
-                <p className="text-[0.8rem] text-muted">
-                  {aiChoice === "yes"
-                    ? "AI is on. Pick the cargo, then SmartLoad suggests a truck. You can still change it."
-                    : "You’ll choose the truck yourself. Pick the cargo first."}
-                </p>
-                {/* Pinned light, matching an earlier-approved fix and the
-                 * written spec's own "white cards" — everything else on
-                 * this page is theme-reactive again, but these grid cards
-                 * stay white regardless of the toggle. */}
-                <div data-theme="light" className="grid grid-cols-2 gap-2.5">
-                  {CARGO_CATEGORIES.map((category, index) => {
-                    const Icon = CATEGORY_ICONS[index];
-                    const active = vehicleCategory === category.title;
-                    return (
-                      <button
-                        key={category.title}
-                        type="button"
-                        onClick={() => handleCategorySelected(category.title)}
-                        aria-pressed={active}
-                        className={cn(
-                          "flex flex-col items-start gap-2.5 rounded-xl border p-4 text-left transition-colors duration-200",
-                          active
-                            ? "border-brand bg-[color-mix(in_oklab,var(--color-brand)_8%,var(--color-ink-950))]"
-                            : "border-edge/12 bg-ink-950 hover:border-brand/40",
-                        )}
-                      >
-                        <span
-                          className={cn(
-                            "grid size-11 shrink-0 place-items-center rounded-xl bg-brand text-white",
-                            !reducedMotion && "icon-drive",
-                          )}
-                          style={reducedMotion ? undefined : { animationDelay: `${index * 0.25}s` }}
-                        >
-                          <Icon className="size-5" aria-hidden />
-                        </span>
-                        <span>
-                          <span className="block text-[0.85rem] font-semibold text-fg">
-                            {CATEGORY_DISPLAY[category.title]}
-                          </span>
-                          <span className="mt-0.5 block text-[0.75rem] text-muted">
-                            {CATEGORY_SHORT_BODY[category.title]}
-                          </span>
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </>
-          ) : null}
-
-          {/* Stage 3 — truck size, as soon as a cargo type is picked */}
-          {vehicleCategory ? (
-            <>
-              {aiChoice === "yes" ? (
-                <div data-theme="dark" className="rounded-xl border border-edge/12 bg-ink-950 px-4 py-3.5">
-                  <p className="font-display text-[0.65rem] font-semibold tracking-[0.15em] text-brand uppercase">
-                    SmartLoad Suggestion
-                  </p>
-                  <p className="mt-1 text-[0.85rem] leading-relaxed text-white/90">
-                    For {CATEGORY_DISPLAY[vehicleCategory]}, SmartLoad suggests the {vehicleSize} truck. Tap another
-                    size if you want.
-                  </p>
-                </div>
-              ) : null}
-              <TruckSizePicker category={vehicleCategory} value={vehicleSize} onChange={setVehicleSize} />
-            </>
-          ) : null}
-
-          {error ? (
-            <p role="alert" className="rounded-xl border border-brand/25 bg-brand/[0.06] px-4 py-3 text-[0.85rem] text-brand">
-              {error}
-            </p>
-          ) : null}
-
-          <Button type="submit" variant="primary" className="w-full" disabled={!canSubmit || submitting}>
-            {submitting ? (
-              <>
-                <Loader2 className="size-4 animate-spin" aria-hidden />
-                Requesting
-              </>
-            ) : (
-              "Request This Move"
-            )}
-          </Button>
-        </form>
+        ) : null}
       </div>
     </DashboardShell>
   );
@@ -419,10 +481,12 @@ function SegmentButton({ label, active, onClick }: { label: string; active: bool
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={cn(
-        "h-11 flex-1 rounded-xl border text-[0.85rem] font-semibold transition-colors duration-200",
-        active ? "border-brand bg-brand/[0.06] text-brand" : "border-edge/12 bg-ink-950 text-fg hover:border-brand/40",
-      )}
+      className="h-11 flex-1 rounded-2xl border text-[0.85rem] font-semibold transition-colors duration-200"
+      style={{
+        borderColor: active ? INK : "rgba(0,0,0,0.08)",
+        background: active ? INK : CREAM,
+        color: active ? "#ffffff" : INK,
+      }}
     >
       {label}
     </button>

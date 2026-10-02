@@ -1,7 +1,6 @@
 "use client";
 
 import { useId } from "react";
-import { cn } from "@/lib/cn";
 import { CARGO_CATEGORIES, TRUCK_SIZE_GUIDE, TRUCK_SIZES } from "@/lib/site";
 import { useSettledReducedMotion } from "@/lib/useSettledReducedMotion";
 
@@ -121,6 +120,16 @@ function TruckIllustration({ size, gradientId, animate }: { size: Size; gradient
   );
 }
 
+// Page-scoped palette — Move With You's own cream/amber restyle, not the
+// site's shared theme tokens (see the plan: this page's cards float on the
+// real dark backdrop but use their own fixed colors, confirmed look by look
+// against the written spec rather than inherited from `--color-brand` etc).
+const INK = "#17181c";
+const MUTED = "#6b6b74";
+const CREAM = "#f6f3ed";
+const AMBER_BORDER = "#e2b04a";
+const AMBER_FILL = "#fff6df";
+
 export function TruckSizePicker({
   category,
   value,
@@ -137,14 +146,13 @@ export function TruckSizePicker({
 
   return (
     <div className="flex flex-col gap-2">
-      <span className="font-display text-[0.72rem] font-semibold tracking-[0.08em] text-mist uppercase">
+      <span
+        className="text-[0.72rem] font-semibold tracking-[0.08em] uppercase"
+        style={{ color: MUTED }}
+      >
         Truck Size
       </span>
-      {/* Pinned light, matching an earlier-approved fix — always white
-       * regardless of the site's theme toggle, same data-theme pinning
-       * technique used elsewhere on this site (Footer, CargoScene, the
-       * Cargo Type grid right above this on Move With You). */}
-      <div data-theme="light" className="grid grid-cols-2 gap-2.5">
+      <div className="grid grid-cols-2 gap-2.5">
         {TRUCK_SIZES.map((size, index) => {
           const active = value === size.title;
           return (
@@ -153,18 +161,21 @@ export function TruckSizePicker({
               type="button"
               onClick={() => onChange(size.title)}
               aria-pressed={active}
-              className={cn(
-                "flex flex-col items-center gap-2 rounded-xl border px-3 py-3.5 text-center transition-colors duration-200",
-                active
-                  ? "border-brand bg-[color-mix(in_oklab,var(--color-brand)_8%,var(--color-ink-950))]"
-                  : "border-edge/12 bg-ink-950 hover:border-brand/40",
-              )}
+              className="flex flex-col items-center gap-2 rounded-2xl border px-3 py-3.5 text-center transition-colors duration-200"
+              style={{
+                borderColor: active ? AMBER_BORDER : "rgba(0,0,0,0.08)",
+                background: active ? AMBER_FILL : CREAM,
+              }}
             >
-              <div className="w-full max-w-32 text-fg">
+              <div className="w-full max-w-32" style={{ color: INK }}>
                 <TruckIllustration size={size.title as Size} gradientId={`${idBase}-${size.title}`} animate={!reducedMotion} />
               </div>
-              <span className="text-[0.85rem] font-semibold text-fg">{size.title} truck</span>
-              <span className="text-[0.72rem] leading-snug text-muted">Best for {captions[index]}</span>
+              <span className="text-[0.85rem] font-semibold" style={{ color: INK }}>
+                {size.title} truck
+              </span>
+              <span className="text-[0.72rem] leading-snug" style={{ color: MUTED }}>
+                Best for {captions[index]}
+              </span>
             </button>
           );
         })}
