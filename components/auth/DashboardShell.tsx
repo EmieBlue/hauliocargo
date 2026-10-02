@@ -57,8 +57,10 @@ export function DashboardShell({
                 href={backLink.href}
                 aria-label={backLink.label}
                 className={cn(
-                  "inline-flex items-center gap-1.5 text-[0.82rem] font-medium transition-colors duration-300",
-                  scrolled ? "text-black/70 hover:text-black" : "text-mist hover:text-fg",
+                  "inline-flex h-10 items-center gap-1.5 rounded-xl border px-3 text-[0.82rem] font-medium transition-colors duration-300",
+                  scrolled
+                    ? "border-black/15 bg-black/5 text-black/70 hover:border-black/30 hover:text-black"
+                    : "border-edge/10 bg-edge/[0.03] text-mist hover:border-brand/40 hover:text-brand",
                 )}
               >
                 <ArrowLeft className="size-3.5 shrink-0" aria-hidden />
