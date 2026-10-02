@@ -166,23 +166,38 @@ export const TRUCK_SIZES = [
  * they actually carry.
  */
 export const TRUCK_SIZE_GUIDE: Record<(typeof CARGO_CATEGORIES)[number]["title"], readonly string[]> = {
-  "Household Moves": ["Studio / Small Apartment", "1 Bedroom Home", "2–3 Bedroom Home", "3–4 Bedroom Home"],
+  "Household Moves": ["studio / small apartment", "1 bedroom home", "2–3 bedroom home", "3–4 bedroom home"],
   "Furniture & Appliances": [
-    "A single large item — sofa, fridge or wardrobe",
-    "A few pieces of furniture",
-    "A living room or bedroom set",
-    "A full house of furniture & appliances",
+    "a single large item — sofa, fridge or wardrobe",
+    "a few pieces of furniture",
+    "a living room or bedroom set",
+    "a full house of furniture & appliances",
   ],
   "Business Goods": [
-    "A small stock run or a few parcels",
-    "Pallet-sized stock or equipment",
-    "A shop's worth of stock",
-    "Bulk stock or heavy equipment",
+    "a small stock run or a few parcels",
+    "pallet-sized stock or equipment",
+    "a shop's worth of stock",
+    "bulk stock or heavy equipment",
   ],
   "Building Materials": [
-    "A few bags, boards or pipes",
-    "A small renovation's worth",
-    "A room's worth of materials",
-    "A full building-materials load",
+    "a few bags, boards or pipes",
+    "a small renovation's worth",
+    "a room's worth of materials",
+    "a full building-materials load",
   ],
+};
+
+/**
+ * Fallback truck size per category, used on the AI (Yes) path when a cargo
+ * type is known but no photo was ever analyzed (or analysis didn't return a
+ * size) — the SmartLoad Suggestion banner always has something concrete to
+ * say once a category is picked, not just when a photo happened to be
+ * involved. Reasonable picks per category; the user's own spec only gave
+ * one worked example (Household Moves → 20ft).
+ */
+export const DEFAULT_TRUCK_SIZE: Record<(typeof CARGO_CATEGORIES)[number]["title"], string> = {
+  "Household Moves": "20ft",
+  "Furniture & Appliances": "15ft",
+  "Business Goods": "20ft",
+  "Building Materials": "26ft",
 };
