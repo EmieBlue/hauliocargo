@@ -9,10 +9,12 @@ import { ProfileMenu } from "@/components/auth/ProfileMenu";
 import { CargoPhotoUpload } from "@/components/dashboard/CargoPhotoUpload";
 import { LocationAutocompleteField } from "@/components/dashboard/LocationAutocompleteField";
 import { TruckSizePicker } from "@/components/dashboard/TruckSizePicker";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { analyzeCargoPhoto, createBooking, uploadCargoPhoto } from "@/lib/bookings";
 import { cn } from "@/lib/cn";
 import { CARGO_CATEGORIES, DEFAULT_TRUCK_SIZE, ROUTES } from "@/lib/site";
 import { useRequireRole } from "@/lib/useRequireRole";
+import { useScrolled } from "@/lib/useScrolled";
 import { useSettledReducedMotion } from "@/lib/useSettledReducedMotion";
 
 // Scoped to this page only — the rest of the site stays on Sora/Inter (see
@@ -448,10 +450,25 @@ export default function MoveWithYouPage() {
 }
 
 function MoveHeader() {
+  const scrolled = useScrolled();
+
+  // Logo can't be reused here — its non-"dark" mark image picks itself from
+  // the site's *real* theme (useTheme()), which breaks on this always-cream
+  // page whenever the real theme happens to be dark. Same idea as Logo's own
+  // `dark` prop ("sitting on the solid yellow scrolled bar"), just driven by
+  // scroll state directly instead of a passed-in prop, and always starting
+  // from the light-appropriate assets since this page's baseline is cream,
+  // not theme-dependent.
   return (
-    <header className="sticky top-0 z-50 border-b" style={{ borderColor: `${INK}14`, backgroundColor: "#f4f0e8f2" }}>
-      <div className="mx-auto flex h-18 max-w-3xl items-center justify-between px-5">
-        <div className="flex items-center gap-3">
+    <header
+      className="sticky top-0 z-50 border-b transition-colors duration-150"
+      style={{
+        borderColor: scrolled ? "transparent" : `${INK}14`,
+        backgroundColor: scrolled ? AMBER : "#f4f0e8f2",
+      }}
+    >
+      <div className="container-page flex h-18 items-center justify-between">
+        <div className="flex items-center gap-4">
           <Link
             href={ROUTES.dashboardCustomer}
             className="flex items-center gap-2 rounded-full border py-1.5 pr-4 pl-1.5 text-[0.8rem] font-semibold transition-colors duration-200"
@@ -464,14 +481,17 @@ function MoveHeader() {
           </Link>
           <Link href={ROUTES.homePage} className="flex items-center gap-2">
             {/* eslint-disable-next-line @next/next/no-img-element -- static brand asset, next/image gains nothing here */}
-            <img src="/brand/nav-mark-light.png" alt="" className="h-6 w-auto" />
+            <img src={scrolled ? "/brand/nav-mark-dark.png" : "/brand/nav-mark-light.png"} alt="" className="h-6 w-auto" />
             <span className="font-display text-[0.95rem] leading-none font-extrabold tracking-[0.02em]">
-              <span style={{ color: AMBER }}>HAULIO</span>
+              <span style={{ color: scrolled ? "#fff" : AMBER }}>HAULIO</span>
               <span style={{ color: INK }}>CARGO</span>
             </span>
           </Link>
         </div>
-        <ProfileMenu />
+        <div className="flex items-center gap-3">
+          <ThemeToggle dark={scrolled} />
+          <ProfileMenu dark={scrolled} />
+        </div>
       </div>
     </header>
   );
