@@ -10,9 +10,10 @@ type Category = (typeof CARGO_CATEGORIES)[number]["title"];
 
 /**
  * Four vector trucks — cab, windshield, a diagonal gloss streak on the box.
- * Only ever used on Move With You's own cream/amber palette (see that page
- * for why — a specific written spec, not the sitewide black/yellow theme
- * tokens), so every color here is a literal hex rather than a theme token.
+ * Same brand palette as the hero's `TruckSilhouette` (yellow box, dark
+ * chassis) — a brief detour through a page-specific amber got reverted; this
+ * site has one real yellow (`--color-brand`), not a second shade for one
+ * page.
  *
  * Wheels spin using `.wheel-spin` — the exact same class/keyframe the hero
  * truck's own wheels use (see app/globals.css and
@@ -48,9 +49,9 @@ function TruckIllustration({ size, gradientId, animate }: { size: Size; gradient
     <svg viewBox="0 0 240 120" fill="none" aria-hidden className="h-auto w-full">
       <defs>
         <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#f3c05a" />
-          <stop offset="55%" stopColor="#e7a31a" />
-          <stop offset="100%" stopColor="#c48512" />
+          <stop offset="0%" stopColor="#ffd75e" />
+          <stop offset="55%" stopColor="#f7b21d" />
+          <stop offset="100%" stopColor="#d9930a" />
         </linearGradient>
         <linearGradient id={glassId} x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%" stopColor="#8fb2d1" />
@@ -59,10 +60,10 @@ function TruckIllustration({ size, gradientId, animate }: { size: Size; gradient
       </defs>
 
       {/* Ground */}
-      <rect x="6" y={groundY + 9} width="228" height="2" rx="1" fill="#141210" opacity="0.12" />
+      <rect x="6" y={groundY + 9} width="228" height="2" rx="1" fill="currentColor" opacity="0.1" />
 
       {/* Chassis */}
-      <rect x={s.boxX - 4} y={groundY - 3} width={cabX + s.cabW + 6 - (s.boxX - 4)} height="6" rx="2" fill="#141210" />
+      <rect x={s.boxX - 4} y={groundY - 3} width={cabX + s.cabW + 6 - (s.boxX - 4)} height="6" rx="2" fill="#17171a" />
 
       {/* Cargo box, with a diagonal gloss streak like the reference guide */}
       <rect x={s.boxX} y={boxY} width={s.boxW} height={s.boxH} rx="3" fill={`url(#${gradientId})`} />
@@ -81,7 +82,7 @@ function TruckIllustration({ size, gradientId, animate }: { size: Size; gradient
             v${cabH - nose}
             h${-s.cabW}
             Z`}
-        fill="#f5f1ea"
+        fill="#eef0f3"
         stroke="#00000014"
       />
       {/* Windshield, same diagonal-gloss language as the box */}
@@ -98,9 +99,9 @@ function TruckIllustration({ size, gradientId, animate }: { size: Size; gradient
       {/* Wheels — inner rim + hub spin, tire stays put (same rig as TruckSilhouette) */}
       {wheelXs.map((cx, i) => (
         <g key={i}>
-          <circle cx={cx} cy={groundY} r={s.wheelR} fill="#141210" />
+          <circle cx={cx} cy={groundY} r={s.wheelR} fill="#121216" />
           <g className={animate ? "wheel-spin" : undefined}>
-            <circle cx={cx} cy={groundY} r={s.wheelR * 0.5} fill="#d8d2c4" />
+            <circle cx={cx} cy={groundY} r={s.wheelR * 0.5} fill="#c8ccd4" />
             {[0, 90, 180, 270].map((angle) => {
               const rad = (angle * Math.PI) / 180;
               return (
@@ -109,7 +110,7 @@ function TruckIllustration({ size, gradientId, animate }: { size: Size; gradient
                   cx={cx + Math.cos(rad) * s.wheelR * 0.26}
                   cy={groundY + Math.sin(rad) * s.wheelR * 0.26}
                   r={s.wheelR * 0.09}
-                  fill="#141210"
+                  fill="#121216"
                 />
               );
             })}
@@ -136,10 +137,14 @@ export function TruckSizePicker({
 
   return (
     <div className="flex flex-col gap-2">
-      <span className="font-display text-[0.72rem] font-semibold tracking-[0.08em] text-[#141210]/60 uppercase">
+      <span className="font-display text-[0.72rem] font-semibold tracking-[0.08em] text-mist uppercase">
         Truck Size
       </span>
-      <div className="grid grid-cols-2 gap-2.5">
+      {/* Pinned light, matching an earlier-approved fix — always white
+       * regardless of the site's theme toggle, same data-theme pinning
+       * technique used elsewhere on this site (Footer, CargoScene, the
+       * Cargo Type grid right above this on Move With You). */}
+      <div data-theme="light" className="grid grid-cols-2 gap-2.5">
         {TRUCK_SIZES.map((size, index) => {
           const active = value === size.title;
           return (
@@ -149,15 +154,17 @@ export function TruckSizePicker({
               onClick={() => onChange(size.title)}
               aria-pressed={active}
               className={cn(
-                "flex flex-col items-center gap-2 rounded-2xl border px-3 py-3.5 text-center transition-colors duration-200",
-                active ? "border-[#e7a31a] bg-[#fff4d6]" : "border-[#141210]/10 bg-white hover:border-[#e7a31a]/50",
+                "flex flex-col items-center gap-2 rounded-xl border px-3 py-3.5 text-center transition-colors duration-200",
+                active
+                  ? "border-brand bg-[color-mix(in_oklab,var(--color-brand)_8%,var(--color-ink-950))]"
+                  : "border-edge/12 bg-ink-950 hover:border-brand/40",
               )}
             >
-              <div className="w-full max-w-32 text-[#141210]">
+              <div className="w-full max-w-32 text-fg">
                 <TruckIllustration size={size.title as Size} gradientId={`${idBase}-${size.title}`} animate={!reducedMotion} />
               </div>
-              <span className="text-[0.85rem] font-semibold text-[#141210]">{size.title} truck</span>
-              <span className="text-[0.72rem] leading-snug text-[#141210]/55">Best for {captions[index]}</span>
+              <span className="text-[0.85rem] font-semibold text-fg">{size.title} truck</span>
+              <span className="text-[0.72rem] leading-snug text-muted">Best for {captions[index]}</span>
             </button>
           );
         })}

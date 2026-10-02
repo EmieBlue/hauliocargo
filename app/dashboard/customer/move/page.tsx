@@ -1,37 +1,23 @@
 "use client";
 
-import { ArrowLeft, Box, Forklift, Loader2, Truck } from "lucide-react";
+import { Box, Forklift, Loader2, Sparkles, Truck } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { Outfit } from "next/font/google";
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
-import { ProfileMenu } from "@/components/auth/ProfileMenu";
+import { DashboardLoading, DashboardShell } from "@/components/auth/DashboardShell";
 import { CargoPhotoUpload } from "@/components/dashboard/CargoPhotoUpload";
 import { LocationAutocompleteField } from "@/components/dashboard/LocationAutocompleteField";
 import { TruckSizePicker } from "@/components/dashboard/TruckSizePicker";
-import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { Button } from "@/components/ui/Button";
 import { analyzeCargoPhoto, createBooking, uploadCargoPhoto } from "@/lib/bookings";
 import { cn } from "@/lib/cn";
 import { CARGO_CATEGORIES, DEFAULT_TRUCK_SIZE, ROUTES } from "@/lib/site";
 import { useRequireRole } from "@/lib/useRequireRole";
-import { useScrolled } from "@/lib/useScrolled";
 import { useSettledReducedMotion } from "@/lib/useSettledReducedMotion";
-
-// Scoped to this page only — the rest of the site stays on Sora/Inter (see
-// app/layout.tsx). Applied via className on the page root below, not the
-// global font setup, so this doesn't touch any other page.
-const outfit = Outfit({ subsets: ["latin"], weight: ["400", "500", "600", "700", "800"] });
 
 type When = "now" | "later";
 type AiChoice = "yes" | "no" | null;
 type Category = (typeof CARGO_CATEGORIES)[number]["title"];
-
-// This page's own literal palette (a specific written spec, not the
-// sitewide black/yellow theme tokens) — kept as named constants rather than
-// scattering hex strings through the JSX below.
-const INK = "#141210";
-const AMBER = "#e7a31a";
-const SELECTED_FILL = "#fff4d6";
 
 // Spec names the same "truck" icon for both Household Moves and Furniture &
 // Appliances (not the distinct Van/Truck pairing used elsewhere on this
@@ -58,18 +44,19 @@ const CATEGORY_SHORT_BODY: Record<Category, string> = {
 };
 
 /**
- * "Move With You" — the ride-along booking form, built to a specific written
- * spec the user sent after a few rounds of screenshot-based guessing didn't
- * land: exact colors, exact copy, exact stage-reveal rules. This page is
- * deliberately self-contained rather than using `DashboardShell` — its own
- * flat cream background and header, not the dark photo backdrop the rest of
- * the dashboard uses, per that spec. Scoped to this page only; nothing else
- * on the site changes.
+ * "Move With You" — the ride-along booking form. Uses the real
+ * `DashboardShell` (dark photo backdrop, working theme toggle, scroll-to-
+ * real-brand-yellow header) like every other dashboard page — an earlier
+ * pass replaced this with a one-off cream shell to match a written spec's
+ * literal hex colors, which read as broken (a theme toggle with no visible
+ * effect, a yellow that didn't match the rest of the site). The content
+ * improvements from that spec stay; only the shell reverted.
  *
- * Root is pinned `data-theme="light"` so every reused component
- * (`LocationAutocompleteField`, `CargoPhotoUpload`, `ProfileMenu`) renders
- * its light-theme form regardless of the site's real toggle — this page
- * doesn't react to that toggle at all.
+ * Cargo Type and Truck Size's cards stay pinned `data-theme="light"` (always
+ * white) — a separate, already-approved fix matching the spec's own "white
+ * cards" request, never contradicted by this revert — everything else goes
+ * back to the standard theme-reactive token classes DashboardShell's other
+ * content already uses.
  *
  * Stage reveal: Cargo Type shows as soon as Yes/No is answered (not gated on
  * a photo finishing analysis — the photo upload is an optional, parallel way
@@ -98,13 +85,7 @@ export default function MoveWithYouPage() {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (loading) {
-    return (
-      <div className="grid min-h-svh place-items-center bg-[#f4f0e8]">
-        <div className="size-8 animate-spin rounded-full border-2 border-[#141210]/15 border-t-[#e7a31a]" />
-      </div>
-    );
-  }
+  if (loading) return <DashboardLoading />;
 
   // Switching the AI/manual answer clears whatever belonged to the other
   // path — a leftover category or a leftover AI-suggested size would be
@@ -120,9 +101,8 @@ export default function MoveWithYouPage() {
   // Manual pick from the Cargo Type grid — used on both paths. On the Yes
   // path, if nothing's been suggested yet (no photo, or the photo didn't
   // return a size), fill in the per-category default so Truck Size always
-  // has something preselected once a category's known, same as the spec's
-  // own "Preselect 20ft" example. On the No path this never fires — the
-  // spec is explicit that nothing is preselected there.
+  // has something preselected once a category's known. On the No path this
+  // never fires — nothing is preselected there.
   function handleCategorySelected(category: Category) {
     setVehicleCategory(category);
     if (aiChoice === "yes" && !vehicleSize) {
@@ -211,42 +191,42 @@ export default function MoveWithYouPage() {
 
   if (submitted) {
     return (
-      <div data-theme="light" className={cn("min-h-svh bg-[#f4f0e8]", outfit.className)}>
-        <MoveHeader />
-        <div className="mx-auto flex max-w-xl flex-col gap-6 px-5 py-16">
-          <h1 className="text-[clamp(1.8rem,3.6vw,2.4rem)] font-extrabold tracking-[-0.02em]" style={{ color: INK }}>
+      <DashboardShell>
+        <div className="flex max-w-lg flex-col gap-6">
+          <h1 className="text-[clamp(1.8rem,3.6vw,2.4rem)] font-extrabold tracking-[-0.02em] text-fg">
             Request Received
           </h1>
-          <p className="text-[0.95rem] leading-relaxed" style={{ color: `${INK}99` }}>
+          <p className="text-[0.95rem] leading-relaxed text-muted">
             We&rsquo;ve got your move request. Pricing and driver-matching aren&rsquo;t live yet, so this won&rsquo;t
             move any further on its own right now — but it&rsquo;s saved, and we&rsquo;ll be in touch once that
             part is ready.
           </p>
-          <Link
-            href={ROUTES.dashboardCustomer}
-            className="inline-flex h-13 w-fit items-center justify-center rounded-xl px-7 font-display text-[0.78rem] font-semibold uppercase tracking-[0.09em] transition-colors duration-200"
-            style={{ backgroundColor: AMBER, color: INK }}
-          >
+          <Button href={ROUTES.dashboardCustomer} variant="primary" className="w-full sm:w-auto">
             Back to Dashboard
-          </Link>
+          </Button>
         </div>
-      </div>
+      </DashboardShell>
     );
   }
 
   return (
-    <div data-theme="light" className={cn("min-h-svh bg-[#f4f0e8]", outfit.className)}>
-      <MoveHeader />
+    <DashboardShell>
+      <div className="flex w-full max-w-xl flex-col gap-6">
+        <Link
+          href={ROUTES.dashboardCustomer}
+          className="self-start text-[0.8rem] font-medium text-muted transition-colors duration-200 hover:text-brand"
+        >
+          ← Back to dashboard
+        </Link>
 
-      <div className="mx-auto flex w-full max-w-xl flex-col gap-6 px-5 py-10">
         <div>
-          <p className="font-display text-[0.68rem] font-semibold tracking-[0.22em] uppercase" style={{ color: `${INK}80` }}>
+          <p className="font-display text-[0.68rem] font-semibold tracking-[0.22em] text-mist uppercase">
             Move With You
           </p>
-          <h1 className="mt-1.5 text-[clamp(1.8rem,3.6vw,2.4rem)] font-extrabold tracking-[-0.02em]" style={{ color: INK }}>
+          <h1 className="mt-1.5 text-[clamp(1.8rem,3.6vw,2.4rem)] font-extrabold tracking-[-0.02em] text-fg">
             You&rsquo;ll ride with the load.
           </h1>
-          <p className="mt-3 text-[0.95rem] leading-relaxed" style={{ color: `${INK}99` }}>
+          <p className="mt-3 text-[0.95rem] leading-relaxed text-muted">
             You&rsquo;ll travel with the driver and your cargo all the way to the destination.
           </p>
         </div>
@@ -254,7 +234,7 @@ export default function MoveWithYouPage() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           {/* Stage 1 — always visible */}
           <div className="flex flex-col gap-1.5">
-            <div className="flex flex-col divide-y divide-[#1412101a] rounded-2xl border px-4" style={{ borderColor: `${INK}1a`, backgroundColor: "#fff" }}>
+            <div className="flex flex-col divide-y divide-edge/10 rounded-xl border border-edge/12 bg-ink-950 px-4">
               <LocationAutocompleteField
                 label="Pickup Location"
                 placeholder="Where should the driver pick you up?"
@@ -272,13 +252,13 @@ export default function MoveWithYouPage() {
                 bare
               />
             </div>
-            <p className="text-[0.72rem]" style={{ color: `${INK}70` }}>
+            <p className="text-[0.72rem] text-muted">
               Can&rsquo;t find the exact spot? Keep typing — we&rsquo;ll use exactly what you enter.
             </p>
           </div>
 
           <div className="flex flex-col gap-2">
-            <span className="font-display text-[0.72rem] font-semibold tracking-[0.08em] uppercase" style={{ color: `${INK}80` }}>
+            <span className="font-display text-[0.72rem] font-semibold tracking-[0.08em] text-mist uppercase">
               When
             </span>
             <div className="flex gap-2.5">
@@ -290,8 +270,7 @@ export default function MoveWithYouPage() {
                 type="datetime-local"
                 value={scheduledFor}
                 onChange={(e) => setScheduledFor(e.target.value)}
-                className="h-12 rounded-xl border px-4 text-[0.95rem] transition-colors duration-200 focus:outline-none"
-                style={{ borderColor: `${INK}1a`, color: INK, backgroundColor: "#fff" }}
+                className="h-12 rounded-xl border border-edge/12 bg-ink-950 px-4 text-[0.95rem] text-fg transition-colors duration-200 focus:border-brand/50 focus:ring-2 focus:ring-brand/25 focus:outline-none"
               />
             ) : null}
           </div>
@@ -299,8 +278,7 @@ export default function MoveWithYouPage() {
           <div className="flex flex-col gap-1.5">
             <label
               htmlFor="cargo-description"
-              className="font-display text-[0.72rem] font-semibold tracking-[0.08em] uppercase"
-              style={{ color: `${INK}80` }}
+              className="font-display text-[0.72rem] font-semibold tracking-[0.08em] text-mist uppercase"
             >
               What Are You Moving?
             </label>
@@ -311,16 +289,15 @@ export default function MoveWithYouPage() {
               placeholder="e.g. 2-bedroom household move, sofa and boxes"
               value={cargoDescription}
               onChange={(e) => setCargoDescription(e.target.value)}
-              className="resize-none rounded-2xl border px-4 py-3 text-[0.95rem] transition-colors duration-200 focus:outline-none"
-              style={{ borderColor: `${INK}1a`, color: INK, backgroundColor: "#fff" }}
+              className="resize-none rounded-xl border border-edge/12 bg-ink-950 px-4 py-3 text-[0.95rem] text-fg placeholder:text-muted transition-colors duration-200 focus:border-brand/50 focus:ring-2 focus:ring-brand/25 focus:outline-none"
             />
           </div>
 
           <div className="flex flex-col gap-2">
-            <span className="font-display text-[0.72rem] font-semibold tracking-[0.08em] uppercase" style={{ color: `${INK}80` }}>
+            <span className="font-display text-[0.72rem] font-semibold tracking-[0.08em] text-mist uppercase">
               Want SmartLoad™ to Help?
             </span>
-            <p className="text-[0.8rem]" style={{ color: `${INK}99` }}>
+            <p className="text-[0.8rem] text-muted">
               Upload a photo and let AI suggest the right truck — or choose one yourself.
             </p>
             <div className="flex gap-2.5">
@@ -336,12 +313,13 @@ export default function MoveWithYouPage() {
                 <>
                   <CargoPhotoUpload onFileSelected={handlePhotoSelected} />
                   {analyzing ? (
-                    <p className="flex items-center gap-2 text-[0.8rem]" style={{ color: `${INK}99` }}>
+                    <p className="flex items-center gap-2 text-[0.8rem] text-muted">
                       <Loader2 className="size-3.5 animate-spin" aria-hidden />
                       SmartLoad™ is looking at your photo…
                     </p>
                   ) : photoError ? (
-                    <p className="text-[0.8rem]" style={{ color: "#b3440c" }}>
+                    <p className="flex items-start gap-2 text-[0.8rem] text-brand">
+                      <Sparkles className="mt-0.5 size-3.5 shrink-0" aria-hidden />
                       {photoError}
                     </p>
                   ) : null}
@@ -349,15 +327,19 @@ export default function MoveWithYouPage() {
               ) : null}
 
               <div className="flex flex-col gap-2">
-                <span className="font-display text-[0.72rem] font-semibold tracking-[0.08em] uppercase" style={{ color: `${INK}80` }}>
+                <span className="font-display text-[0.72rem] font-semibold tracking-[0.08em] text-mist uppercase">
                   Cargo Type
                 </span>
-                <p className="text-[0.8rem]" style={{ color: `${INK}99` }}>
+                <p className="text-[0.8rem] text-muted">
                   {aiChoice === "yes"
                     ? "AI is on. Pick the cargo, then SmartLoad suggests a truck. You can still change it."
                     : "You’ll choose the truck yourself. Pick the cargo first."}
                 </p>
-                <div className="grid grid-cols-2 gap-2.5">
+                {/* Pinned light, matching an earlier-approved fix and the
+                 * written spec's own "white cards" — everything else on
+                 * this page is theme-reactive again, but these grid cards
+                 * stay white regardless of the toggle. */}
+                <div data-theme="light" className="grid grid-cols-2 gap-2.5">
                   {CARGO_CATEGORIES.map((category, index) => {
                     const Icon = CATEGORY_ICONS[index];
                     const active = vehicleCategory === category.title;
@@ -367,26 +349,27 @@ export default function MoveWithYouPage() {
                         type="button"
                         onClick={() => handleCategorySelected(category.title)}
                         aria-pressed={active}
-                        className="flex flex-col items-start gap-2.5 rounded-2xl border p-4 text-left transition-colors duration-200"
-                        style={{
-                          borderColor: active ? AMBER : `${INK}1a`,
-                          backgroundColor: active ? SELECTED_FILL : "#fff",
-                        }}
+                        className={cn(
+                          "flex flex-col items-start gap-2.5 rounded-xl border p-4 text-left transition-colors duration-200",
+                          active
+                            ? "border-brand bg-[color-mix(in_oklab,var(--color-brand)_8%,var(--color-ink-950))]"
+                            : "border-edge/12 bg-ink-950 hover:border-brand/40",
+                        )}
                       >
                         <span
                           className={cn(
-                            "grid size-11 shrink-0 place-items-center rounded-xl text-white",
+                            "grid size-11 shrink-0 place-items-center rounded-xl bg-brand text-white",
                             !reducedMotion && "icon-drive",
                           )}
-                          style={{ backgroundColor: AMBER, animationDelay: reducedMotion ? undefined : `${index * 0.25}s` }}
+                          style={reducedMotion ? undefined : { animationDelay: `${index * 0.25}s` }}
                         >
                           <Icon className="size-5" aria-hidden />
                         </span>
                         <span>
-                          <span className="block text-[0.85rem] font-semibold" style={{ color: INK }}>
+                          <span className="block text-[0.85rem] font-semibold text-fg">
                             {CATEGORY_DISPLAY[category.title]}
                           </span>
-                          <span className="mt-0.5 block text-[0.75rem]" style={{ color: `${INK}80` }}>
+                          <span className="mt-0.5 block text-[0.75rem] text-muted">
                             {CATEGORY_SHORT_BODY[category.title]}
                           </span>
                         </span>
@@ -402,8 +385,8 @@ export default function MoveWithYouPage() {
           {vehicleCategory ? (
             <>
               {aiChoice === "yes" ? (
-                <div className="rounded-2xl px-4 py-3.5" style={{ backgroundColor: INK }}>
-                  <p className="font-display text-[0.65rem] font-semibold tracking-[0.15em] uppercase" style={{ color: AMBER }}>
+                <div data-theme="dark" className="rounded-xl border border-edge/12 bg-ink-950 px-4 py-3.5">
+                  <p className="font-display text-[0.65rem] font-semibold tracking-[0.15em] text-brand uppercase">
                     SmartLoad Suggestion
                   </p>
                   <p className="mt-1 text-[0.85rem] leading-relaxed text-white/90">
@@ -417,83 +400,24 @@ export default function MoveWithYouPage() {
           ) : null}
 
           {error ? (
-            <p role="alert" className="rounded-xl border px-4 py-3 text-[0.85rem]" style={{ borderColor: "#e3b48a", backgroundColor: "#fdf1e6", color: "#b3440c" }}>
+            <p role="alert" className="rounded-xl border border-brand/25 bg-brand/[0.06] px-4 py-3 text-[0.85rem] text-brand">
               {error}
             </p>
           ) : null}
 
-          <button
-            type="submit"
-            disabled={!canSubmit || submitting}
-            className={cn(
-              "h-13 w-full rounded-xl font-display text-[0.78rem] font-semibold uppercase tracking-[0.09em] transition-[background-color,color] duration-200",
-              canSubmit ? "cursor-pointer" : "cursor-not-allowed",
-            )}
-            style={{
-              backgroundColor: canSubmit ? AMBER : "#e9e2d2",
-              color: canSubmit ? INK : `${INK}66`,
-            }}
-          >
+          <Button type="submit" variant="primary" className="w-full" disabled={!canSubmit || submitting}>
             {submitting ? (
-              <span className="inline-flex items-center gap-2">
+              <>
                 <Loader2 className="size-4 animate-spin" aria-hidden />
                 Requesting
-              </span>
+              </>
             ) : (
               "Request This Move"
             )}
-          </button>
+          </Button>
         </form>
       </div>
-    </div>
-  );
-}
-
-function MoveHeader() {
-  const scrolled = useScrolled();
-
-  // Logo can't be reused here — its non-"dark" mark image picks itself from
-  // the site's *real* theme (useTheme()), which breaks on this always-cream
-  // page whenever the real theme happens to be dark. Same idea as Logo's own
-  // `dark` prop ("sitting on the solid yellow scrolled bar"), just driven by
-  // scroll state directly instead of a passed-in prop, and always starting
-  // from the light-appropriate assets since this page's baseline is cream,
-  // not theme-dependent.
-  return (
-    <header
-      className="sticky top-0 z-50 border-b transition-colors duration-150"
-      style={{
-        borderColor: scrolled ? "transparent" : `${INK}14`,
-        backgroundColor: scrolled ? AMBER : "#f4f0e8f2",
-      }}
-    >
-      <div className="container-page flex h-18 items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link
-            href={ROUTES.dashboardCustomer}
-            className="flex items-center gap-2 rounded-full border py-1.5 pr-4 pl-1.5 text-[0.8rem] font-semibold transition-colors duration-200"
-            style={{ borderColor: `${INK}1a`, backgroundColor: "#fff", color: INK }}
-          >
-            <span className="grid size-7 shrink-0 place-items-center rounded-full text-white" style={{ backgroundColor: INK }}>
-              <ArrowLeft className="size-3.5" aria-hidden />
-            </span>
-            Dashboard
-          </Link>
-          <Link href={ROUTES.homePage} className="flex items-center gap-2">
-            {/* eslint-disable-next-line @next/next/no-img-element -- static brand asset, next/image gains nothing here */}
-            <img src={scrolled ? "/brand/nav-mark-dark.png" : "/brand/nav-mark-light.png"} alt="" className="h-6 w-auto" />
-            <span className="font-display text-[0.95rem] leading-none font-extrabold tracking-[0.02em]">
-              <span style={{ color: scrolled ? "#fff" : AMBER }}>HAULIO</span>
-              <span style={{ color: INK }}>CARGO</span>
-            </span>
-          </Link>
-        </div>
-        <div className="flex items-center gap-3">
-          <ThemeToggle dark={scrolled} />
-          <ProfileMenu dark={scrolled} />
-        </div>
-      </div>
-    </header>
+    </DashboardShell>
   );
 }
 
@@ -503,12 +427,10 @@ function SegmentButton({ label, active, onClick }: { label: string; active: bool
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className="h-11 flex-1 rounded-xl border font-display text-[0.85rem] font-semibold transition-colors duration-200"
-      style={{
-        borderColor: active ? INK : `${INK}1a`,
-        backgroundColor: active ? INK : "#fff",
-        color: active ? "#fff" : INK,
-      }}
+      className={cn(
+        "h-11 flex-1 rounded-xl border text-[0.85rem] font-semibold transition-colors duration-200",
+        active ? "border-brand bg-brand/[0.06] text-brand" : "border-edge/12 bg-ink-950 text-fg hover:border-brand/40",
+      )}
     >
       {label}
     </button>
