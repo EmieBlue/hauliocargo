@@ -285,7 +285,7 @@ export default function MoveWithYouPage() {
                   bare
                 />
               </div>
-              <p className="text-[0.72rem]" style={{ color: MUTED }}>
+              <p className="text-[0.72rem] text-muted">
                 Can&rsquo;t find the exact spot? Keep typing — we&rsquo;ll use exactly what you enter.
               </p>
             </div>
@@ -297,7 +297,7 @@ export default function MoveWithYouPage() {
             {!isDesktop ? <MoveMapPanel pickup={pickupPoint} dropoff={dropoffPoint} /> : null}
 
             <div className="flex flex-col gap-2">
-              <span className="text-[0.72rem] font-semibold tracking-[0.08em] uppercase" style={{ color: MUTED }}>
+              <span className="text-[0.72rem] font-semibold tracking-[0.08em] text-mist uppercase">
                 When
               </span>
               <div className="flex gap-2.5">
@@ -318,8 +318,7 @@ export default function MoveWithYouPage() {
             <div className="flex flex-col gap-1.5">
               <label
                 htmlFor="cargo-description"
-                className="text-[0.72rem] font-semibold tracking-[0.08em] uppercase"
-                style={{ color: MUTED }}
+                className="text-[0.72rem] font-semibold tracking-[0.08em] text-mist uppercase"
               >
                 What Are You Moving?
               </label>
@@ -336,10 +335,10 @@ export default function MoveWithYouPage() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <span className="text-[0.72rem] font-semibold tracking-[0.08em] uppercase" style={{ color: MUTED }}>
+              <span className="text-[0.72rem] font-semibold tracking-[0.08em] text-mist uppercase">
                 Want SmartLoad™ to Help?
               </span>
-              <p className="text-[0.8rem]" style={{ color: MUTED }}>
+              <p className="text-[0.8rem] text-muted">
                 Upload a photo and let AI suggest the right truck — or choose one yourself.
               </p>
               <div className="flex gap-2.5">
@@ -355,7 +354,7 @@ export default function MoveWithYouPage() {
                   <>
                     <CargoPhotoUpload onFileSelected={handlePhotoSelected} />
                     {analyzing ? (
-                      <p className="flex items-center gap-2 text-[0.8rem]" style={{ color: MUTED }}>
+                      <p className="flex items-center gap-2 text-[0.8rem] text-muted">
                         <Loader2 className="size-3.5 animate-spin" aria-hidden />
                         SmartLoad™ is looking at your photo…
                       </p>
@@ -369,10 +368,10 @@ export default function MoveWithYouPage() {
                 ) : null}
 
                 <div className="flex flex-col gap-2">
-                  <span className="text-[0.72rem] font-semibold tracking-[0.08em] uppercase" style={{ color: MUTED }}>
+                  <span className="text-[0.72rem] font-semibold tracking-[0.08em] text-mist uppercase">
                     Cargo Type
                   </span>
-                  <p className="text-[0.8rem]" style={{ color: MUTED }}>
+                  <p className="text-[0.8rem] text-muted">
                     {aiChoice === "yes"
                       ? "AI is on. Pick the cargo, then SmartLoad suggests a truck. You can still change it."
                       : "You'll choose the truck yourself. Pick the cargo first."}

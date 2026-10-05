@@ -146,10 +146,12 @@ export function TruckSizePicker({
 
   return (
     <div className="flex flex-col gap-2">
-      <span
-        className="text-[0.72rem] font-semibold tracking-[0.08em] uppercase"
-        style={{ color: MUTED }}
-      >
+      {/* Outside the cream cards below, sitting directly on the page's real
+       * photo backdrop — needs the site's theme-reactive token, not this
+       * file's fixed cream-oriented MUTED, or it goes illegible in dark
+       * theme (see app/dashboard/customer/move/page.tsx for the same fix
+       * applied to its other section labels). */}
+      <span className="text-[0.72rem] font-semibold tracking-[0.08em] text-mist uppercase">
         Truck Size
       </span>
       <div className="grid grid-cols-2 gap-2.5">
