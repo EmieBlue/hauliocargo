@@ -232,11 +232,13 @@ export default function MoveWithYouPage() {
     setSubmitted(true);
   }
 
-  // Saying "yes" to an assistant still means picking how many before the
-  // button enables — the same "finish what you started" rule truck size
-  // itself already follows. Saying "no," or never touching the question at
-  // all, never blocks submission.
-  const canSubmit = Boolean(vehicleCategory && vehicleSize && (needsAssistant !== "yes" || assistantCount));
+  // Need Help Loading? is now required, same as every earlier stage on this
+  // page — an unanswered question used to quietly let the customer submit
+  // anyway, which read as skippable. Saying "yes" still also means picking
+  // how many before the button enables.
+  const canSubmit = Boolean(
+    vehicleCategory && vehicleSize && needsAssistant && (needsAssistant !== "yes" || assistantCount),
+  );
 
   if (submitted) {
     return (
