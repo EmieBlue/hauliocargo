@@ -483,9 +483,9 @@ function SegmentButton({ label, active, onClick }: { label: string; active: bool
       aria-pressed={active}
       className="h-11 flex-1 rounded-2xl border text-[0.85rem] font-semibold transition-colors duration-200"
       style={{
-        borderColor: active ? INK : "rgba(0,0,0,0.08)",
-        background: active ? INK : CREAM,
-        color: active ? "#ffffff" : INK,
+        borderColor: active ? AMBER : "rgba(0,0,0,0.08)",
+        background: active ? AMBER : CREAM,
+        color: INK,
       }}
     >
       {label}
