@@ -245,9 +245,11 @@ export default function MoveWithYouPage() {
   );
 
   return (
-    <DashboardShell backLink={{ href: ROUTES.dashboardCustomer, label: "Dashboard" }}>
-      <div className="flex w-full max-w-6xl items-start gap-5">
-        <AppSideMenu activeKey="move" />
+    <DashboardShell
+      backLink={{ href: ROUTES.dashboardCustomer, label: "Dashboard" }}
+      sidebar={<AppSideMenu activeKey="move" />}
+    >
+      <div className="flex w-full items-start">
         <div className={cn("flex min-w-0 flex-1 flex-col gap-6 lg:flex-row lg:items-start", outfit.className)}>
         <div className="flex w-full flex-col gap-6 lg:w-[27rem] lg:shrink-0">
           <div>

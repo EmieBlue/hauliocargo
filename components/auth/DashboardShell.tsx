@@ -31,12 +31,17 @@ import { ProfileMenu } from "./ProfileMenu";
 export function DashboardShell({
   children,
   backLink,
+  sidebar,
 }: {
   children: ReactNode;
   /** Optional "back" link shown in the fixed header, next to the logo — for
    * sub-pages deep in a flow (e.g. Move With You) where a plain in-content
    * text link reads as buried. Most dashboard pages omit this. */
   backLink?: { href: string; label: string };
+  /** Optional side menu pinned to the far-left edge under the header. When
+   * passed, the page content fills the remaining width instead of the
+   * centered container. */
+  sidebar?: ReactNode;
 }) {
   const scrolled = useScrolled();
 
@@ -74,7 +79,14 @@ export function DashboardShell({
           </div>
         </div>
       </header>
-      <div className="container-page relative flex flex-1 items-center justify-center pt-28 pb-16">{children}</div>
+      {sidebar ? (
+        <div className="relative flex flex-1 items-start pt-28 pb-16">
+          <div className="sticky top-28 shrink-0">{sidebar}</div>
+          <div className="container-page relative flex min-w-0 flex-1 items-start justify-center">{children}</div>
+        </div>
+      ) : (
+        <div className="container-page relative flex flex-1 items-center justify-center pt-28 pb-16">{children}</div>
+      )}
     </div>
   );
 }

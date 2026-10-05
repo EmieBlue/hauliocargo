@@ -92,7 +92,7 @@ export function AppSideMenu({ activeKey, selectedId }: { activeKey: string; sele
     <>
       <aside
         className={cn(
-          "group sticky top-24 hidden h-[calc(100svh-7rem)] shrink-0 flex-col overflow-hidden rounded-2xl lg:flex",
+          "group hidden h-[calc(100svh-8rem)] shrink-0 flex-col overflow-hidden rounded-r-2xl lg:flex",
           "w-[76px] transition-[width] duration-[760ms] focus-within:w-[230px] hover:w-[230px]",
         )}
         style={{ background: INK_MENU, transitionTimingFunction: EASE }}

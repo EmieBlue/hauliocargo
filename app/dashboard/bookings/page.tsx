@@ -109,10 +109,11 @@ function BookingsContent() {
   const panelOpen = Boolean(bookingId);
 
   return (
-    <DashboardShell backLink={{ href: ROUTES.dashboardCustomer, label: "Dashboard" }}>
-      <div className={cn("flex w-full max-w-6xl items-start gap-5", outfit.className)}>
-        <AppSideMenu activeKey="tracking" selectedId={bookingId} />
-
+    <DashboardShell
+      backLink={{ href: ROUTES.dashboardCustomer, label: "Dashboard" }}
+      sidebar={<AppSideMenu activeKey="tracking" selectedId={bookingId} />}
+    >
+      <div className={cn("flex w-full items-start", outfit.className)}>
         <div className="flex min-w-0 flex-1 flex-col gap-5 lg:flex-row lg:items-start">
           {panelOpen ? (
             <div className="order-2 w-full min-w-0 lg:order-1 lg:w-1/2">
