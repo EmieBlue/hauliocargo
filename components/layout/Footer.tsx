@@ -17,7 +17,7 @@ export function Footer() {
         <div className="grid gap-12 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
           {/* Brand */}
           <div className="flex flex-col gap-5">
-            <Logo />
+            <Logo theme="dark" />
             <p className="max-w-xs font-display text-lg font-semibold text-fg">
               {BRAND.tagline}
             </p>

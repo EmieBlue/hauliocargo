@@ -22,8 +22,26 @@ import { useTheme } from "@/lib/useTheme";
  * future, gets it for free. Callers must not wrap this in another
  * link/anchor themselves — nesting one inside another is invalid HTML.
  */
-export function Logo({ className, dark = false }: { className?: string; dark?: boolean }) {
-  const [theme] = useTheme();
+export function Logo({
+  className,
+  dark = false,
+  theme: forcedTheme,
+}: {
+  className?: string;
+  dark?: boolean;
+  /**
+   * Overrides the live site theme for picking the mark image/"CARGO" color
+   * below — for a surface that's permanently pinned to one theme via its own
+   * `data-theme` attribute (e.g. `Footer`), which only affects CSS custom
+   * properties, not this component's own `useTheme()` read. Without this,
+   * a dark-pinned surface still picks light-theme-tuned assets whenever the
+   * real site toggle is on light, which is illegible (e.g. a black mark on
+   * the footer's always-black background).
+   */
+  theme?: "dark" | "light";
+}) {
+  const [liveTheme] = useTheme();
+  const theme = forcedTheme ?? liveTheme;
 
   // `dark` here means "sitting on the solid yellow scrolled bar" — always
   // nav-mark-dark.png regardless of site theme ("not when scrolling", per
