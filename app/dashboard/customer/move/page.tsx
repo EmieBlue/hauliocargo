@@ -6,6 +6,7 @@ import { Outfit } from "next/font/google";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { DashboardLoading, DashboardShell } from "@/components/auth/DashboardShell";
+import { AppSideMenu } from "@/components/dashboard/AppSideMenu";
 import { CargoPhotoUpload } from "@/components/dashboard/CargoPhotoUpload";
 import { LocationAutocompleteField } from "@/components/dashboard/LocationAutocompleteField";
 import type { LocationPoint } from "@/components/dashboard/MoveMap";
@@ -245,7 +246,9 @@ export default function MoveWithYouPage() {
 
   return (
     <DashboardShell backLink={{ href: ROUTES.dashboardCustomer, label: "Dashboard" }}>
-      <div className={cn("flex w-full max-w-6xl flex-col gap-6 lg:flex-row lg:items-start", outfit.className)}>
+      <div className="flex w-full max-w-6xl items-start gap-5">
+        <AppSideMenu activeKey="move" />
+        <div className={cn("flex min-w-0 flex-1 flex-col gap-6 lg:flex-row lg:items-start", outfit.className)}>
         <div className="flex w-full flex-col gap-6 lg:w-[27rem] lg:shrink-0">
           <div>
             <p className="font-display text-[0.68rem] font-semibold tracking-[0.22em] text-mist uppercase">
@@ -528,6 +531,7 @@ export default function MoveWithYouPage() {
             <MoveMapPanel pickup={pickupPoint} dropoff={dropoffPoint} className="h-[42rem]" />
           </div>
         ) : null}
+        </div>
       </div>
     </DashboardShell>
   );

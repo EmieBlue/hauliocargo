@@ -24,10 +24,22 @@ export function MoveMapPanel({
   pickup,
   dropoff,
   className,
+  defaultCenter,
+  emptyMessage,
 }: {
   pickup: LocationPoint | null;
   dropoff: LocationPoint | null;
   className?: string;
+  defaultCenter?: [number, number];
+  emptyMessage?: string;
 }) {
-  return <MoveMap pickup={pickup} dropoff={dropoff} className={className} />;
+  return (
+    <MoveMap
+      pickup={pickup}
+      dropoff={dropoff}
+      className={className}
+      defaultCenter={defaultCenter}
+      emptyMessage={emptyMessage}
+    />
+  );
 }

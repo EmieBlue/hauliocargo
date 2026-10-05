@@ -95,10 +95,15 @@ export default function MoveMap({
   pickup,
   dropoff,
   className,
+  defaultCenter,
+  emptyMessage = "Add a pickup to see it on the map.",
 }: {
   pickup: LocationPoint | null;
   dropoff: LocationPoint | null;
   className?: string;
+  /** Shows a bare map centered here when there are no points yet. */
+  defaultCenter?: [number, number];
+  emptyMessage?: string;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -108,12 +113,13 @@ export default function MoveMap({
   const [tab, setTab] = useState<Tab>("route");
 
   const hasAny = Boolean(pickup || dropoff);
+  const showMap = hasAny || Boolean(defaultCenter);
 
-  // Created once, the first time there's actually something to plot — not
-  // on mount, so the empty state costs nothing.
+  // Created once, the first time there's something to show — not on mount,
+  // so the empty state costs nothing.
   useEffect(() => {
-    if (!hasAny || mapRef.current || !containerRef.current || !TOKEN) return;
-    const initialCenter = (pickup ?? dropoff)!.center;
+    if (!showMap || mapRef.current || !containerRef.current || !TOKEN) return;
+    const initialCenter = (pickup ?? dropoff)?.center ?? defaultCenter!;
     const map = new mapboxgl.Map({
       container: containerRef.current,
       // Mapbox's standard colorful style — green parks, blue water, colored
@@ -124,13 +130,13 @@ export default function MoveMap({
       // where a pale style reads as almost empty.
       style: "mapbox://styles/mapbox/streets-v12",
       center: initialCenter,
-      zoom: 12,
+      zoom: hasAny ? 12 : 11,
       attributionControl: false,
     });
     map.addControl(new mapboxgl.AttributionControl({ compact: true }));
     map.on("load", () => setReady(true));
     mapRef.current = map;
-  }, [hasAny, pickup, dropoff]);
+  }, [showMap, hasAny, pickup, dropoff, defaultCenter]);
 
   // Torn down only when the panel itself unmounts — not on every coordinate
   // change, which is handled by the sync effect below instead.
@@ -220,13 +226,13 @@ export default function MoveMap({
 
   if (!TOKEN) return null;
 
-  if (!hasAny) {
+  if (!showMap) {
     return (
       <div
         className={cn("flex min-h-[22rem] flex-col items-center justify-center gap-2 rounded-2xl border px-6 text-center", className)}
         style={{ borderColor: "rgba(0,0,0,0.06)", background: "rgba(255,255,255,0.7)" }}
       >
-        <p style={{ color: MUTED, fontSize: "0.85rem", fontWeight: 500 }}>Add a pickup to see it on the map.</p>
+        <p style={{ color: MUTED, fontSize: "0.85rem", fontWeight: 500 }}>{emptyMessage}</p>
       </div>
     );
   }

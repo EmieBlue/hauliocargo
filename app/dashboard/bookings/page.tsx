@@ -3,6 +3,7 @@
 import { Outfit } from "next/font/google";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState, type ReactNode } from "react";
+import { AppSideMenu } from "@/components/dashboard/AppSideMenu";
 import { DashboardLoading, DashboardShell } from "@/components/auth/DashboardShell";
 import type { LocationPoint } from "@/components/dashboard/MoveMap";
 import { MoveMapPanel } from "@/components/dashboard/MoveMapPanel";
@@ -17,6 +18,7 @@ const INK = "#17181c";
 const MUTED = "#6b6b74";
 const CREAM = "#f6f3ed";
 const AMBER = "#f0b429";
+const ACCRA_CENTER: [number, number] = [-0.2, 5.6];
 
 type BookingStatus = "pending" | "confirmed" | "in_progress" | "completed" | "cancelled";
 
@@ -37,6 +39,9 @@ type BookingRow = {
   status: BookingStatus;
 };
 
+const BOOKING_COLUMNS =
+  "id, pickup_location, dropoff_location, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng, scheduled_for, cargo_description, vehicle_category, vehicle_size, loading_assistants, cargo_photo_url, status";
+
 const PROGRESS_STEPS = [
   { status: "pending", label: "Requested" },
   { status: "confirmed", label: "Confirmed" },
@@ -45,13 +50,10 @@ const PROGRESS_STEPS = [
 ] as const;
 
 /**
- * The booking page — reached after "Request This Move" via `?id=`. Half the
- * page is the customer's chosen pickup and drop-off on the map, half is the
- * sidebar: request details, ride progress, and the driver/price/chat panels,
- * which show clearly labeled waiting states until those systems exist.
- *
- * Uses a query parameter rather than a `[id]` route on purpose: this is a
- * static export, and a dynamic route needs every id known at build time.
+ * The customer's bookings page. The side menu lists their requests; picking
+ * one opens its detail panel beside the map. With nothing picked, the map
+ * fills the page. Selection lives in `?id=` (static export, so no `[id]`
+ * route), which also means refresh and back keep the same selection.
  */
 export default function BookingsPage() {
   return (
@@ -61,54 +63,27 @@ export default function BookingsPage() {
   );
 }
 
+type Fetched = { id: string; row: BookingRow | null };
+
 function BookingsContent() {
   const { loading, profile } = useRequireAuth();
   const bookingId = useSearchParams().get("id");
-
-  if (loading || !profile) return <DashboardLoading />;
-  if (!bookingId) return <BookingsPlaceholder />;
-  return <BookingDetail bookingId={bookingId} />;
-}
-
-function BookingsPlaceholder() {
-  return (
-    <DashboardShell backLink={{ href: ROUTES.dashboardCustomer, label: "Dashboard" }}>
-      <div className="flex max-w-lg flex-col gap-6">
-        <div>
-          <h1 className="text-[clamp(1.8rem,3.6vw,2.4rem)] font-extrabold tracking-[-0.02em] text-fg">My Bookings</h1>
-          <p className="mt-3 text-[0.95rem] leading-relaxed text-muted">
-            Booking history isn&rsquo;t built yet — requests open from Move With You for now.
-          </p>
-        </div>
-      </div>
-    </DashboardShell>
-  );
-}
-
-function BookingDetail({ bookingId }: { bookingId: string }) {
-  const [booking, setBooking] = useState<BookingRow | null>(null);
-  const [notFound, setNotFound] = useState(false);
-  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [fetched, setFetched] = useState<Fetched | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
+    if (!bookingId) return;
     const supabase = getClient();
     if (!supabase) return;
 
+    let cancelled = false;
     supabase
       .from("bookings")
-      .select(
-        "id, pickup_location, dropoff_location, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng, scheduled_for, cargo_description, vehicle_category, vehicle_size, loading_assistants, cargo_photo_url, status",
-      )
+      .select(BOOKING_COLUMNS)
       .eq("id", bookingId)
       .single()
       .then(({ data, error }) => {
         if (cancelled) return;
-        if (error || !data) {
-          setNotFound(true);
-          return;
-        }
-        setBooking(data as BookingRow);
+        setFetched({ id: bookingId, row: error || !data ? null : (data as BookingRow) });
       });
 
     return () => {
@@ -116,8 +91,68 @@ function BookingDetail({ bookingId }: { bookingId: string }) {
     };
   }, [bookingId]);
 
+  if (loading || !profile) return <DashboardLoading />;
+
+  const current = bookingId && fetched && fetched.id === bookingId ? fetched : null;
+  const row = current?.row ?? null;
+  const missing = Boolean(bookingId && current && !current.row);
+
+  const pickupPoint: LocationPoint | null =
+    row && row.pickup_lat != null && row.pickup_lng != null
+      ? { placeName: row.pickup_location, center: [row.pickup_lng, row.pickup_lat] }
+      : null;
+  const dropoffPoint: LocationPoint | null =
+    row && row.dropoff_lat != null && row.dropoff_lng != null
+      ? { placeName: row.dropoff_location, center: [row.dropoff_lng, row.dropoff_lat] }
+      : null;
+
+  const panelOpen = Boolean(bookingId);
+
+  return (
+    <DashboardShell backLink={{ href: ROUTES.dashboardCustomer, label: "Dashboard" }}>
+      <div className={cn("flex w-full max-w-6xl items-start gap-5", outfit.className)}>
+        <AppSideMenu activeKey="tracking" selectedId={bookingId} />
+
+        <div className="flex min-w-0 flex-1 flex-col gap-5 lg:flex-row lg:items-start">
+          {panelOpen ? (
+            <div className="order-2 w-full min-w-0 lg:order-1 lg:w-1/2">
+              {row ? (
+                <BookingDetailPanel booking={row} />
+              ) : missing ? (
+                <PanelNote title="Booking not found">
+                  This request doesn&rsquo;t exist, or it isn&rsquo;t on your account.
+                </PanelNote>
+              ) : (
+                <PanelNote title="Loading your request…" />
+              )}
+            </div>
+          ) : null}
+
+          <div
+            className={cn(
+              "order-1 w-full min-w-0 lg:order-2",
+              panelOpen ? "lg:sticky lg:top-28 lg:w-1/2 lg:self-start" : "lg:w-full",
+            )}
+          >
+            <MoveMapPanel
+              pickup={pickupPoint}
+              dropoff={dropoffPoint}
+              className="h-[22rem] lg:h-[42rem]"
+              defaultCenter={ACCRA_CENTER}
+              emptyMessage="Pick a request from the menu to see its route."
+            />
+          </div>
+        </div>
+      </div>
+    </DashboardShell>
+  );
+}
+
+function BookingDetailPanel({ booking }: { booking: BookingRow }) {
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+
   useEffect(() => {
-    const path = booking?.cargo_photo_url;
+    const path = booking.cargo_photo_url;
     const supabase = getClient();
     if (!path || !supabase) return;
 
@@ -132,102 +167,77 @@ function BookingDetail({ bookingId }: { bookingId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [booking]);
-
-  if (notFound) {
-    return (
-      <DashboardShell backLink={{ href: ROUTES.dashboardCustomer, label: "Dashboard" }}>
-        <div className="flex max-w-lg flex-col gap-4">
-          <h1 className="text-[clamp(1.8rem,3.6vw,2.4rem)] font-extrabold tracking-[-0.02em] text-fg">
-            Booking not found
-          </h1>
-          <p className="text-[0.95rem] leading-relaxed text-muted">
-            This booking doesn&rsquo;t exist, or it isn&rsquo;t on your account.
-          </p>
-        </div>
-      </DashboardShell>
-    );
-  }
-
-  if (!booking) {
-    return (
-      <DashboardShell backLink={{ href: ROUTES.dashboardCustomer, label: "Dashboard" }}>
-        <p className="text-[0.95rem] text-muted">Loading your booking…</p>
-      </DashboardShell>
-    );
-  }
-
-  const pickupPoint: LocationPoint | null =
-    booking.pickup_lat != null && booking.pickup_lng != null
-      ? { placeName: booking.pickup_location, center: [booking.pickup_lng, booking.pickup_lat] }
-      : null;
-  const dropoffPoint: LocationPoint | null =
-    booking.dropoff_lat != null && booking.dropoff_lng != null
-      ? { placeName: booking.dropoff_location, center: [booking.dropoff_lng, booking.dropoff_lat] }
-      : null;
+  }, [booking.cargo_photo_url]);
 
   return (
-    <DashboardShell backLink={{ href: ROUTES.dashboardCustomer, label: "Dashboard" }}>
-      <div className={cn("flex w-full max-w-6xl flex-col gap-6 lg:flex-row lg:items-start", outfit.className)}>
-        <aside className="order-2 flex w-full flex-col gap-4 lg:order-1 lg:w-1/2">
-          <Card>
-            <p className="text-[0.68rem] font-semibold tracking-[0.22em] uppercase" style={{ color: MUTED }}>
-              Move With You
-            </p>
-            <h1 className="mt-1 text-[1.6rem] font-extrabold tracking-[-0.02em]" style={{ color: INK }}>
-              Your move
-            </h1>
-            <ProgressTracker status={booking.status} />
-          </Card>
+    <div className="flex flex-col gap-4">
+      <Card>
+        <p className="text-[0.68rem] font-semibold tracking-[0.22em] uppercase" style={{ color: MUTED }}>
+          Move With You
+        </p>
+        <h1 className="mt-1 text-[1.6rem] font-extrabold tracking-[-0.02em]" style={{ color: INK }}>
+          Your move
+        </h1>
+        <ProgressTracker status={booking.status} />
+      </Card>
 
-          <Card>
-            <SectionLabel>Request details</SectionLabel>
-            <dl className="mt-3 flex flex-col gap-3 text-[0.88rem]" style={{ color: INK }}>
-              <DetailRow label="Pickup" value={booking.pickup_location} />
-              <DetailRow label="Drop-off" value={booking.dropoff_location} />
-              <DetailRow label="Cargo" value={booking.cargo_description} />
-              <DetailRow label="Truck" value={`${booking.vehicle_size} · ${booking.vehicle_category}`} />
-              <DetailRow label="Assistants" value={formatAssistants(booking.loading_assistants)} />
-              <DetailRow label="When" value={formatSchedule(booking.scheduled_for)} />
-            </dl>
-            {photoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element -- a signed storage URL, next/image gains nothing here
-              <img src={photoUrl} alt="Cargo" className="mt-4 h-36 w-full rounded-xl object-cover" />
-            ) : null}
-          </Card>
+      <Card>
+        <SectionLabel>Request details</SectionLabel>
+        <dl className="mt-3 flex flex-col gap-3 text-[0.88rem]" style={{ color: INK }}>
+          <DetailRow label="Pickup" value={booking.pickup_location} />
+          <DetailRow label="Drop-off" value={booking.dropoff_location} />
+          <DetailRow label="Cargo" value={booking.cargo_description} />
+          <DetailRow label="Truck" value={`${booking.vehicle_size} · ${booking.vehicle_category}`} />
+          <DetailRow label="Assistants" value={formatAssistants(booking.loading_assistants)} />
+          <DetailRow label="When" value={formatSchedule(booking.scheduled_for)} />
+        </dl>
+        {photoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element -- a signed storage URL, next/image gains nothing here
+          <img src={photoUrl} alt="Cargo" className="mt-4 h-36 w-full rounded-xl object-cover" />
+        ) : null}
+      </Card>
 
-          <Card>
-            <SectionLabel>Driver</SectionLabel>
-            <p className="mt-2 text-[0.88rem]" style={{ color: MUTED }}>
-              Waiting for a driver to accept your request.
-            </p>
-          </Card>
+      <Card>
+        <SectionLabel>Driver</SectionLabel>
+        <p className="mt-2 text-[0.88rem]" style={{ color: MUTED }}>
+          Waiting for a driver to accept your request.
+        </p>
+      </Card>
 
-          <Card>
-            <SectionLabel>Price</SectionLabel>
-            <p className="mt-2 text-[0.88rem]" style={{ color: MUTED }}>
-              Pricing coming soon.
-            </p>
-            {booking.loading_assistants ? (
-              <p className="mt-2 text-[0.85rem]" style={{ color: INK }}>
-                Loading assistants: {formatAssistants(booking.loading_assistants)}
-              </p>
-            ) : null}
-          </Card>
+      <Card>
+        <SectionLabel>Price</SectionLabel>
+        <p className="mt-2 text-[0.88rem]" style={{ color: MUTED }}>
+          Pricing coming soon.
+        </p>
+        {booking.loading_assistants ? (
+          <p className="mt-2 text-[0.85rem]" style={{ color: INK }}>
+            Loading assistants: {formatAssistants(booking.loading_assistants)}
+          </p>
+        ) : null}
+      </Card>
 
-          <Card>
-            <SectionLabel>Chat</SectionLabel>
-            <p className="mt-2 text-[0.88rem]" style={{ color: MUTED }}>
-              Chat opens once a driver accepts.
-            </p>
-          </Card>
-        </aside>
+      <Card>
+        <SectionLabel>Chat</SectionLabel>
+        <p className="mt-2 text-[0.88rem]" style={{ color: MUTED }}>
+          Chat opens once a driver accepts.
+        </p>
+      </Card>
+    </div>
+  );
+}
 
-        <div className="order-1 w-full lg:sticky lg:top-28 lg:order-2 lg:w-1/2 lg:self-start">
-          <MoveMapPanel pickup={pickupPoint} dropoff={dropoffPoint} className="h-[22rem] lg:h-[42rem]" />
-        </div>
-      </div>
-    </DashboardShell>
+function PanelNote({ title, children }: { title: string; children?: ReactNode }) {
+  return (
+    <Card>
+      <h1 className="text-[1.3rem] font-extrabold tracking-[-0.02em]" style={{ color: INK }}>
+        {title}
+      </h1>
+      {children ? (
+        <p className="mt-2 text-[0.88rem] leading-relaxed" style={{ color: MUTED }}>
+          {children}
+        </p>
+      ) : null}
+    </Card>
   );
 }
 
