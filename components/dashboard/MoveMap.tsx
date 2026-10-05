@@ -116,7 +116,13 @@ export default function MoveMap({
     const initialCenter = (pickup ?? dropoff)!.center;
     const map = new mapboxgl.Map({
       container: containerRef.current,
-      style: "mapbox://styles/mapbox/light-v11",
+      // Mapbox's standard colorful style — green parks, blue water, colored
+      // roads at any zoom. The written spec originally asked for a "pale
+      // map" (light-v11, flat and near-monochrome); after seeing the real
+      // result the user explicitly asked for this instead, especially since
+      // a far-apart pickup/drop-off pair zooms out to a country-wide view
+      // where a pale style reads as almost empty.
+      style: "mapbox://styles/mapbox/streets-v12",
       center: initialCenter,
       zoom: 12,
       attributionControl: false,

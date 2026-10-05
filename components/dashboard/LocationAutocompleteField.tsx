@@ -123,7 +123,17 @@ export function LocationAutocompleteField({
     <div ref={rootRef} className={cn("relative flex flex-col gap-1.5", bare && "py-3")}>
       <label
         htmlFor={inputId}
-        className="font-display text-[0.72rem] font-semibold tracking-[0.08em] text-mist uppercase"
+        className={cn(
+          "font-display text-[0.72rem] font-semibold tracking-[0.08em] uppercase",
+          // `bare` means a caller-supplied host card, not the usual dark
+          // token-based surface — on Move With You that card is a fixed
+          // cream regardless of site theme, so this needs a fixed ink/muted
+          // color too (literal hex, matching that page's own INK/MUTED
+          // constants — Tailwind can't reference a shared JS value here).
+          // Without this, `text-mist`/`text-fg` resolve to near-white in
+          // dark site-theme and disappear against the cream card.
+          bare ? "text-[#6b6b74]" : "text-mist",
+        )}
       >
         {label}
       </label>
@@ -137,10 +147,10 @@ export function LocationAutocompleteField({
         onFocus={() => predictions.length > 0 && setOpen(true)}
         autoComplete="off"
         className={cn(
-          "h-12 text-[0.95rem] text-fg placeholder:text-muted transition-colors duration-200 focus:outline-none",
+          "h-12 text-[0.95rem] transition-colors duration-200 focus:outline-none",
           bare
-            ? "border-0 bg-transparent px-0"
-            : "rounded-xl border border-edge/12 bg-ink-950 px-4 focus:border-brand/50 focus:ring-2 focus:ring-brand/25",
+            ? "border-0 bg-transparent px-0 text-[#17181c] placeholder:text-[#6b6b74]"
+            : "text-fg placeholder:text-muted rounded-xl border border-edge/12 bg-ink-950 px-4 focus:border-brand/50 focus:ring-2 focus:ring-brand/25",
         )}
       />
 
