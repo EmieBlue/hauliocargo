@@ -17,6 +17,8 @@ export type BookingFields = {
   vehicleSize: string;
   /** Storage path from `uploadCargoPhoto`, or null if no photo was attached. */
   cargoPhotoUrl?: string | null;
+  /** One of LOADING_ASSISTANT_COUNTS, or null if no assistant was requested. */
+  loadingAssistants?: string | null;
 };
 
 const NOT_CONFIGURED = "Booking is not available yet. Please check back shortly.";
@@ -50,6 +52,7 @@ export async function createBooking(
     vehicle_size: fields.vehicleSize,
     vehicle_category: fields.vehicleCategory,
     cargo_photo_url: fields.cargoPhotoUrl ?? null,
+    loading_assistants: fields.loadingAssistants ?? null,
   });
   if (error) {
     console.error("booking failed", error);

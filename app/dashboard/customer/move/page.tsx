@@ -1,6 +1,6 @@
 "use client";
 
-import { Box, Forklift, Loader2, Sparkles, Truck } from "lucide-react";
+import { Box, Forklift, Loader2, Sparkles, Truck, Users } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Outfit } from "next/font/google";
 import { useState, type FormEvent } from "react";
@@ -13,7 +13,7 @@ import { TruckSizePicker } from "@/components/dashboard/TruckSizePicker";
 import { Button } from "@/components/ui/Button";
 import { analyzeCargoPhoto, createBooking, uploadCargoPhoto } from "@/lib/bookings";
 import { cn } from "@/lib/cn";
-import { CARGO_CATEGORIES, DEFAULT_TRUCK_SIZE, ROUTES } from "@/lib/site";
+import { CARGO_CATEGORIES, DEFAULT_TRUCK_SIZE, LOADING_ASSISTANT_COUNTS, ROUTES } from "@/lib/site";
 import { useMediaQuery } from "@/lib/useMediaQuery";
 import { useRequireRole } from "@/lib/useRequireRole";
 import { useSettledReducedMotion } from "@/lib/useSettledReducedMotion";
@@ -93,6 +93,8 @@ export default function MoveWithYouPage() {
   const [aiChoice, setAiChoice] = useState<AiChoice>(null);
   const [vehicleCategory, setVehicleCategory] = useState<Category | null>(null);
   const [vehicleSize, setVehicleSize] = useState<string | null>(null);
+  const [needsAssistant, setNeedsAssistant] = useState<"yes" | "no" | null>(null);
+  const [assistantCount, setAssistantCount] = useState<string | null>(null);
   const [cargoPhoto, setCargoPhoto] = useState<File | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
@@ -142,6 +144,14 @@ export default function MoveWithYouPage() {
     if (aiChoice === "yes" && !vehicleSize) {
       setVehicleSize(DEFAULT_TRUCK_SIZE[category]);
     }
+  }
+
+  // Switching back to "No" clears any count already picked — otherwise a
+  // stale count would silently still submit even though the customer said
+  // they didn't want an assistant after all.
+  function handleAssistantChoice(choice: "yes" | "no") {
+    setNeedsAssistant(choice);
+    setAssistantCount(null);
   }
 
   async function handlePhotoSelected(file: File | null) {
@@ -210,6 +220,7 @@ export default function MoveWithYouPage() {
       vehicleCategory,
       vehicleSize,
       cargoPhotoUrl,
+      loadingAssistants: needsAssistant === "yes" ? assistantCount : null,
       scheduledFor: when === "later" ? new Date(scheduledFor).toISOString() : null,
     });
     setSubmitting(false);
@@ -221,7 +232,11 @@ export default function MoveWithYouPage() {
     setSubmitted(true);
   }
 
-  const canSubmit = Boolean(vehicleCategory && vehicleSize);
+  // Saying "yes" to an assistant still means picking how many before the
+  // button enables — the same "finish what you started" rule truck size
+  // itself already follows. Saying "no," or never touching the question at
+  // all, never blocks submission.
+  const canSubmit = Boolean(vehicleCategory && vehicleSize && (needsAssistant !== "yes" || assistantCount));
 
   if (submitted) {
     return (
@@ -432,6 +447,65 @@ export default function MoveWithYouPage() {
                   </div>
                 ) : null}
                 <TruckSizePicker category={vehicleCategory} value={vehicleSize} onChange={setVehicleSize} />
+              </>
+            ) : null}
+
+            {/* Stage 4 — optional loading help, as soon as a truck size is picked */}
+            {vehicleSize ? (
+              <>
+                <div className="flex flex-col gap-2">
+                  <span className="text-[0.72rem] font-semibold tracking-[0.08em] text-mist uppercase">
+                    Need Help Loading?
+                  </span>
+                  <p className="text-[0.8rem] text-muted">
+                    Want an assistant to help load your items? We can arrange extra hands.
+                  </p>
+                  <div className="flex gap-2.5">
+                    <SegmentButton
+                      label="Yes"
+                      active={needsAssistant === "yes"}
+                      onClick={() => handleAssistantChoice("yes")}
+                    />
+                    <SegmentButton
+                      label="No"
+                      active={needsAssistant === "no"}
+                      onClick={() => handleAssistantChoice("no")}
+                    />
+                  </div>
+                </div>
+
+                {needsAssistant === "yes" ? (
+                  <div className="flex flex-col gap-2">
+                    <span className="text-[0.72rem] font-semibold tracking-[0.08em] text-mist uppercase">
+                      How Many Assistants?
+                    </span>
+                    <div className="grid grid-cols-2 gap-2.5">
+                      {LOADING_ASSISTANT_COUNTS.map((count) => {
+                        const active = assistantCount === count.title;
+                        return (
+                          <button
+                            key={count.title}
+                            type="button"
+                            onClick={() => setAssistantCount(count.title)}
+                            aria-pressed={active}
+                            className="flex flex-col items-start gap-2.5 rounded-2xl border p-4 text-left transition-colors duration-200"
+                            style={{
+                              borderColor: active ? AMBER_BORDER : "rgba(0,0,0,0.08)",
+                              background: active ? AMBER_FILL : CREAM,
+                            }}
+                          >
+                            <span className="grid size-11 shrink-0 place-items-center rounded-xl text-white" style={{ background: AMBER }}>
+                              <Users className="size-5" aria-hidden />
+                            </span>
+                            <span className="block text-[0.85rem] font-semibold" style={{ color: INK }}>
+                              {count.title} assistant{count.title === "1" ? "" : "s"}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null}
               </>
             ) : null}
 

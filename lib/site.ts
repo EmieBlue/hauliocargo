@@ -159,6 +159,20 @@ export const TRUCK_SIZES = [
 ] as const;
 
 /**
+ * Move With You's optional "need help loading?" step, asked after a truck
+ * size is chosen. Same four-option shape as `TRUCK_SIZES` for the same 2×2
+ * card-grid convention — "4+" rather than an open-ended number input, since
+ * an exact headcount beyond that doesn't change how the request gets
+ * handled yet.
+ */
+export const LOADING_ASSISTANT_COUNTS = [
+  { title: "1" },
+  { title: "2" },
+  { title: "3" },
+  { title: "4+" },
+] as const;
+
+/**
  * One "Best for" caption per truck size, per cargo category — same order as
  * `TRUCK_SIZES`. The reference image the user sent only covers household
  * moves ("Studio / 1 Bedroom / 2–3 Bedroom / 3–4 Bedroom"); this extends
