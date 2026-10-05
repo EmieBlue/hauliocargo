@@ -1,34 +1,300 @@
 "use client";
 
-import Link from "next/link";
+import { Outfit } from "next/font/google";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState, type ReactNode } from "react";
 import { DashboardLoading, DashboardShell } from "@/components/auth/DashboardShell";
-import { redirectPathFor } from "@/lib/auth";
+import type { LocationPoint } from "@/components/dashboard/MoveMap";
+import { MoveMapPanel } from "@/components/dashboard/MoveMapPanel";
+import { cn } from "@/lib/cn";
+import { ROUTES } from "@/lib/site";
+import { getClient } from "@/lib/supabase";
 import { useRequireAuth } from "@/lib/useRequireAuth";
 
-/** Placeholder destination only — the real booking history screen is separate work. */
-export default function BookingsPage() {
-  const { loading, profile } = useRequireAuth();
-  if (loading || !profile) return <DashboardLoading />;
+const outfit = Outfit({ subsets: ["latin"], weight: ["400", "500", "600", "700", "800"] });
 
+const INK = "#17181c";
+const MUTED = "#6b6b74";
+const CREAM = "#f6f3ed";
+const AMBER = "#f0b429";
+
+type BookingStatus = "pending" | "confirmed" | "in_progress" | "completed" | "cancelled";
+
+type BookingRow = {
+  id: string;
+  pickup_location: string;
+  dropoff_location: string;
+  pickup_lat: number | null;
+  pickup_lng: number | null;
+  dropoff_lat: number | null;
+  dropoff_lng: number | null;
+  scheduled_for: string | null;
+  cargo_description: string;
+  vehicle_category: string;
+  vehicle_size: string;
+  loading_assistants: string | null;
+  cargo_photo_url: string | null;
+  status: BookingStatus;
+};
+
+const PROGRESS_STEPS = [
+  { status: "pending", label: "Requested" },
+  { status: "confirmed", label: "Confirmed" },
+  { status: "in_progress", label: "On the way" },
+  { status: "completed", label: "Completed" },
+] as const;
+
+/**
+ * The booking page — reached after "Request This Move" via `?id=`. Half the
+ * page is the customer's chosen pickup and drop-off on the map, half is the
+ * sidebar: request details, ride progress, and the driver/price/chat panels,
+ * which show clearly labeled waiting states until those systems exist.
+ *
+ * Uses a query parameter rather than a `[id]` route on purpose: this is a
+ * static export, and a dynamic route needs every id known at build time.
+ */
+export default function BookingsPage() {
   return (
-    <DashboardShell>
+    <Suspense fallback={<DashboardLoading />}>
+      <BookingsContent />
+    </Suspense>
+  );
+}
+
+function BookingsContent() {
+  const { loading, profile } = useRequireAuth();
+  const bookingId = useSearchParams().get("id");
+
+  if (loading || !profile) return <DashboardLoading />;
+  if (!bookingId) return <BookingsPlaceholder />;
+  return <BookingDetail bookingId={bookingId} />;
+}
+
+function BookingsPlaceholder() {
+  return (
+    <DashboardShell backLink={{ href: ROUTES.dashboardCustomer, label: "Dashboard" }}>
       <div className="flex max-w-lg flex-col gap-6">
-        <Link
-          href={redirectPathFor(profile)}
-          className="self-start text-[0.8rem] font-medium text-muted transition-colors duration-200 hover:text-brand"
-        >
-          ← Back to dashboard
-        </Link>
         <div>
-          <h1 className="text-[clamp(1.8rem,3.6vw,2.4rem)] font-extrabold tracking-[-0.02em] text-fg">
-            My Bookings
-          </h1>
+          <h1 className="text-[clamp(1.8rem,3.6vw,2.4rem)] font-extrabold tracking-[-0.02em] text-fg">My Bookings</h1>
           <p className="mt-3 text-[0.95rem] leading-relaxed text-muted">
-            Booking history isn&rsquo;t built yet — this page exists so the account menu has somewhere real to
-            land.
+            Booking history isn&rsquo;t built yet — requests open from Move With You for now.
           </p>
         </div>
       </div>
     </DashboardShell>
   );
+}
+
+function BookingDetail({ bookingId }: { bookingId: string }) {
+  const [booking, setBooking] = useState<BookingRow | null>(null);
+  const [notFound, setNotFound] = useState(false);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const supabase = getClient();
+    if (!supabase) return;
+
+    supabase
+      .from("bookings")
+      .select(
+        "id, pickup_location, dropoff_location, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng, scheduled_for, cargo_description, vehicle_category, vehicle_size, loading_assistants, cargo_photo_url, status",
+      )
+      .eq("id", bookingId)
+      .single()
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error || !data) {
+          setNotFound(true);
+          return;
+        }
+        setBooking(data as BookingRow);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [bookingId]);
+
+  useEffect(() => {
+    const path = booking?.cargo_photo_url;
+    const supabase = getClient();
+    if (!path || !supabase) return;
+
+    let cancelled = false;
+    supabase.storage
+      .from("cargo-photos")
+      .createSignedUrl(path, 3600)
+      .then(({ data }) => {
+        if (!cancelled && data?.signedUrl) setPhotoUrl(data.signedUrl);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [booking]);
+
+  if (notFound) {
+    return (
+      <DashboardShell backLink={{ href: ROUTES.dashboardCustomer, label: "Dashboard" }}>
+        <div className="flex max-w-lg flex-col gap-4">
+          <h1 className="text-[clamp(1.8rem,3.6vw,2.4rem)] font-extrabold tracking-[-0.02em] text-fg">
+            Booking not found
+          </h1>
+          <p className="text-[0.95rem] leading-relaxed text-muted">
+            This booking doesn&rsquo;t exist, or it isn&rsquo;t on your account.
+          </p>
+        </div>
+      </DashboardShell>
+    );
+  }
+
+  if (!booking) {
+    return (
+      <DashboardShell backLink={{ href: ROUTES.dashboardCustomer, label: "Dashboard" }}>
+        <p className="text-[0.95rem] text-muted">Loading your booking…</p>
+      </DashboardShell>
+    );
+  }
+
+  const pickupPoint: LocationPoint | null =
+    booking.pickup_lat != null && booking.pickup_lng != null
+      ? { placeName: booking.pickup_location, center: [booking.pickup_lng, booking.pickup_lat] }
+      : null;
+  const dropoffPoint: LocationPoint | null =
+    booking.dropoff_lat != null && booking.dropoff_lng != null
+      ? { placeName: booking.dropoff_location, center: [booking.dropoff_lng, booking.dropoff_lat] }
+      : null;
+
+  return (
+    <DashboardShell backLink={{ href: ROUTES.dashboardCustomer, label: "Dashboard" }}>
+      <div className={cn("flex w-full max-w-6xl flex-col gap-6 lg:flex-row lg:items-start", outfit.className)}>
+        <aside className="order-2 flex w-full flex-col gap-4 lg:order-1 lg:w-1/2">
+          <Card>
+            <p className="text-[0.68rem] font-semibold tracking-[0.22em] uppercase" style={{ color: MUTED }}>
+              Move With You
+            </p>
+            <h1 className="mt-1 text-[1.6rem] font-extrabold tracking-[-0.02em]" style={{ color: INK }}>
+              Your move
+            </h1>
+            <ProgressTracker status={booking.status} />
+          </Card>
+
+          <Card>
+            <SectionLabel>Request details</SectionLabel>
+            <dl className="mt-3 flex flex-col gap-3 text-[0.88rem]" style={{ color: INK }}>
+              <DetailRow label="Pickup" value={booking.pickup_location} />
+              <DetailRow label="Drop-off" value={booking.dropoff_location} />
+              <DetailRow label="Cargo" value={booking.cargo_description} />
+              <DetailRow label="Truck" value={`${booking.vehicle_size} · ${booking.vehicle_category}`} />
+              <DetailRow label="Assistants" value={formatAssistants(booking.loading_assistants)} />
+              <DetailRow label="When" value={formatSchedule(booking.scheduled_for)} />
+            </dl>
+            {photoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- a signed storage URL, next/image gains nothing here
+              <img src={photoUrl} alt="Cargo" className="mt-4 h-36 w-full rounded-xl object-cover" />
+            ) : null}
+          </Card>
+
+          <Card>
+            <SectionLabel>Driver</SectionLabel>
+            <p className="mt-2 text-[0.88rem]" style={{ color: MUTED }}>
+              Waiting for a driver to accept your request.
+            </p>
+          </Card>
+
+          <Card>
+            <SectionLabel>Price</SectionLabel>
+            <p className="mt-2 text-[0.88rem]" style={{ color: MUTED }}>
+              Pricing coming soon.
+            </p>
+            {booking.loading_assistants ? (
+              <p className="mt-2 text-[0.85rem]" style={{ color: INK }}>
+                Loading assistants: {formatAssistants(booking.loading_assistants)}
+              </p>
+            ) : null}
+          </Card>
+
+          <Card>
+            <SectionLabel>Chat</SectionLabel>
+            <p className="mt-2 text-[0.88rem]" style={{ color: MUTED }}>
+              Chat opens once a driver accepts.
+            </p>
+          </Card>
+        </aside>
+
+        <div className="order-1 w-full lg:sticky lg:top-28 lg:order-2 lg:w-1/2 lg:self-start">
+          <MoveMapPanel pickup={pickupPoint} dropoff={dropoffPoint} className="h-[22rem] lg:h-[42rem]" />
+        </div>
+      </div>
+    </DashboardShell>
+  );
+}
+
+function Card({ children }: { children: ReactNode }) {
+  return (
+    <section className="rounded-2xl border p-5" style={{ borderColor: "rgba(0,0,0,0.08)", background: CREAM }}>
+      {children}
+    </section>
+  );
+}
+
+function SectionLabel({ children }: { children: ReactNode }) {
+  return (
+    <p className="text-[0.72rem] font-semibold tracking-[0.08em] uppercase" style={{ color: MUTED }}>
+      {children}
+    </p>
+  );
+}
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <dt className="text-[0.7rem] font-semibold tracking-[0.06em] uppercase" style={{ color: MUTED }}>
+        {label}
+      </dt>
+      <dd className="leading-snug">{value}</dd>
+    </div>
+  );
+}
+
+const STEP_INDEX: Record<BookingStatus, number> = { pending: 0, confirmed: 1, in_progress: 2, completed: 3, cancelled: -1 };
+
+function ProgressTracker({ status }: { status: BookingStatus }) {
+  if (status === "cancelled") {
+    return (
+      <p className="mt-4 text-[0.88rem]" style={{ color: MUTED }}>
+        This request was cancelled.
+      </p>
+    );
+  }
+  const current = STEP_INDEX[status];
+  return (
+    <ol className="mt-4 flex flex-col gap-2.5">
+      {PROGRESS_STEPS.map((step, index) => {
+        const reached = index <= current;
+        return (
+          <li key={step.status} className="flex items-center gap-3 text-[0.88rem]" style={{ color: reached ? INK : MUTED }}>
+            <span
+              className="grid size-4 shrink-0 place-items-center rounded-full"
+              style={{ background: reached ? AMBER : "rgba(0,0,0,0.12)" }}
+              aria-hidden
+            />
+            <span className={cn(index === current && "font-semibold")}>{step.label}</span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+function formatAssistants(value: string | null): string {
+  if (!value) return "None requested";
+  if (value === "1") return "1 assistant";
+  return `${value} assistants`;
+}
+
+function formatSchedule(value: string | null): string {
+  if (!value) return "As soon as possible";
+  return new Date(value).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" });
 }

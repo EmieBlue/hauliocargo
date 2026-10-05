@@ -3,6 +3,7 @@
 import { Box, Forklift, Loader2, Sparkles, Truck, Users } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Outfit } from "next/font/google";
+import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { DashboardLoading, DashboardShell } from "@/components/auth/DashboardShell";
 import { CargoPhotoUpload } from "@/components/dashboard/CargoPhotoUpload";
@@ -76,6 +77,7 @@ const CATEGORY_SHORT_BODY: Record<Category, string> = {
  */
 export default function MoveWithYouPage() {
   const { loading } = useRequireRole("customer");
+  const router = useRouter();
   const reducedMotion = useSettledReducedMotion();
   // Exactly one `MoveMapPanel` ever mounts — gated in JS, not just hidden
   // via CSS, so there's only ever one live `mapboxgl.Map` instance (two
@@ -99,7 +101,6 @@ export default function MoveWithYouPage() {
   const [analyzing, setAnalyzing] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   if (loading) return <DashboardLoading />;
@@ -221,6 +222,8 @@ export default function MoveWithYouPage() {
       vehicleSize,
       cargoPhotoUrl,
       loadingAssistants: needsAssistant === "yes" ? assistantCount : null,
+      pickupCenter: pickupPoint?.center ?? null,
+      dropoffCenter: dropoffPoint?.center ?? null,
       scheduledFor: when === "later" ? new Date(scheduledFor).toISOString() : null,
     });
     setSubmitting(false);
@@ -229,7 +232,7 @@ export default function MoveWithYouPage() {
       setError(result.message);
       return;
     }
-    setSubmitted(true);
+    router.push(`${ROUTES.bookings}?id=${result.data}`);
   }
 
   // Need Help Loading? is now required, same as every earlier stage on this
@@ -239,26 +242,6 @@ export default function MoveWithYouPage() {
   const canSubmit = Boolean(
     vehicleCategory && vehicleSize && needsAssistant && (needsAssistant !== "yes" || assistantCount),
   );
-
-  if (submitted) {
-    return (
-      <DashboardShell backLink={{ href: ROUTES.dashboardCustomer, label: "Dashboard" }}>
-        <div className="flex max-w-lg flex-col gap-6">
-          <h1 className="text-[clamp(1.8rem,3.6vw,2.4rem)] font-extrabold tracking-[-0.02em] text-fg">
-            Request Received
-          </h1>
-          <p className="text-[0.95rem] leading-relaxed text-muted">
-            We&rsquo;ve got your move request. Pricing and driver-matching aren&rsquo;t live yet, so this won&rsquo;t
-            move any further on its own right now — but it&rsquo;s saved, and we&rsquo;ll be in touch once that
-            part is ready.
-          </p>
-          <Button href={ROUTES.dashboardCustomer} variant="primary" className="w-full sm:w-auto">
-            Back to Dashboard
-          </Button>
-        </div>
-      </DashboardShell>
-    );
-  }
 
   return (
     <DashboardShell backLink={{ href: ROUTES.dashboardCustomer, label: "Dashboard" }}>

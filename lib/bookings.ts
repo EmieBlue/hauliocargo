@@ -19,6 +19,9 @@ export type BookingFields = {
   cargoPhotoUrl?: string | null;
   /** One of LOADING_ASSISTANT_COUNTS, or null if no assistant was requested. */
   loadingAssistants?: string | null;
+  /** Exact map points the customer picked, as [lng, lat], or null if they only typed. */
+  pickupCenter?: [number, number] | null;
+  dropoffCenter?: [number, number] | null;
 };
 
 const NOT_CONFIGURED = "Booking is not available yet. Please check back shortly.";
@@ -32,7 +35,7 @@ const NOT_CONFIGURED = "Booking is not available yet. Please check back shortly.
 export async function createBooking(
   type: BookingType,
   fields: BookingFields,
-): Promise<AuthResult> {
+): Promise<AuthResult<string>> {
   if (!authEnabled) return { ok: false, message: NOT_CONFIGURED };
   const supabase = getClient();
   if (!supabase) return { ok: false, message: NOT_CONFIGURED };
@@ -42,24 +45,32 @@ export async function createBooking(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, message: "Please sign in again." };
 
-  const { error } = await supabase.from("bookings").insert({
-    customer_id: user.id,
-    booking_type: type,
-    pickup_location: fields.pickupLocation.trim(),
-    dropoff_location: fields.dropoffLocation.trim(),
-    scheduled_for: fields.scheduledFor,
-    cargo_description: fields.cargoDescription.trim(),
-    vehicle_size: fields.vehicleSize,
-    vehicle_category: fields.vehicleCategory,
-    cargo_photo_url: fields.cargoPhotoUrl ?? null,
-    loading_assistants: fields.loadingAssistants ?? null,
-  });
+  const { data, error } = await supabase
+    .from("bookings")
+    .insert({
+      customer_id: user.id,
+      booking_type: type,
+      pickup_location: fields.pickupLocation.trim(),
+      dropoff_location: fields.dropoffLocation.trim(),
+      pickup_lng: fields.pickupCenter?.[0] ?? null,
+      pickup_lat: fields.pickupCenter?.[1] ?? null,
+      dropoff_lng: fields.dropoffCenter?.[0] ?? null,
+      dropoff_lat: fields.dropoffCenter?.[1] ?? null,
+      scheduled_for: fields.scheduledFor,
+      cargo_description: fields.cargoDescription.trim(),
+      vehicle_size: fields.vehicleSize,
+      vehicle_category: fields.vehicleCategory,
+      cargo_photo_url: fields.cargoPhotoUrl ?? null,
+      loading_assistants: fields.loadingAssistants ?? null,
+    })
+    .select("id")
+    .single();
   if (error) {
     console.error("booking failed", error);
     return { ok: false, message: "That didn't go through. Please try again." };
   }
 
-  return { ok: true, data: undefined };
+  return { ok: true, data: data.id };
 }
 
 /**
