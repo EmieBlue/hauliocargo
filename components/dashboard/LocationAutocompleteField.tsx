@@ -3,30 +3,54 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 
-const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 const DEBOUNCE_MS = 250;
 
-type MapboxFeature = {
-  id: string;
+type GeocodeFeature = {
+  id: number;
   place_name: string;
   center: [number, number];
 };
 
-async function fetchPredictions(query: string): Promise<MapboxFeature[]> {
-  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${MAPBOX_TOKEN}&country=gh&autocomplete=true&limit=5`;
+type NominatimResult = {
+  place_id: number;
+  display_name: string;
+  lat: string;
+  lon: string;
+};
+
+// OpenStreetMap's free public search (Nominatim) — chosen over Mapbox's
+// geocoder after a direct side-by-side test: searching "Madina" (a
+// well-known Accra suburb) through Mapbox returned only an unrelated
+// village 500km away in Upper West — the real Accra-area Madina simply
+// isn't in Mapbox's Ghana places index. The same search through Nominatim
+// found it correctly. No API key needed, no account to set up — but it
+// does ask callers to identify themselves and keeps requests to roughly
+// one per second; this component's own debounce already keeps well under
+// that for one person typing, and the browser's automatic `Referer` header
+// (this site's own URL) is what the usage policy expects from a site
+// calling it directly, same pattern small apps commonly use. If booking
+// volume ever grows a lot, a small server-side proxy (same shape as the
+// existing `analyze-cargo` Supabase function) would be the next step, to
+// set a proper identifying header — not needed at today's scale.
+async function fetchPredictions(query: string): Promise<GeocodeFeature[]> {
+  const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=jsonv2&countrycodes=gh&limit=5`;
   const response = await fetch(url);
-  if (!response.ok) throw new Error(`Mapbox geocoding failed: ${response.status}`);
-  const data = await response.json();
-  return (data.features ?? []) as MapboxFeature[];
+  if (!response.ok) throw new Error(`OpenStreetMap search failed: ${response.status}`);
+  const results = (await response.json()) as NominatimResult[];
+  return results.map((result) => ({
+    id: result.place_id,
+    place_name: result.display_name,
+    center: [Number(result.lon), Number(result.lat)],
+  }));
 }
 
 /**
- * Address input with live Mapbox suggestions, styled to match `TextField`.
- * Mapbox's Geocoding API is a plain REST endpoint — no script tag or SDK to
- * load, unlike Google's Maps JS API, so this is just a debounced `fetch`.
- * Degrades to a plain text input if `NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN` isn't
- * set, same "works without the key, just without the feature" pattern
- * already used for Supabase (`lib/supabase.ts`'s `authEnabled`).
+ * Address input with live OpenStreetMap suggestions, styled to match
+ * `TextField`. Nominatim is a plain REST endpoint — no script tag or SDK to
+ * load, unlike Google's Maps JS API or Mapbox GL, so this is just a
+ * debounced `fetch`. The map itself (`MoveMap.tsx`) still renders with
+ * Mapbox GL and still needs `NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN` — only this
+ * search step moved providers, coordinates work the same either way.
  */
 export function LocationAutocompleteField({
   label,
@@ -42,10 +66,10 @@ export function LocationAutocompleteField({
   onChange: (value: string) => void;
   /**
    * Fires only when the customer actually taps a suggestion — not on plain
-   * typing — with the exact coordinates Mapbox already returned for that
-   * place (no extra geocode call). Typed-but-never-selected text still just
-   * updates `value` via `onChange`, same accepted gap described below; this
-   * is the "upgrade path" to real coordinates, e.g. for dropping a map pin.
+   * typing — with the exact coordinates already returned for that place (no
+   * extra geocode call). Typed-but-never-selected text still just updates
+   * `value` via `onChange`, same accepted gap described below; this is the
+   * "upgrade path" to real coordinates, e.g. for dropping a map pin.
    */
   onLocationSelected?: (feature: { placeName: string; center: [number, number] }) => void;
   placeholder?: string;
@@ -61,11 +85,11 @@ export function LocationAutocompleteField({
 }) {
   const inputId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
-  const [predictions, setPredictions] = useState<MapboxFeature[]>([]);
+  const [predictions, setPredictions] = useState<GeocodeFeature[]>([]);
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    if (!MAPBOX_TOKEN || !value.trim()) {
+    if (!value.trim()) {
       // Deferred rather than called synchronously in the effect body, same
       // async pattern as the fetch branch below — avoids a same-tick
       // setState-in-effect cascade for what's otherwise an identical result.
@@ -82,7 +106,7 @@ export function LocationAutocompleteField({
           setOpen(true);
         })
         .catch((error) => {
-          if (!cancelled) console.error("mapbox geocoding", error);
+          if (!cancelled) console.error("openstreetmap geocoding", error);
         });
     }, DEBOUNCE_MS);
 
@@ -112,7 +136,7 @@ export function LocationAutocompleteField({
     };
   }, [open]);
 
-  function selectPrediction(feature: MapboxFeature) {
+  function selectPrediction(feature: GeocodeFeature) {
     onChange(feature.place_name);
     onLocationSelected?.({ placeName: feature.place_name, center: feature.center });
     setPredictions([]);
@@ -174,14 +198,24 @@ export function LocationAutocompleteField({
               {prediction.place_name}
             </button>
           ))}
+          {/* Required by OpenStreetMap's data license wherever its search
+           * results are shown — see openstreetmap.org/copyright. */}
+          <a
+            href="https://www.openstreetmap.org/copyright"
+            target="_blank"
+            rel="noreferrer"
+            className="block border-t border-edge/8 px-4 py-2 text-[0.65rem] text-muted transition-colors duration-150 hover:text-fg"
+          >
+            © OpenStreetMap contributors
+          </a>
         </div>
       ) : null}
 
       {/*
-       * Mapbox's Ghana coverage is decent but not exhaustive — a specific
-       * address (a named building, a small local landmark) may never show up
-       * as a suggestion even though the general area does. This is a real
-       * gap, not a bug to chase: the input is a plain controlled text field
+       * No search coverage is ever fully exhaustive — a specific address (a
+       * named building, a small local landmark) may still not show up as a
+       * suggestion even though the general area does. This is a real gap,
+       * not a bug to chase: the input is a plain controlled text field
        * underneath the dropdown, so whatever the customer types is already
        * what gets submitted if they never tap a suggestion. This line just
        * makes that fallback visible instead of leaving the customer unsure
