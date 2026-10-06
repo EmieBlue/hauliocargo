@@ -1,26 +1,22 @@
 /**
- * PLACEHOLDER RATES — replace these with real numbers before customers rely
- * on the prices. Everything is in GH₵. Every price on the booking screens is
- * calculated from this one file.
+ * Delivery pricing, in GH₵. Every price on the booking screens comes from
+ * `quotePrice` below — nothing is typed in as a fixed amount.
+ *
+ * PER-KM RATES ARE A PLACEHOLDER: all four sizes are 180 until the real
+ * 10ft / 15ft / 20ft / 26ft rates are entered here.
  */
 export const PRICING = {
   currency: "GH₵",
-  baseFee: 30,
+  baseFee: 2500,
+  minimum: 4000,
+  perAssistant: 50,
   perKm: {
-    "10ft": 3,
-    "15ft": 4,
-    "20ft": 5,
-    "26ft": 6,
+    "10ft": 180,
+    "15ft": 180,
+    "20ft": 180,
+    "26ft": 180,
   } as Record<string, number>,
-  perAssistant: 40,
 } as const;
-
-export type PriceBreakdown = {
-  base: number;
-  distance: number;
-  assistants: number;
-  total: number;
-};
 
 /** Assistant count as a number — the "4+" option is priced as 4. */
 export function assistantCountValue(count: string | null): number {
@@ -28,21 +24,19 @@ export function assistantCountValue(count: string | null): number {
   return count === "4+" ? 4 : Number(count) || 0;
 }
 
-export function calculatePrice({
-  distanceKm,
-  vehicleSize,
-  assistantCount,
-}: {
-  distanceKm: number;
-  vehicleSize: string;
-  assistantCount: string | null;
-}): PriceBreakdown {
+/** Assistant fee on its own, e.g. 2 assistants → 100. */
+export function assistantFee(assistants: number): number {
+  return assistants * PRICING.perAssistant;
+}
+
+/**
+ * price = base fee + (km × rate for the truck size) + assistant fee,
+ * then never below the minimum. Rounded to whole cedis.
+ */
+export function quotePrice(distanceKm: number, assistants: number, vehicleSize: string): number {
   const perKm = PRICING.perKm[vehicleSize] ?? PRICING.perKm["10ft"];
-  const base = PRICING.baseFee;
-  const distance = Math.round(distanceKm * perKm * 100) / 100;
-  const assistants = assistantCountValue(assistantCount) * PRICING.perAssistant;
-  const total = Math.round((base + distance + assistants) * 100) / 100;
-  return { base, distance, assistants, total };
+  const raw = PRICING.baseFee + distanceKm * perKm + assistantFee(assistants);
+  return Math.max(Math.round(raw), PRICING.minimum);
 }
 
 /** Straight-line distance in km — used only when the road route can't be fetched. */
@@ -57,6 +51,7 @@ export function straightLineKm(a: [number, number], b: [number, number]): number
   return 2 * 6371 * Math.asin(Math.sqrt(h));
 }
 
+/** Whole-cedi display, e.g. "GH₵ 5,290". */
 export function formatPrice(amount: number): string {
-  return `${PRICING.currency} ${amount.toFixed(2)}`;
+  return `${PRICING.currency} ${Math.round(amount).toLocaleString("en-US")}`;
 }

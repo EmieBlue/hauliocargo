@@ -206,6 +206,9 @@ export default function MoveMap({
         onRouteDistance?.(null);
         return;
       }
+      // Clear the old distance first, so a changed pickup or drop-off can't
+      // be priced on the previous route while the new one is loading.
+      onRouteDistance?.(null);
       const route = await fetchRoute(pickup.center, dropoff.center);
       if (cancelled) return;
       const coordinates = route?.coordinates ?? [pickup.center, dropoff.center];

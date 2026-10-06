@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/Button";
 import { analyzeCargoPhoto, createBooking, uploadCargoPhoto } from "@/lib/bookings";
 import { cn } from "@/lib/cn";
 import { CARGO_CATEGORIES, DEFAULT_TRUCK_SIZE, LOADING_ASSISTANT_COUNTS, ROUTES, TRUCK_SIZES } from "@/lib/site";
-import { calculatePrice, formatPrice } from "@/lib/pricing";
+import { assistantCountValue, assistantFee, formatPrice, quotePrice } from "@/lib/pricing";
 import { useMediaQuery } from "@/lib/useMediaQuery";
 import { useRequireRole } from "@/lib/useRequireRole";
 import { useSettledReducedMotion } from "@/lib/useSettledReducedMotion";
@@ -245,21 +245,15 @@ export default function MoveWithYouPage() {
   // page — an unanswered question used to quietly let the customer submit
   // anyway, which read as skippable. Saying "yes" still also means picking
   // how many before the button enables.
-  const assistantForPrice = needsAssistant === "yes" ? assistantCount : null;
+  // Recalculated on every render from the current route distance, truck
+  // size and assistant choice — nothing about the price is kept in state.
+  const assistantForPrice = needsAssistant === "yes" ? assistantCountValue(assistantCount) : 0;
   const truckPrices =
     routeKm != null
-      ? Object.fromEntries(
-          TRUCK_SIZES.map((size) => [
-            size.title,
-            calculatePrice({ distanceKm: routeKm, vehicleSize: size.title, assistantCount: assistantForPrice }).total,
-          ]),
-        )
+      ? Object.fromEntries(TRUCK_SIZES.map((size) => [size.title, quotePrice(routeKm, assistantForPrice, size.title)]))
       : null;
-  const chosenPrice =
-    routeKm != null && vehicleSize
-      ? calculatePrice({ distanceKm: routeKm, vehicleSize, assistantCount: assistantForPrice })
-      : null;
-  const estimatedTotal = chosenPrice?.total ?? null;
+  const estimatedTotal =
+    routeKm != null && vehicleSize ? quotePrice(routeKm, assistantForPrice, vehicleSize) : null;
 
   const canSubmit = Boolean(
     vehicleCategory && vehicleSize && needsAssistant && (needsAssistant !== "yes" || assistantCount),
@@ -539,28 +533,24 @@ export default function MoveWithYouPage() {
                 className="flex flex-col gap-2 rounded-2xl border p-4"
                 style={{ borderColor: "rgba(0,0,0,0.08)", background: CREAM, color: INK }}
               >
-                {routeKm != null && chosenPrice ? (
+                {routeKm != null && estimatedTotal != null ? (
                   <>
                     <div className="flex items-center justify-between text-[0.85rem]">
-                      <span style={{ color: MUTED }}>Base fee</span>
-                      <span>{formatPrice(chosenPrice.base)}</span>
+                      <span style={{ color: MUTED }}>Distance</span>
+                      <span>{routeKm.toFixed(1)} km</span>
                     </div>
-                    <div className="flex items-center justify-between text-[0.85rem]">
-                      <span style={{ color: MUTED }}>Distance ({routeKm.toFixed(1)} km)</span>
-                      <span>{formatPrice(chosenPrice.distance)}</span>
-                    </div>
-                    {chosenPrice.assistants > 0 ? (
+                    {assistantForPrice > 0 ? (
                       <div className="flex items-center justify-between text-[0.85rem]">
-                        <span style={{ color: MUTED }}>Assistants</span>
-                        <span>{formatPrice(chosenPrice.assistants)}</span>
+                        <span style={{ color: MUTED }}>Assistants ({assistantCount})</span>
+                        <span>{formatPrice(assistantFee(assistantForPrice))}</span>
                       </div>
                     ) : null}
                     <div
                       className="mt-1 flex items-center justify-between border-t pt-2"
                       style={{ borderColor: "rgba(0,0,0,0.08)" }}
                     >
-                      <span className="text-[0.85rem] font-semibold">Total</span>
-                      <span className="text-[1.1rem] font-extrabold">{formatPrice(chosenPrice.total)}</span>
+                      <span className="text-[0.85rem] font-semibold">Price</span>
+                      <span className="text-[1.1rem] font-extrabold">{formatPrice(estimatedTotal)}</span>
                     </div>
                   </>
                 ) : (
