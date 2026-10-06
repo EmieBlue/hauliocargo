@@ -2,8 +2,8 @@
  * Delivery pricing, in GH₵. Every price on the booking screens comes from
  * `quotePrice` below — nothing is typed in as a fixed amount.
  *
- * PER-KM RATES ARE A PLACEHOLDER: all four sizes are 180 until the real
- * 10ft / 15ft / 20ft / 26ft rates are entered here.
+ * PER-KM RATES ARE PLACEHOLDERS (120 / 150 / 180 / 220 for 10ft / 15ft /
+ * 20ft / 26ft) until the real rates are entered here.
  */
 export const PRICING = {
   currency: "GH₵",
@@ -11,10 +11,10 @@ export const PRICING = {
   minimum: 4000,
   perAssistant: 50,
   perKm: {
-    "10ft": 180,
-    "15ft": 180,
+    "10ft": 120,
+    "15ft": 150,
     "20ft": 180,
-    "26ft": 180,
+    "26ft": 220,
   } as Record<string, number>,
 } as const;
 
