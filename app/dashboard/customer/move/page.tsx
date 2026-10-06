@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { DashboardLoading, DashboardShell } from "@/components/auth/DashboardShell";
 import { AppSideMenu } from "@/components/dashboard/AppSideMenu";
+import { BackButton } from "@/components/dashboard/BackButton";
 import { CargoPhotoUpload } from "@/components/dashboard/CargoPhotoUpload";
 import { LocationAutocompleteField } from "@/components/dashboard/LocationAutocompleteField";
 import type { LocationPoint } from "@/components/dashboard/MoveMap";
@@ -249,8 +250,9 @@ export default function MoveWithYouPage() {
       backLink={{ href: ROUTES.dashboardCustomer, label: "Dashboard" }}
       sidebar={<AppSideMenu activeKey="move" />}
     >
-      <div className="flex w-full items-start">
-        <div className={cn("flex min-w-0 flex-1 flex-col gap-6 lg:flex-row lg:items-start", outfit.className)}>
+      <div className={cn("flex w-full flex-col gap-6", outfit.className)}>
+        <BackButton />
+        <div className="flex min-w-0 flex-1 flex-col gap-6 lg:flex-row lg:items-start">
         <div className="flex w-full flex-col gap-6 lg:w-[27rem] lg:shrink-0">
           <div>
             <p className="font-display text-[0.68rem] font-semibold tracking-[0.22em] text-mist uppercase">

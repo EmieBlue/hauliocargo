@@ -4,6 +4,7 @@ import { Outfit } from "next/font/google";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState, type ReactNode } from "react";
 import { AppSideMenu } from "@/components/dashboard/AppSideMenu";
+import { BackButton } from "@/components/dashboard/BackButton";
 import { DashboardLoading, DashboardShell } from "@/components/auth/DashboardShell";
 import type { LocationPoint } from "@/components/dashboard/MoveMap";
 import { MoveMapPanel } from "@/components/dashboard/MoveMapPanel";
@@ -113,7 +114,8 @@ function BookingsContent() {
       backLink={{ href: ROUTES.dashboardCustomer, label: "Dashboard" }}
       sidebar={<AppSideMenu activeKey="tracking" selectedId={bookingId} />}
     >
-      <div className={cn("flex w-full items-start", outfit.className)}>
+      <div className={cn("flex w-full flex-col gap-5", outfit.className)}>
+        <BackButton />
         <div className="flex min-w-0 flex-1 flex-col gap-5 lg:flex-row lg:items-start">
           {panelOpen ? (
             <div className="order-2 w-full min-w-0 lg:order-1 lg:w-1/2">
