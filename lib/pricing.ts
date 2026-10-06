@@ -2,8 +2,7 @@
  * Delivery pricing, in GH₵. Every price on the booking screens comes from
  * `quotePrice` below — nothing is typed in as a fixed amount.
  *
- * PER-KM RATES ARE PLACEHOLDERS (120 / 150 / 180 / 220 for 10ft / 15ft /
- * 20ft / 26ft) until the real rates are entered here.
+ * Per-km rates by truck size: 10ft 120, 15ft 150, 20ft 180, 26ft 220 (GH₵).
  */
 export const PRICING = {
   currency: "GH₵",
