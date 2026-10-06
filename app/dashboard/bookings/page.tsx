@@ -9,6 +9,7 @@ import { DashboardLoading, DashboardShell } from "@/components/auth/DashboardShe
 import type { LocationPoint } from "@/components/dashboard/MoveMap";
 import { MoveMapPanel } from "@/components/dashboard/MoveMapPanel";
 import { cn } from "@/lib/cn";
+import { formatPrice } from "@/lib/pricing";
 import { ROUTES } from "@/lib/site";
 import { getClient } from "@/lib/supabase";
 import { useRequireAuth } from "@/lib/useRequireAuth";
@@ -37,11 +38,13 @@ type BookingRow = {
   vehicle_size: string;
   loading_assistants: string | null;
   cargo_photo_url: string | null;
+  distance_km: number | null;
+  estimated_price: number | null;
   status: BookingStatus;
 };
 
 const BOOKING_COLUMNS =
-  "id, pickup_location, dropoff_location, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng, scheduled_for, cargo_description, vehicle_category, vehicle_size, loading_assistants, cargo_photo_url, status";
+  "id, pickup_location, dropoff_location, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng, scheduled_for, cargo_description, vehicle_category, vehicle_size, loading_assistants, cargo_photo_url, distance_km, estimated_price, status";
 
 const PROGRESS_STEPS = [
   { status: "pending", label: "Requested" },
@@ -209,14 +212,22 @@ function BookingDetailPanel({ booking }: { booking: BookingRow }) {
 
       <Card>
         <SectionLabel>Price</SectionLabel>
-        <p className="mt-2 text-[0.88rem]" style={{ color: MUTED }}>
-          Pricing coming soon.
-        </p>
-        {booking.loading_assistants ? (
-          <p className="mt-2 text-[0.85rem]" style={{ color: INK }}>
-            Loading assistants: {formatAssistants(booking.loading_assistants)}
+        {booking.estimated_price != null ? (
+          <dl className="mt-3 flex flex-col gap-3 text-[0.88rem]" style={{ color: INK }}>
+            {booking.distance_km != null ? (
+              <DetailRow label="Distance" value={`${booking.distance_km.toFixed(1)} km`} />
+            ) : null}
+            <DetailRow label="Assistants" value={formatAssistants(booking.loading_assistants)} />
+            <div className="mt-1 flex items-center justify-between border-t pt-3" style={{ borderColor: "rgba(0,0,0,0.08)" }}>
+              <dt className="font-semibold">Estimated total</dt>
+              <dd className="text-[1.1rem] font-extrabold">{formatPrice(booking.estimated_price)}</dd>
+            </div>
+          </dl>
+        ) : (
+          <p className="mt-2 text-[0.88rem]" style={{ color: MUTED }}>
+            No price was saved for this request.
           </p>
-        ) : null}
+        )}
       </Card>
 
       <Card>

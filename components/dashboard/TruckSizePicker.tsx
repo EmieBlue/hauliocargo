@@ -1,6 +1,7 @@
 "use client";
 
 import { useId } from "react";
+import { formatPrice } from "@/lib/pricing";
 import { CARGO_CATEGORIES, TRUCK_SIZE_GUIDE, TRUCK_SIZES } from "@/lib/site";
 import { useSettledReducedMotion } from "@/lib/useSettledReducedMotion";
 
@@ -134,11 +135,14 @@ export function TruckSizePicker({
   category,
   value,
   onChange,
+  prices,
 }: {
   /** Which category's "Best for" captions to show — see `TRUCK_SIZE_GUIDE`. */
   category: Category;
   value: string | null;
   onChange: (size: string) => void;
+  /** Total price per truck size (already including assistants), or null until a distance exists. */
+  prices?: Record<string, number> | null;
 }) {
   const idBase = useId();
   const reducedMotion = useSettledReducedMotion();
@@ -177,6 +181,9 @@ export function TruckSizePicker({
               </span>
               <span className="text-[0.72rem] leading-snug" style={{ color: MUTED }}>
                 Best for {captions[index]}
+              </span>
+              <span className="mt-1 text-[0.95rem] font-extrabold" style={{ color: INK }}>
+                {prices && prices[size.title] != null ? formatPrice(prices[size.title]) : "—"}
               </span>
             </button>
           );

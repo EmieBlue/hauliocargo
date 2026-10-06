@@ -26,12 +26,14 @@ export function MoveMapPanel({
   className,
   defaultCenter,
   emptyMessage,
+  onRouteDistance,
 }: {
   pickup: LocationPoint | null;
   dropoff: LocationPoint | null;
   className?: string;
   defaultCenter?: [number, number];
   emptyMessage?: string;
+  onRouteDistance?: (km: number | null) => void;
 }) {
   return (
     <MoveMap
@@ -40,6 +42,7 @@ export function MoveMapPanel({
       className={className}
       defaultCenter={defaultCenter}
       emptyMessage={emptyMessage}
+      onRouteDistance={onRouteDistance}
     />
   );
 }

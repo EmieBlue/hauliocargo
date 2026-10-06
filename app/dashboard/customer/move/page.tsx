@@ -16,7 +16,8 @@ import { TruckSizePicker } from "@/components/dashboard/TruckSizePicker";
 import { Button } from "@/components/ui/Button";
 import { analyzeCargoPhoto, createBooking, uploadCargoPhoto } from "@/lib/bookings";
 import { cn } from "@/lib/cn";
-import { CARGO_CATEGORIES, DEFAULT_TRUCK_SIZE, LOADING_ASSISTANT_COUNTS, ROUTES } from "@/lib/site";
+import { CARGO_CATEGORIES, DEFAULT_TRUCK_SIZE, LOADING_ASSISTANT_COUNTS, ROUTES, TRUCK_SIZES } from "@/lib/site";
+import { calculatePrice, formatPrice } from "@/lib/pricing";
 import { useMediaQuery } from "@/lib/useMediaQuery";
 import { useRequireRole } from "@/lib/useRequireRole";
 import { useSettledReducedMotion } from "@/lib/useSettledReducedMotion";
@@ -91,6 +92,7 @@ export default function MoveWithYouPage() {
   const [dropoffLocation, setDropoffLocation] = useState("");
   const [pickupPoint, setPickupPoint] = useState<LocationPoint | null>(null);
   const [dropoffPoint, setDropoffPoint] = useState<LocationPoint | null>(null);
+  const [routeKm, setRouteKm] = useState<number | null>(null);
   const [when, setWhen] = useState<When>("now");
   const [scheduledFor, setScheduledFor] = useState("");
   const [cargoDescription, setCargoDescription] = useState("");
@@ -225,6 +227,8 @@ export default function MoveWithYouPage() {
       cargoPhotoUrl,
       loadingAssistants: needsAssistant === "yes" ? assistantCount : null,
       pickupCenter: pickupPoint?.center ?? null,
+      distanceKm: routeKm,
+      estimatedPrice: estimatedTotal,
       dropoffCenter: dropoffPoint?.center ?? null,
       scheduledFor: when === "later" ? new Date(scheduledFor).toISOString() : null,
     });
@@ -241,6 +245,22 @@ export default function MoveWithYouPage() {
   // page — an unanswered question used to quietly let the customer submit
   // anyway, which read as skippable. Saying "yes" still also means picking
   // how many before the button enables.
+  const assistantForPrice = needsAssistant === "yes" ? assistantCount : null;
+  const truckPrices =
+    routeKm != null
+      ? Object.fromEntries(
+          TRUCK_SIZES.map((size) => [
+            size.title,
+            calculatePrice({ distanceKm: routeKm, vehicleSize: size.title, assistantCount: assistantForPrice }).total,
+          ]),
+        )
+      : null;
+  const chosenPrice =
+    routeKm != null && vehicleSize
+      ? calculatePrice({ distanceKm: routeKm, vehicleSize, assistantCount: assistantForPrice })
+      : null;
+  const estimatedTotal = chosenPrice?.total ?? null;
+
   const canSubmit = Boolean(
     vehicleCategory && vehicleSize && needsAssistant && (needsAssistant !== "yes" || assistantCount),
   );
@@ -301,7 +321,7 @@ export default function MoveWithYouPage() {
              * since that's the moment it has something to show; the desktop
              * column sits to the right instead (below). Only one of the two
              * call sites is ever actually mounted — see `isDesktop` above. */}
-            {!isDesktop ? <MoveMapPanel pickup={pickupPoint} dropoff={dropoffPoint} /> : null}
+            {!isDesktop ? <MoveMapPanel pickup={pickupPoint} dropoff={dropoffPoint} onRouteDistance={setRouteKm} /> : null}
 
             <div className="flex flex-col gap-2">
               <span className="text-[0.72rem] font-semibold tracking-[0.08em] text-mist uppercase">
@@ -438,7 +458,7 @@ export default function MoveWithYouPage() {
                     </p>
                   </div>
                 ) : null}
-                <TruckSizePicker category={vehicleCategory} value={vehicleSize} onChange={setVehicleSize} />
+                <TruckSizePicker category={vehicleCategory} value={vehicleSize} onChange={setVehicleSize} prices={truckPrices} />
               </>
             ) : null}
 
@@ -511,6 +531,48 @@ export default function MoveWithYouPage() {
               </p>
             ) : null}
 
+            <div className="flex flex-col gap-2">
+              <span className="text-[0.72rem] font-semibold tracking-[0.08em] text-mist uppercase">
+                Your Total
+              </span>
+              <div
+                className="flex flex-col gap-2 rounded-2xl border p-4"
+                style={{ borderColor: "rgba(0,0,0,0.08)", background: CREAM, color: INK }}
+              >
+                {routeKm != null && chosenPrice ? (
+                  <>
+                    <div className="flex items-center justify-between text-[0.85rem]">
+                      <span style={{ color: MUTED }}>Base fee</span>
+                      <span>{formatPrice(chosenPrice.base)}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[0.85rem]">
+                      <span style={{ color: MUTED }}>Distance ({routeKm.toFixed(1)} km)</span>
+                      <span>{formatPrice(chosenPrice.distance)}</span>
+                    </div>
+                    {chosenPrice.assistants > 0 ? (
+                      <div className="flex items-center justify-between text-[0.85rem]">
+                        <span style={{ color: MUTED }}>Assistants</span>
+                        <span>{formatPrice(chosenPrice.assistants)}</span>
+                      </div>
+                    ) : null}
+                    <div
+                      className="mt-1 flex items-center justify-between border-t pt-2"
+                      style={{ borderColor: "rgba(0,0,0,0.08)" }}
+                    >
+                      <span className="text-[0.85rem] font-semibold">Total</span>
+                      <span className="text-[1.1rem] font-extrabold">{formatPrice(chosenPrice.total)}</span>
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-[0.85rem]" style={{ color: MUTED }}>
+                    {routeKm == null
+                      ? "Choose both locations to see the total."
+                      : "Choose a truck size to see the total."}
+                  </p>
+                )}
+              </div>
+            </div>
+
             <Button
               type="submit"
               variant="primary"
@@ -532,7 +594,7 @@ export default function MoveWithYouPage() {
 
         {isDesktop ? (
           <div className="lg:sticky lg:top-28 lg:flex-1 lg:self-start">
-            <MoveMapPanel pickup={pickupPoint} dropoff={dropoffPoint} className="h-[42rem]" />
+            <MoveMapPanel pickup={pickupPoint} dropoff={dropoffPoint} className="h-[42rem]" onRouteDistance={setRouteKm} />
           </div>
         ) : null}
         </div>

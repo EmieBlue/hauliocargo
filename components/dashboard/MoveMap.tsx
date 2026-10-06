@@ -4,6 +4,7 @@ import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
+import { straightLineKm } from "@/lib/pricing";
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 if (TOKEN) mapboxgl.accessToken = TOKEN;
@@ -65,14 +66,19 @@ function updatePinCard(pinEl: HTMLDivElement, point: LocationPoint, label: strin
   `;
 }
 
-async function fetchRoute(a: [number, number], b: [number, number]): Promise<[number, number][] | null> {
+async function fetchRoute(
+  a: [number, number],
+  b: [number, number],
+): Promise<{ coordinates: [number, number][]; distanceKm: number } | null> {
   try {
     const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${a[0]},${a[1]};${b[0]},${b[1]}?geometries=geojson&overview=full&access_token=${TOKEN}`;
     const response = await fetch(url);
     if (!response.ok) return null;
     const data = await response.json();
-    const coordinates = data.routes?.[0]?.geometry?.coordinates;
-    return Array.isArray(coordinates) ? coordinates : null;
+    const route = data.routes?.[0];
+    const coordinates = route?.geometry?.coordinates;
+    if (!Array.isArray(coordinates) || typeof route.distance !== "number") return null;
+    return { coordinates, distanceKm: route.distance / 1000 };
   } catch {
     return null;
   }
@@ -97,6 +103,7 @@ export default function MoveMap({
   className,
   defaultCenter,
   emptyMessage = "Add a pickup to see it on the map.",
+  onRouteDistance,
 }: {
   pickup: LocationPoint | null;
   dropoff: LocationPoint | null;
@@ -104,6 +111,8 @@ export default function MoveMap({
   /** Shows a bare map centered here when there are no points yet. */
   defaultCenter?: [number, number];
   emptyMessage?: string;
+  /** Reports the trip distance in km (road route, or straight line if the route fails), or null when cleared. */
+  onRouteDistance?: (km: number | null) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -194,11 +203,13 @@ export default function MoveMap({
       if (!pickup || !dropoff) {
         if (map.getLayer(ROUTE_SOURCE_ID)) map.removeLayer(ROUTE_SOURCE_ID);
         if (map.getSource(ROUTE_SOURCE_ID)) map.removeSource(ROUTE_SOURCE_ID);
+        onRouteDistance?.(null);
         return;
       }
-      const routeCoords = await fetchRoute(pickup.center, dropoff.center);
+      const route = await fetchRoute(pickup.center, dropoff.center);
       if (cancelled) return;
-      const coordinates = routeCoords ?? [pickup.center, dropoff.center];
+      const coordinates = route?.coordinates ?? [pickup.center, dropoff.center];
+      onRouteDistance?.(route?.distanceKm ?? straightLineKm(pickup.center, dropoff.center));
       const source = map.getSource(ROUTE_SOURCE_ID) as mapboxgl.GeoJSONSource | undefined;
       const data = {
         type: "Feature" as const,
@@ -222,7 +233,7 @@ export default function MoveMap({
     return () => {
       cancelled = true;
     };
-  }, [pickup, dropoff, ready]);
+  }, [pickup, dropoff, ready, onRouteDistance]);
 
   if (!TOKEN) return null;
 

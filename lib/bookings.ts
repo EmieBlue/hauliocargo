@@ -22,6 +22,9 @@ export type BookingFields = {
   /** Exact map points the customer picked, as [lng, lat], or null if they only typed. */
   pickupCenter?: [number, number] | null;
   dropoffCenter?: [number, number] | null;
+  /** Trip distance and the total the customer saw before submitting. */
+  distanceKm?: number | null;
+  estimatedPrice?: number | null;
 };
 
 const NOT_CONFIGURED = "Booking is not available yet. Please check back shortly.";
@@ -62,6 +65,8 @@ export async function createBooking(
       vehicle_category: fields.vehicleCategory,
       cargo_photo_url: fields.cargoPhotoUrl ?? null,
       loading_assistants: fields.loadingAssistants ?? null,
+      distance_km: fields.distanceKm ?? null,
+      estimated_price: fields.estimatedPrice ?? null,
     })
     .select("id")
     .single();
