@@ -16,8 +16,8 @@ import { TruckSizePicker } from "@/components/dashboard/TruckSizePicker";
 import { Button } from "@/components/ui/Button";
 import { analyzeCargoPhoto, createBooking, uploadCargoPhoto } from "@/lib/bookings";
 import { cn } from "@/lib/cn";
-import { CARGO_CATEGORIES, DEFAULT_TRUCK_SIZE, LOADING_ASSISTANT_COUNTS, ROUTES, TRUCK_SIZES } from "@/lib/site";
-import { assistantCountValue, assistantFee, formatPrice, quotePrice } from "@/lib/pricing";
+import { CARGO_CATEGORIES, DEFAULT_TRUCK_SIZE, LOADING_ASSISTANT_COUNTS, ROUTES, TRUCK_SIZES, TRUCK_SPECS } from "@/lib/site";
+import { assistantCountValue, assistantFee, formatPrice, PRICING, quotePrice } from "@/lib/pricing";
 import { useMediaQuery } from "@/lib/useMediaQuery";
 import { useRequireRole } from "@/lib/useRequireRole";
 import { useSettledReducedMotion } from "@/lib/useSettledReducedMotion";
@@ -101,6 +101,10 @@ export default function MoveWithYouPage() {
   const [vehicleSize, setVehicleSize] = useState<string | null>(null);
   const [needsAssistant, setNeedsAssistant] = useState<"yes" | "no" | null>(null);
   const [assistantCount, setAssistantCount] = useState<string | null>(null);
+  // Both optional — left blank, the price works exactly as before these
+  // existed (see weightForPrice/volumeForPrice below).
+  const [cargoWeightInput, setCargoWeightInput] = useState("");
+  const [cargoVolumeInput, setCargoVolumeInput] = useState("");
   const [cargoPhoto, setCargoPhoto] = useState<File | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
@@ -229,6 +233,8 @@ export default function MoveWithYouPage() {
       pickupCenter: pickupPoint?.center ?? null,
       distanceKm: routeKm,
       estimatedPrice: estimatedTotal,
+      cargoWeightKg: cargoWeightNum,
+      cargoVolumeM3: cargoVolumeNum,
       dropoffCenter: dropoffPoint?.center ?? null,
       scheduledFor: when === "later" ? new Date(scheduledFor).toISOString() : null,
     });
@@ -246,14 +252,36 @@ export default function MoveWithYouPage() {
   // anyway, which read as skippable. Saying "yes" still also means picking
   // how many before the button enables.
   // Recalculated on every render from the current route distance, truck
-  // size and assistant choice — nothing about the price is kept in state.
+  // size, assistant choice and cargo weight/volume — nothing about the
+  // price is kept in state.
   const assistantForPrice = needsAssistant === "yes" ? assistantCountValue(assistantCount) : 0;
+  // Blank input → null (shown as "optional", nothing charged); a typed
+  // number → that number. quotePrice always gets a plain number (0 when
+  // blank), which is what keeps the price identical to before these
+  // fields existed when the customer skips them.
+  const cargoWeightNum = cargoWeightInput.trim() ? Number(cargoWeightInput) : null;
+  const cargoVolumeNum = cargoVolumeInput.trim() ? Number(cargoVolumeInput) : null;
+  const weightForPrice = cargoWeightNum && cargoWeightNum > 0 ? cargoWeightNum : 0;
+  const volumeForPrice = cargoVolumeNum && cargoVolumeNum > 0 ? cargoVolumeNum : 0;
   const truckPrices =
     routeKm != null
-      ? Object.fromEntries(TRUCK_SIZES.map((size) => [size.title, quotePrice(routeKm, assistantForPrice, size.title)]))
+      ? Object.fromEntries(
+          TRUCK_SIZES.map((size) => [
+            size.title,
+            quotePrice(routeKm, assistantForPrice, size.title, weightForPrice, volumeForPrice),
+          ]),
+        )
       : null;
   const estimatedTotal =
-    routeKm != null && vehicleSize ? quotePrice(routeKm, assistantForPrice, vehicleSize) : null;
+    routeKm != null && vehicleSize
+      ? quotePrice(routeKm, assistantForPrice, vehicleSize, weightForPrice, volumeForPrice)
+      : null;
+  // Only a hint, never blocking — the chosen truck's typical capacity vs.
+  // what the customer typed in.
+  const sizeSpec = vehicleSize ? TRUCK_SPECS[vehicleSize] : undefined;
+  const overCapacity = Boolean(
+    sizeSpec && ((cargoWeightNum ?? 0) > sizeSpec.maxWeightKg || (cargoVolumeNum ?? 0) > sizeSpec.maxVolumeM3),
+  );
 
   const canSubmit = Boolean(
     vehicleCategory && vehicleSize && needsAssistant && (needsAssistant !== "yes" || assistantCount),
@@ -438,6 +466,39 @@ export default function MoveWithYouPage() {
             {/* Stage 3 — truck size, as soon as a cargo type is picked */}
             {vehicleCategory ? (
               <>
+                <div className="flex flex-col gap-2">
+                  <span className="text-[0.72rem] font-semibold tracking-[0.08em] text-mist uppercase">
+                    Estimated Weight &amp; Volume
+                  </span>
+                  <p className="text-[0.8rem] text-muted">
+                    Optional — helps us price the load fairly and flag it if it won&rsquo;t fit the truck you pick.
+                  </p>
+                  <div className="flex gap-2.5">
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      inputMode="decimal"
+                      placeholder="Weight (kg)"
+                      value={cargoWeightInput}
+                      onChange={(e) => setCargoWeightInput(e.target.value)}
+                      className="h-12 min-w-0 flex-1 rounded-2xl border px-4 text-[0.95rem] transition-colors duration-200 focus:outline-none"
+                      style={{ borderColor: "rgba(0,0,0,0.08)", background: CREAM, color: INK }}
+                    />
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      inputMode="decimal"
+                      placeholder="Volume (m³)"
+                      value={cargoVolumeInput}
+                      onChange={(e) => setCargoVolumeInput(e.target.value)}
+                      className="h-12 min-w-0 flex-1 rounded-2xl border px-4 text-[0.95rem] transition-colors duration-200 focus:outline-none"
+                      style={{ borderColor: "rgba(0,0,0,0.08)", background: CREAM, color: INK }}
+                    />
+                  </div>
+                </div>
+
                 {aiChoice === "yes" ? (
                   <div className="rounded-2xl border border-white/10 bg-black px-4 py-3.5">
                     <p
@@ -453,6 +514,14 @@ export default function MoveWithYouPage() {
                   </div>
                 ) : null}
                 <TruckSizePicker category={vehicleCategory} value={vehicleSize} onChange={setVehicleSize} prices={truckPrices} />
+                {overCapacity ? (
+                  <p
+                    className="rounded-2xl border px-4 py-3 text-[0.8rem]"
+                    style={{ borderColor: AMBER_BORDER, background: AMBER_FILL, color: INK }}
+                  >
+                    That may be too much for a {vehicleSize} truck — consider a bigger size.
+                  </p>
+                ) : null}
               </>
             ) : null}
 
@@ -543,6 +612,18 @@ export default function MoveWithYouPage() {
                       <div className="flex items-center justify-between text-[0.85rem]">
                         <span style={{ color: MUTED }}>Assistants ({assistantCount})</span>
                         <span>{formatPrice(assistantFee(assistantForPrice))}</span>
+                      </div>
+                    ) : null}
+                    {weightForPrice > 0 ? (
+                      <div className="flex items-center justify-between text-[0.85rem]">
+                        <span style={{ color: MUTED }}>Weight ({weightForPrice} kg)</span>
+                        <span>{formatPrice(weightForPrice * PRICING.perKg)}</span>
+                      </div>
+                    ) : null}
+                    {volumeForPrice > 0 ? (
+                      <div className="flex items-center justify-between text-[0.85rem]">
+                        <span style={{ color: MUTED }}>Volume ({volumeForPrice} m³)</span>
+                        <span>{formatPrice(volumeForPrice * PRICING.perM3)}</span>
                       </div>
                     ) : null}
                     <div

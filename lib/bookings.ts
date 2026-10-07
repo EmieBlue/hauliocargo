@@ -25,6 +25,9 @@ export type BookingFields = {
   /** Trip distance and the total the customer saw before submitting. */
   distanceKm?: number | null;
   estimatedPrice?: number | null;
+  /** Optional cargo size the customer entered — affects price, not routing. */
+  cargoWeightKg?: number | null;
+  cargoVolumeM3?: number | null;
 };
 
 const NOT_CONFIGURED = "Booking is not available yet. Please check back shortly.";
@@ -67,6 +70,8 @@ export async function createBooking(
       loading_assistants: fields.loadingAssistants ?? null,
       distance_km: fields.distanceKm ?? null,
       estimated_price: fields.estimatedPrice ?? null,
+      cargo_weight_kg: fields.cargoWeightKg ?? null,
+      cargo_volume_m3: fields.cargoVolumeM3 ?? null,
     })
     .select("id")
     .single();

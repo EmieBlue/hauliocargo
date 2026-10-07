@@ -40,11 +40,13 @@ type BookingRow = {
   cargo_photo_url: string | null;
   distance_km: number | null;
   estimated_price: number | null;
+  cargo_weight_kg: number | null;
+  cargo_volume_m3: number | null;
   status: BookingStatus;
 };
 
 const BOOKING_COLUMNS =
-  "id, pickup_location, dropoff_location, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng, scheduled_for, cargo_description, vehicle_category, vehicle_size, loading_assistants, cargo_photo_url, distance_km, estimated_price, status";
+  "id, pickup_location, dropoff_location, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng, scheduled_for, cargo_description, vehicle_category, vehicle_size, loading_assistants, cargo_photo_url, distance_km, estimated_price, cargo_weight_kg, cargo_volume_m3, status";
 
 const PROGRESS_STEPS = [
   { status: "pending", label: "Requested" },
@@ -218,6 +220,12 @@ function BookingDetailPanel({ booking }: { booking: BookingRow }) {
               <DetailRow label="Distance" value={`${booking.distance_km.toFixed(1)} km`} />
             ) : null}
             <DetailRow label="Assistants" value={formatAssistants(booking.loading_assistants)} />
+            {booking.cargo_weight_kg != null ? (
+              <DetailRow label="Weight" value={`${booking.cargo_weight_kg} kg`} />
+            ) : null}
+            {booking.cargo_volume_m3 != null ? (
+              <DetailRow label="Volume" value={`${booking.cargo_volume_m3} m³`} />
+            ) : null}
             <div className="mt-1 flex items-center justify-between border-t pt-3" style={{ borderColor: "rgba(0,0,0,0.08)" }}>
               <dt className="font-semibold">Estimated total</dt>
               <dd className="text-[1.1rem] font-extrabold">{formatPrice(booking.estimated_price)}</dd>

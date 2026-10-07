@@ -5,6 +5,7 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 import { straightLineKm } from "@/lib/pricing";
+import { getClient } from "@/lib/supabase";
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 if (TOKEN) mapboxgl.accessToken = TOKEN;
@@ -66,19 +67,25 @@ function updatePinCard(pinEl: HTMLDivElement, point: LocationPoint, label: strin
   `;
 }
 
+// Truck-aware route + distance, via the `calculate-route` Supabase Edge
+// Function (OpenRouteService's driving-hgv profile) — see that function's
+// comment for why this isn't a direct Mapbox Directions call like it used
+// to be. Falls back to null (the caller uses straight-line distance) if the
+// function errors or isn't configured yet, same as the old Mapbox call did.
 async function fetchRoute(
   a: [number, number],
   b: [number, number],
 ): Promise<{ coordinates: [number, number][]; distanceKm: number } | null> {
+  const supabase = getClient();
+  if (!supabase) return null;
   try {
-    const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${a[0]},${a[1]};${b[0]},${b[1]}?geometries=geojson&overview=full&access_token=${TOKEN}`;
-    const response = await fetch(url);
-    if (!response.ok) return null;
-    const data = await response.json();
-    const route = data.routes?.[0];
-    const coordinates = route?.geometry?.coordinates;
-    if (!Array.isArray(coordinates) || typeof route.distance !== "number") return null;
-    return { coordinates, distanceKm: route.distance / 1000 };
+    const { data, error } = await supabase.functions.invoke("calculate-route", {
+      body: { pickup: a, dropoff: b },
+    });
+    if (error || !data) return null;
+    const coordinates = data.coordinates;
+    if (!Array.isArray(coordinates) || typeof data.distanceKm !== "number") return null;
+    return { coordinates, distanceKm: data.distanceKm };
   } catch {
     return null;
   }

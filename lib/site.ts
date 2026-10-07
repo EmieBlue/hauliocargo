@@ -159,6 +159,20 @@ export const TRUCK_SIZES = [
 ] as const;
 
 /**
+ * Typical carrying capacity per truck size — standard box-truck figures,
+ * not this fleet's measured numbers. Used only for the "this may be too
+ * much for a Xft truck" hint on Move With You (see TruckSizePicker's
+ * caller) when the customer enters a weight or volume; replace with real
+ * fleet numbers if they differ.
+ */
+export const TRUCK_SPECS: Record<string, { maxWeightKg: number; maxVolumeM3: number }> = {
+  "10ft": { maxWeightKg: 1400, maxVolumeM3: 14 },
+  "15ft": { maxWeightKg: 1800, maxVolumeM3: 23 },
+  "20ft": { maxWeightKg: 2600, maxVolumeM3: 34 },
+  "26ft": { maxWeightKg: 4500, maxVolumeM3: 48 },
+};
+
+/**
  * Move With You's optional "need help loading?" step, asked after a truck
  * size is chosen. Same four-option shape as `TRUCK_SIZES` for the same 2×2
  * card-grid convention — "4+" rather than an open-ended number input, since

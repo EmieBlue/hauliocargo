@@ -3,12 +3,18 @@
  * `quotePrice` below — nothing is typed in as a fixed amount.
  *
  * Per-km rates by truck size: 10ft 120, 15ft 150, 20ft 180, 26ft 220 (GH₵).
+ *
+ * PER-KG AND PER-M³ RATES ARE PLACEHOLDERS (2 and 50) — weight and volume
+ * are optional on the booking form, so most customers won't see these at
+ * all until real rates are set here.
  */
 export const PRICING = {
   currency: "GH₵",
   baseFee: 2500,
   minimum: 4000,
   perAssistant: 50,
+  perKg: 2,
+  perM3: 50,
   perKm: {
     "10ft": 120,
     "15ft": 150,
@@ -29,12 +35,27 @@ export function assistantFee(assistants: number): number {
 }
 
 /**
- * price = base fee + (km × rate for the truck size) + assistant fee,
+ * price = base fee + (km × rate for the truck size) + assistant fee
+ *       + (weightKg × per-kg rate) + (volumeM3 × per-m³ rate),
  * then never below the minimum. Rounded to whole cedis.
+ *
+ * `weightKg`/`volumeM3` default to 0 — a customer who leaves them blank
+ * gets exactly the distance + assistants price this had before.
  */
-export function quotePrice(distanceKm: number, assistants: number, vehicleSize: string): number {
+export function quotePrice(
+  distanceKm: number,
+  assistants: number,
+  vehicleSize: string,
+  weightKg = 0,
+  volumeM3 = 0,
+): number {
   const perKm = PRICING.perKm[vehicleSize] ?? PRICING.perKm["10ft"];
-  const raw = PRICING.baseFee + distanceKm * perKm + assistantFee(assistants);
+  const raw =
+    PRICING.baseFee +
+    distanceKm * perKm +
+    assistantFee(assistants) +
+    weightKg * PRICING.perKg +
+    volumeM3 * PRICING.perM3;
   return Math.max(Math.round(raw), PRICING.minimum);
 }
 
