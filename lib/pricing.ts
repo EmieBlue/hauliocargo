@@ -2,7 +2,7 @@
  * Delivery pricing, in GH₵. Every price on the booking screens comes from
  * `quotePrice` below — nothing is typed in as a fixed amount.
  *
- * Per-km rates by truck size: 10ft 100, 15ft 120, 20ft 140, 26ft 150 (GH₵).
+ * Per-km rates by truck size: 10ft 12, 15ft 14, 20ft 17, 26ft 18 (GH₵).
  *
  * PER-KG AND PER-M³ RATES ARE PLACEHOLDERS (2 and 50) — weight and volume
  * are optional on the booking form, so most customers won't see these at
@@ -16,10 +16,10 @@ export const PRICING = {
   perKg: 2,
   perM3: 50,
   perKm: {
-    "10ft": 100,
-    "15ft": 120,
-    "20ft": 140,
-    "26ft": 150,
+    "10ft": 12,
+    "15ft": 14,
+    "20ft": 17,
+    "26ft": 18,
   } as Record<string, number>,
 } as const;
 
