@@ -4,15 +4,19 @@ import { Loader2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { AuthShell } from "@/components/auth/AuthShell";
+import { FileUploadField } from "@/components/auth/FileUploadField";
 import { OtpInput, OTP_LENGTH } from "@/components/auth/OtpInput";
 import { PasswordField } from "@/components/auth/PasswordField";
 import { PasswordRequirements } from "@/components/auth/PasswordRequirements";
 import { Button } from "@/components/ui/Button";
 import {
   completeCustomerProfile,
+  completeDriverProfile,
   PENDING_CUSTOMER_PROFILE_KEY,
+  PENDING_DRIVER_PROFILE_KEY,
   resendOtp,
   updatePassword,
+  uploadDriverDocument,
   verifyOtp,
   type OtpPurpose,
 } from "@/lib/auth";
@@ -20,6 +24,8 @@ import { ROUTES } from "@/lib/site";
 import { passwordMeetsRequirements } from "@/lib/validation";
 
 const RESEND_COOLDOWN = 30;
+
+type DocumentKind = "license" | "vehicle-registration" | "insurance" | "vehicle-photo";
 
 /** `useSearchParams` needs a Suspense boundary — see AGENTS.md, verified against this Next version's docs. */
 export default function VerifyPage() {
@@ -30,7 +36,7 @@ export default function VerifyPage() {
   );
 }
 
-type Stage = "code" | "driver-submitted" | "new-password" | "password-updated" | "profile-error";
+type Stage = "code" | "driver-documents" | "driver-submitted" | "new-password" | "password-updated" | "profile-error";
 
 function VerifyContent() {
   const router = useRouter();
@@ -48,6 +54,16 @@ function VerifyContent() {
 
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+
+  // Driver-only: the newly-created user's id (needed to upload documents to
+  // their own prefix) and the documents themselves, picked on the
+  // driver-documents stage below since there's no session to upload with
+  // any earlier than this.
+  const [userId, setUserId] = useState<string | null>(null);
+  const [documents, setDocuments] = useState<Partial<Record<DocumentKind, File>>>({});
+  const [docSubmitting, setDocSubmitting] = useState(false);
+  const [docError, setDocError] = useState<string | null>(null);
+  const [uploadWarning, setUploadWarning] = useState(false);
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -73,7 +89,7 @@ function VerifyContent() {
       return;
     }
     if (role === "driver") {
-      setStage("driver-submitted");
+      await finishDriverSignup();
       return;
     }
     await finishCustomerSignup();
@@ -108,6 +124,67 @@ function VerifyContent() {
 
     sessionStorage.removeItem(PENDING_CUSTOMER_PROFILE_KEY);
     router.push(ROUTES.dashboardCustomer);
+  }
+
+  /**
+   * Same reasoning as `finishCustomerSignup`, for the driver path: the
+   * `profiles`/`driver_applications` writes `DriverRegisterForm` couldn't
+   * make can only happen now that verification has granted a session. Moves
+   * on to the driver-documents stage rather than the confirmation screen
+   * directly — uploads need a session too, so they couldn't happen any
+   * earlier either.
+   */
+  async function finishDriverSignup() {
+    const raw = sessionStorage.getItem(PENDING_DRIVER_PROFILE_KEY);
+    if (!raw) {
+      router.push(ROUTES.dashboardDriver);
+      return;
+    }
+
+    setSubmitting(true);
+    setError(null);
+    const result = await completeDriverProfile(JSON.parse(raw));
+    setSubmitting(false);
+
+    if (!result.ok) {
+      setError(result.message);
+      setStage("profile-error");
+      return;
+    }
+
+    sessionStorage.removeItem(PENDING_DRIVER_PROFILE_KEY);
+    setUserId(result.data.userId);
+    setStage("driver-documents");
+  }
+
+  function setDocument(kind: DocumentKind, file: File | null) {
+    setDocuments((prev) => ({ ...prev, [kind]: file ?? undefined }));
+  }
+
+  async function handleDocumentsSubmit() {
+    if (docSubmitting || !userId) return;
+    setDocError(null);
+
+    if (!documents.license) {
+      setDocError("Please upload a photo of your driver's licence.");
+      return;
+    }
+    if (!documents["vehicle-registration"]) {
+      setDocError("Please upload your vehicle registration document.");
+      return;
+    }
+
+    setDocSubmitting(true);
+    // An upload failing here shouldn't strand the applicant believing
+    // nothing happened — the account and application already exist.
+    let warning = false;
+    for (const [kind, file] of Object.entries(documents) as [DocumentKind, File][]) {
+      const uploadResult = await uploadDriverDocument(userId, kind, file);
+      if (!uploadResult.ok) warning = true;
+    }
+    setDocSubmitting(false);
+    setUploadWarning(warning);
+    setStage("driver-submitted");
   }
 
   async function handleResend() {
@@ -158,7 +235,7 @@ function VerifyContent() {
             variant="primary"
             className="w-full"
             disabled={submitting}
-            onClick={finishCustomerSignup}
+            onClick={role === "driver" ? finishDriverSignup : finishCustomerSignup}
           >
             {submitting ? (
               <>
@@ -174,11 +251,61 @@ function VerifyContent() {
     );
   }
 
+  if (stage === "driver-documents") {
+    return (
+      <AuthShell
+        eyebrow="Driver Registration"
+        title="Upload Your Documents"
+        subtitle="Last step before your application goes to review."
+      >
+        <div className="flex flex-col gap-5">
+          <FileUploadField label="Driver's Licence" required onFileSelected={(file) => setDocument("license", file)} />
+          <FileUploadField
+            label="Vehicle Registration Document"
+            required
+            onFileSelected={(file) => setDocument("vehicle-registration", file)}
+          />
+          <FileUploadField
+            label="Insurance Documentation"
+            onFileSelected={(file) => setDocument("insurance", file)}
+          />
+          <FileUploadField
+            label="Vehicle Photos"
+            onFileSelected={(file) => setDocument("vehicle-photo", file)}
+          />
+
+          {docError ? <ErrorBanner message={docError} /> : null}
+
+          <Button
+            type="button"
+            variant="primary"
+            className="w-full"
+            disabled={docSubmitting}
+            onClick={handleDocumentsSubmit}
+          >
+            {docSubmitting ? (
+              <>
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+                Uploading
+              </>
+            ) : (
+              "Continue"
+            )}
+          </Button>
+        </div>
+      </AuthShell>
+    );
+  }
+
   if (stage === "driver-submitted") {
     return (
       <AuthShell title="Application Submitted">
         <ConfirmationPanel
-          message="Thank you for registering with HaulioCargo. Your driver application is being reviewed. We'll notify you when verification is complete."
+          message={
+            uploadWarning
+              ? "Thank you for registering with HaulioCargo. Your application is being reviewed, but one or more documents didn't upload — please contact support so we can get them another way."
+              : "Thank you for registering with HaulioCargo. Your driver application is being reviewed. We'll notify you when verification is complete."
+          }
           ctaLabel="Go to Dashboard"
           onCta={() => router.push(ROUTES.dashboardDriver)}
         />

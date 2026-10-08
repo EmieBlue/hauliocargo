@@ -27,6 +27,9 @@ export type DriverStatus = "pending" | "verified" | "rejected";
  */
 export const PENDING_CUSTOMER_PROFILE_KEY = "haulio:pending-customer-profile";
 
+/** Same role as `PENDING_CUSTOMER_PROFILE_KEY`, for the driver signup path. */
+export const PENDING_DRIVER_PROFILE_KEY = "haulio:pending-driver-profile";
+
 export type CustomerFields = {
   email: string;
   password: string;
@@ -162,21 +165,49 @@ export async function completeCustomerProfile(
   return { ok: true, data: undefined };
 }
 
-export async function signUpDriver(
-  fields: DriverFields,
-): Promise<AuthResult<{ userId: string }>> {
+/**
+ * Just creates the auth account — mirrors `signUpCustomer` exactly, for the
+ * exact same reason: there is no session yet (OTP verification hasn't
+ * happened), and `profiles`/`driver_applications` both need one. See
+ * `completeDriverProfile` below, which does the rest once a session exists.
+ */
+export async function signUpDriver(fields: { email: string; password: string }): Promise<AuthResult> {
   if (!authEnabled) return { ok: false, message: NOT_CONFIGURED };
   const supabase = client();
 
-  const { data, error } = await supabase.auth.signUp({
+  const { error } = await supabase.auth.signUp({
     email: fields.email.trim().toLowerCase(),
     password: fields.password,
   });
   if (error) return { ok: false, message: friendlyAuthError(error) };
-  if (!data.user) return { ok: false, message: friendlyAuthError(new Error("no user")) };
 
-  const { error: profileError } = await supabase.from("profiles").insert({
-    id: data.user.id,
+  return { ok: true, data: undefined };
+}
+
+/**
+ * Creates the `profiles` and `driver_applications` rows — called only from
+ * the verify screen, after OTP verification has actually granted a session
+ * (same reasoning as `completeCustomerProfile`). Reads the fields
+ * `DriverRegisterForm` stashed before redirecting here. Upserts both rows
+ * (not insert), so a retry after a transient failure — including the
+ * profile-error stage's own retry button — can't create a duplicate
+ * application; `driver_applications` needs the unique constraint on
+ * `profile_id` from supabase/014_driver_applications_unique_profile.sql for
+ * its upsert to have something to match on.
+ */
+export async function completeDriverProfile(
+  fields: Omit<DriverFields, "email" | "password">,
+): Promise<AuthResult<{ userId: string }>> {
+  if (!authEnabled) return { ok: false, message: NOT_CONFIGURED };
+  const supabase = client();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: friendlyAuthError(new Error("no user")) };
+
+  const { error: profileError } = await supabase.from("profiles").upsert({
+    id: user.id,
     role: "driver",
     first_name: fields.firstName.trim(),
     last_name: fields.lastName.trim(),
@@ -184,20 +215,25 @@ export async function signUpDriver(
   });
   if (profileError) return { ok: false, message: friendlyAuthError(profileError) };
 
-  const { error: applicationError } = await supabase.from("driver_applications").insert({
-    profile_id: data.user.id,
-    date_of_birth: fields.dateOfBirth || null,
-    license_number: fields.licenseNumber.trim(),
-    vehicle_type: fields.vehicleType.trim(),
-    vehicle_make: fields.vehicleMake.trim(),
-    vehicle_model: fields.vehicleModel.trim(),
-    vehicle_year: Number(fields.vehicleYear),
-    vehicle_registration_no: fields.vehicleRegistrationNo.trim(),
-    vehicle_capacity: fields.vehicleCapacity.trim(),
-  });
+  const { error: applicationError } = await supabase
+    .from("driver_applications")
+    .upsert(
+      {
+        profile_id: user.id,
+        date_of_birth: fields.dateOfBirth || null,
+        license_number: fields.licenseNumber.trim(),
+        vehicle_type: fields.vehicleType.trim(),
+        vehicle_make: fields.vehicleMake.trim(),
+        vehicle_model: fields.vehicleModel.trim(),
+        vehicle_year: Number(fields.vehicleYear),
+        vehicle_registration_no: fields.vehicleRegistrationNo.trim(),
+        vehicle_capacity: fields.vehicleCapacity.trim(),
+      },
+      { onConflict: "profile_id" },
+    );
   if (applicationError) return { ok: false, message: friendlyAuthError(applicationError) };
 
-  return { ok: true, data: { userId: data.user.id } };
+  return { ok: true, data: { userId: user.id } };
 }
 
 /**

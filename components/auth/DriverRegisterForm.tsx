@@ -3,12 +3,11 @@
 import { Loader2 } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { Checkbox } from "@/components/auth/Checkbox";
-import { FileUploadField } from "@/components/auth/FileUploadField";
 import { PasswordField } from "@/components/auth/PasswordField";
 import { PasswordRequirements } from "@/components/auth/PasswordRequirements";
 import { TextField } from "@/components/auth/TextField";
 import { Button } from "@/components/ui/Button";
-import { signUpDriver, uploadDriverDocument } from "@/lib/auth";
+import { PENDING_DRIVER_PROFILE_KEY, signUpDriver } from "@/lib/auth";
 import { cn } from "@/lib/cn";
 import { ROUTES } from "@/lib/site";
 import { useTheme } from "@/lib/useTheme";
@@ -48,16 +47,13 @@ const EMPTY: Fields = {
   vehicleCapacity: "",
 };
 
-type DocumentKind = "license" | "vehicle-registration" | "insurance" | "vehicle-photo";
-
 export function DriverRegisterForm({
   onSubmitted,
 }: {
-  onSubmitted: (email: string, uploadWarning: boolean) => void;
+  onSubmitted: (email: string) => void;
 }) {
   const [theme] = useTheme();
   const [fields, setFields] = useState<Fields>(EMPTY);
-  const [documents, setDocuments] = useState<Partial<Record<DocumentKind, File>>>({});
   const [agreed, setAgreed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -83,36 +79,38 @@ export function DriverRegisterForm({
       setError("Passwords do not match.");
       return;
     }
-    if (!documents.license) {
-      setError("Please upload a photo of your driver's licence.");
-      return;
-    }
-    if (!documents["vehicle-registration"]) {
-      setError("Please upload your vehicle registration document.");
-      return;
-    }
 
     setSubmitting(true);
     const result = await signUpDriver(fields);
+    setSubmitting(false);
 
     if (!result.ok) {
-      setSubmitting(false);
       setError(result.message);
       return;
     }
 
-    // The account and application already exist at this point — an upload
-    // failure here is not the same kind of failure as the checks above, and
-    // shouldn't strand the applicant believing nothing happened.
-    const { userId } = result.data;
-    let uploadWarning = false;
-    for (const [kind, file] of Object.entries(documents) as [DocumentKind, File][]) {
-      const uploadResult = await uploadDriverDocument(userId, kind, file);
-      if (!uploadResult.ok) uploadWarning = true;
-    }
-
-    setSubmitting(false);
-    onSubmitted(fields.email, uploadWarning);
+    // profiles/driver_applications can't be written yet — no session until
+    // the OTP code is verified. The verify screen reads these back once it
+    // is, the same way the customer path already does. Built explicitly
+    // (not a password/confirmPassword omit) so a password never ends up in
+    // sessionStorage even if a field gets added to `Fields` later.
+    sessionStorage.setItem(
+      PENDING_DRIVER_PROFILE_KEY,
+      JSON.stringify({
+        firstName: fields.firstName,
+        lastName: fields.lastName,
+        phone: fields.phone,
+        dateOfBirth: fields.dateOfBirth,
+        licenseNumber: fields.licenseNumber,
+        vehicleType: fields.vehicleType,
+        vehicleMake: fields.vehicleMake,
+        vehicleModel: fields.vehicleModel,
+        vehicleYear: fields.vehicleYear,
+        vehicleRegistrationNo: fields.vehicleRegistrationNo,
+        vehicleCapacity: fields.vehicleCapacity,
+      }),
+    );
+    onSubmitted(fields.email);
   }
 
   return (
@@ -187,13 +185,6 @@ export function DriverRegisterForm({
           value={fields.licenseNumber}
           onChange={(e) => set("licenseNumber", e.target.value)}
         />
-        <FileUploadField
-          label="Driver's Licence"
-          required
-          onFileSelected={(file) =>
-            setDocuments((prev) => ({ ...prev, license: file ?? undefined }))
-          }
-        />
       </FormSection>
 
       <FormSection title="Vehicle Information">
@@ -243,29 +234,11 @@ export function DriverRegisterForm({
             onChange={(e) => set("vehicleCapacity", e.target.value)}
           />
         </div>
-        <FileUploadField
-          label="Vehicle Photos"
-          onFileSelected={(file) =>
-            setDocuments((prev) => ({ ...prev, "vehicle-photo": file ?? undefined }))
-          }
-        />
       </FormSection>
 
-      <FormSection title="Verification Documents">
-        <FileUploadField
-          label="Vehicle Registration Document"
-          required
-          onFileSelected={(file) =>
-            setDocuments((prev) => ({ ...prev, "vehicle-registration": file ?? undefined }))
-          }
-        />
-        <FileUploadField
-          label="Insurance Documentation"
-          onFileSelected={(file) =>
-            setDocuments((prev) => ({ ...prev, insurance: file ?? undefined }))
-          }
-        />
-      </FormSection>
+      <p className="text-[0.8rem] text-muted">
+        You&rsquo;ll upload your licence and vehicle registration documents right after you verify your email.
+      </p>
 
       <Checkbox checked={agreed} onChange={setAgreed} required>
         I agree to the{" "}

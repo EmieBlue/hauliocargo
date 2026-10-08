@@ -60,11 +60,8 @@ function RegisterContent() {
     );
   }
 
-  function afterDriverSignup(email: string, uploadWarning: boolean) {
-    const warningParam = uploadWarning ? "&uploadWarning=1" : "";
-    router.push(
-      `${ROUTES.verify}?email=${encodeURIComponent(email)}&purpose=signup&role=driver${warningParam}`,
-    );
+  function afterDriverSignup(email: string) {
+    router.push(`${ROUTES.verify}?email=${encodeURIComponent(email)}&purpose=signup&role=driver`);
   }
 
   const copy = role ? COPY[role] : COPY.customer;
