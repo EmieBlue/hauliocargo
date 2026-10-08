@@ -154,17 +154,30 @@ export type JobRow = {
   id: string;
   pickup_location: string;
   dropoff_location: string;
+  pickup_lat: number | null;
+  pickup_lng: number | null;
+  dropoff_lat: number | null;
+  dropoff_lng: number | null;
   scheduled_for: string | null;
   cargo_description: string;
   vehicle_category: string;
   vehicle_size: string;
+  loading_assistants: string | null;
+  cargo_photo_url: string | null;
   distance_km: number | null;
   estimated_price: number | null;
+  cargo_weight_kg: number | null;
+  cargo_volume_m3: number | null;
   status: BookingStatus;
+  driver_id: string | null;
+  customer_id: string;
 };
 
+// Same field set as the customer side's own BOOKING_COLUMNS
+// (app/dashboard/bookings/page.tsx) — a job is the same `bookings` row the
+// customer sees, just through a driver's RLS instead of a customer's.
 const JOB_COLUMNS =
-  "id, pickup_location, dropoff_location, scheduled_for, cargo_description, vehicle_category, vehicle_size, distance_km, estimated_price, status";
+  "id, pickup_location, dropoff_location, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng, scheduled_for, cargo_description, vehicle_category, vehicle_size, loading_assistants, cargo_photo_url, distance_km, estimated_price, cargo_weight_kg, cargo_volume_m3, status, driver_id, customer_id";
 
 /**
  * Open jobs any verified driver can claim. RLS already scopes this to
@@ -211,6 +224,24 @@ export async function fetchMyJobs(): Promise<AuthResult<JobRow[]>> {
     return { ok: false, message: "Couldn't load your jobs. Please try again." };
   }
   return { ok: true, data: data as JobRow[] };
+}
+
+/**
+ * One job's full row, for the detail view — the same RLS as the two list
+ * fetches above (migration 015): a verified driver can load an open
+ * pending job or one that's already theirs, nothing else.
+ */
+export async function fetchJob(bookingId: string): Promise<AuthResult<JobRow | null>> {
+  if (!authEnabled) return { ok: false, message: NOT_CONFIGURED };
+  const supabase = getClient();
+  if (!supabase) return { ok: false, message: NOT_CONFIGURED };
+
+  const { data, error } = await supabase.from("bookings").select(JOB_COLUMNS).eq("id", bookingId).maybeSingle();
+  if (error) {
+    console.error("fetch job failed", error);
+    return { ok: false, message: "Couldn't load that job. Please try again." };
+  }
+  return { ok: true, data: (data as JobRow | null) ?? null };
 }
 
 /**
