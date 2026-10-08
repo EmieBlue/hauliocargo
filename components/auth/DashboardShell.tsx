@@ -32,6 +32,7 @@ export function DashboardShell({
   children,
   backLink,
   sidebar,
+  clearBackdrop,
 }: {
   children: ReactNode;
   /** Optional "back" link shown in the fixed header, next to the logo — for
@@ -42,12 +43,15 @@ export function DashboardShell({
    * passed, the page content fills the remaining width instead of the
    * centered container. */
   sidebar?: ReactNode;
+  /** One page (driver, so far) only — see `DashboardBackdrop`'s own `clear`
+   * prop for why. Every other page omits this and keeps the default. */
+  clearBackdrop?: boolean;
 }) {
   const scrolled = useScrolled();
 
   return (
     <div className="relative flex min-h-svh flex-col">
-      <DashboardBackdrop />
+      <DashboardBackdrop clear={clearBackdrop} />
       <header
         className={cn(
           "fixed inset-x-0 top-0 z-60 transition-[background-color,backdrop-filter,border-color] duration-150 ease-brand",

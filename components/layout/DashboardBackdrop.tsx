@@ -1,5 +1,7 @@
 "use client";
 
+import { cn } from "@/lib/cn";
+
 const IMAGE = "/brand/dashboard-fleet.jpg";
 
 /**
@@ -21,12 +23,25 @@ const IMAGE = "/brand/dashboard-fleet.jpg";
  * stacking order — plain `z-index: auto` plus mounting first in the DOM is
  * what actually keeps this above that fill but below later page content.
  */
-export function DashboardBackdrop() {
+// Fixed (not a theme token) on purpose — the `clear` variant below needs to
+// look the same regardless of the toggle, same reasoning Move With You's own
+// hex constants use to escape the theme system.
+const CLEAR_FILL = "#0c0d10";
+const CLEAR_SCRIM = "rgba(12,13,16,0.4)";
+
+export function DashboardBackdrop({
+  /** One page (driver, so far) opts into a lighter, theme-independent scrim
+   * — see its own comment for why: nothing sits directly on this backdrop
+   * there, so the heavier default scrim's legibility job isn't needed. */
+  clear = false,
+}: {
+  clear?: boolean;
+}) {
   return (
     <div aria-hidden className="pointer-events-none fixed inset-0">
-      <div className="absolute inset-0 bg-ink-950" />
+      <div className={cn("absolute inset-0", !clear && "bg-ink-950")} style={clear ? { background: CLEAR_FILL } : undefined} />
       <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${IMAGE})` }} />
-      <div className="absolute inset-0 bg-ink-950/80" />
+      <div className={cn("absolute inset-0", !clear && "bg-ink-950/80")} style={clear ? { background: CLEAR_SCRIM } : undefined} />
       <div
         className="absolute inset-0"
         style={{
