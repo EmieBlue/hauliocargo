@@ -18,10 +18,39 @@ import {
   type BookingStatus,
   type JobRow,
 } from "@/lib/bookings";
+import { cn } from "@/lib/cn";
 import { formatPrice } from "@/lib/pricing";
 import { ROUTES } from "@/lib/site";
 import { getClient } from "@/lib/supabase";
 import { useRequireRole } from "@/lib/useRequireRole";
+
+/**
+ * Declining a job is personal, not a rejection for everyone — it just
+ * removes that job from this one driver's own list; the job stays open
+ * for any other driver. Saved to this driver's own browser, not the
+ * database, since nothing shared needs to change.
+ */
+function declinedStorageKey(userId: string): string {
+  return `haulio:declined-jobs:${userId}`;
+}
+
+function loadDeclined(userId: string): Set<string> {
+  try {
+    const raw = localStorage.getItem(declinedStorageKey(userId));
+    return new Set(raw ? (JSON.parse(raw) as string[]) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function saveDeclined(userId: string, ids: Set<string>) {
+  try {
+    localStorage.setItem(declinedStorageKey(userId), JSON.stringify([...ids]));
+  } catch {
+    // Best effort — a driver who can't persist this just sees the job
+    // again next visit, not a broken page.
+  }
+}
 
 const STATUS_LABEL: Record<BookingStatus, string> = {
   pending: "Open",
@@ -45,14 +74,32 @@ type Selected = { id: string; row: JobRow | null };
 function DriverJobsContent() {
   const { loading, profile } = useRequireRole("driver");
   const jobId = useSearchParams().get("id");
+  const router = useRouter();
 
   const [available, setAvailable] = useState<JobRow[] | null>(null);
   const [mine, setMine] = useState<JobRow[] | null>(null);
   const [selected, setSelected] = useState<Selected | null>(null);
   const [actingOn, setActingOn] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [declinedIds, setDeclinedIds] = useState<Set<string>>(new Set());
 
   const verified = profile?.driverStatus === "verified";
+
+  useEffect(() => {
+    const supabase = getClient();
+    if (!supabase) return;
+    let cancelled = false;
+    supabase.auth.getUser().then(({ data }) => {
+      const id = data.user?.id;
+      if (cancelled || !id) return;
+      setUserId(id);
+      setDeclinedIds(loadDeclined(id));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Initial list load — see the jobs list page's earlier version of this
   // same comment: a direct call to an async helper from inside the effect
@@ -120,7 +167,23 @@ function DriverJobsContent() {
     await reload();
   }
 
+  function handleDecline(id: string) {
+    if (!userId) return;
+    setDeclinedIds((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      saveDeclined(userId, next);
+      return next;
+    });
+  }
+
+  function handleDeclineFromDetail(id: string) {
+    handleDecline(id);
+    router.push(ROUTES.driverJobs);
+  }
+
   const openMine = mine?.filter((j) => j.status === "confirmed" || j.status === "in_progress") ?? [];
+  const visibleAvailable = available?.filter((j) => !declinedIds.has(j.id)) ?? null;
   const current = jobId && selected && selected.id === jobId ? selected : null;
   const detailOpen = Boolean(jobId);
 
@@ -135,7 +198,7 @@ function DriverJobsContent() {
 
   return (
     <DashboardShell clearBackdrop sidebar={<DriverSideMenu activeKey="jobs" />}>
-      <div className="flex w-full max-w-5xl flex-col gap-5">
+      <div className={cn("flex w-full flex-col gap-5", !detailOpen && "max-w-2xl")}>
         {detailOpen ? <BackButton /> : null}
 
         {!detailOpen ? (
@@ -176,6 +239,7 @@ function DriverJobsContent() {
                   busy={actingOn === current.row.id}
                   onAccept={() => handleAccept(current.row!.id)}
                   onAdvance={() => handleAdvance(current.row!.id, current.row!.status)}
+                  onDecline={() => handleDeclineFromDetail(current.row!.id)}
                 />
               ) : current ? (
                 <Panel>
@@ -223,21 +287,26 @@ function DriverJobsContent() {
 
             <section className="flex flex-col gap-3">
               <SectionLabel>Available Jobs</SectionLabel>
-              {available === null ? (
+              {visibleAvailable === null ? (
                 <Panel>
                   <p className="text-[0.85rem] text-muted">Loading…</p>
                 </Panel>
-              ) : available.length === 0 ? (
+              ) : visibleAvailable.length === 0 ? (
                 <Panel>
-                  <p className="text-[0.85rem] text-muted">No open jobs right now — check back soon.</p>
+                  <p className="text-[0.85rem] text-muted">
+                    {available && available.length > 0
+                      ? "No jobs left to show — you've declined the rest for now."
+                      : "No open jobs right now — check back soon."}
+                  </p>
                 </Panel>
               ) : (
-                available.map((job) => (
+                visibleAvailable.map((job) => (
                   <JobCard
                     key={job.id}
                     job={job}
                     busy={actingOn === job.id}
                     action={{ label: "Accept", onClick: () => handleAccept(job.id) }}
+                    onDecline={() => handleDecline(job.id)}
                   />
                 ))
               )}
@@ -254,11 +323,13 @@ function JobDetailPanel({
   busy,
   onAccept,
   onAdvance,
+  onDecline,
 }: {
   job: JobRow;
   busy: boolean;
   onAccept: () => void;
   onAdvance: () => void;
+  onDecline: () => void;
 }) {
   const [customer, setCustomer] = useState<{ first_name: string; last_name: string; phone: string } | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
@@ -355,10 +426,15 @@ function JobDetailPanel({
       ) : null}
 
       {job.status === "pending" ? (
-        <Button type="button" variant="primary" className="w-full" disabled={busy} onClick={onAccept}>
-          {busy ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
-          Accept
-        </Button>
+        <div className="flex gap-2.5">
+          <Button type="button" variant="primary" className="flex-1" disabled={busy} onClick={onAccept}>
+            {busy ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
+            Accept
+          </Button>
+          <Button type="button" variant="ghost" disabled={busy} onClick={onDecline}>
+            Decline
+          </Button>
+        </div>
       ) : job.status === "confirmed" ? (
         <Button type="button" variant="primary" className="w-full" disabled={busy} onClick={onAdvance}>
           {busy ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
@@ -378,10 +454,14 @@ function JobCard({
   job,
   action,
   busy,
+  onDecline,
 }: {
   job: JobRow;
   action: { label: string; onClick: () => void } | null;
   busy: boolean;
+  /** Only open (pending, unclaimed) jobs can be declined — a driver's own
+   * accepted job has Start Trip/Mark Delivered instead, never this. */
+  onDecline?: () => void;
 }) {
   const router = useRouter();
 
@@ -437,23 +517,39 @@ function JobCard({
       </div>
 
       {action ? (
-        <Button
-          type="button"
-          variant="primary"
-          size="sm"
-          className="mt-4 w-full"
-          disabled={busy}
-          onClick={(e) => {
-            // The card itself navigates to the detail view on click — this
-            // button needs to act in place instead, same as the list it's
-            // reached from.
-            e.stopPropagation();
-            action.onClick();
-          }}
-        >
-          {busy ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
-          {action.label}
-        </Button>
+        <div className="mt-4 flex gap-2.5">
+          <Button
+            type="button"
+            variant="primary"
+            size="sm"
+            className="flex-1"
+            disabled={busy}
+            onClick={(e) => {
+              // The card itself navigates to the detail view on click —
+              // these buttons need to act in place instead, same as the
+              // detail view they're also reached from.
+              e.stopPropagation();
+              action.onClick();
+            }}
+          >
+            {busy ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
+            {action.label}
+          </Button>
+          {onDecline ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={busy}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDecline();
+              }}
+            >
+              Decline
+            </Button>
+          ) : null}
+        </div>
       ) : null}
     </section>
   );
