@@ -88,14 +88,17 @@ export default function DriverJobsPage() {
   return (
     <DashboardShell clearBackdrop sidebar={<DriverSideMenu activeKey="jobs" />}>
       <div className="flex w-full max-w-2xl flex-col gap-6">
-        <div>
+        {/* Solid card, not bare on the clear backdrop — same fix the driver
+         * dashboard page needed for the same reason: muted text directly on
+         * a lightened backdrop is illegible. */}
+        <section className="rounded-xl border border-edge/12 bg-ink-950 p-5">
           <h1 className="text-[1.5rem] font-extrabold tracking-[-0.02em] text-fg">Jobs</h1>
           <p className="mt-1.5 text-[0.88rem] text-muted">
             {verified
               ? "Accept an open request, then take it through to delivered."
               : "Jobs open up once your application is verified."}
           </p>
-        </div>
+        </section>
 
         {error ? (
           <p
@@ -118,9 +121,7 @@ export default function DriverJobsPage() {
           <>
             {openMine.length > 0 ? (
               <section className="flex flex-col gap-3">
-                <h2 className="font-display text-[0.68rem] font-semibold tracking-[0.18em] text-mist uppercase">
-                  My Jobs
-                </h2>
+                <SectionLabel>My Jobs</SectionLabel>
                 {openMine.map((job) => (
                   <JobCard
                     key={job.id}
@@ -139,13 +140,15 @@ export default function DriverJobsPage() {
             ) : null}
 
             <section className="flex flex-col gap-3">
-              <h2 className="font-display text-[0.68rem] font-semibold tracking-[0.18em] text-mist uppercase">
-                Available Jobs
-              </h2>
+              <SectionLabel>Available Jobs</SectionLabel>
               {available === null ? (
-                <p className="text-[0.85rem] text-muted">Loading…</p>
+                <div className="rounded-xl border border-edge/12 bg-ink-950 p-5">
+                  <p className="text-[0.85rem] text-muted">Loading…</p>
+                </div>
               ) : available.length === 0 ? (
-                <p className="text-[0.85rem] text-muted">No open jobs right now — check back soon.</p>
+                <div className="rounded-xl border border-edge/12 bg-ink-950 p-5">
+                  <p className="text-[0.85rem] text-muted">No open jobs right now — check back soon.</p>
+                </div>
               ) : (
                 available.map((job) => (
                   <JobCard
@@ -161,6 +164,19 @@ export default function DriverJobsPage() {
         )}
       </div>
     </DashboardShell>
+  );
+}
+
+/** A small solid-backed label, not bare text — same reasoning as every
+ * other fix on this page: the clear backdrop has both bright and dark
+ * regions, so no text color alone is safe to leave floating on it. */
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="inline-block self-start rounded-lg border border-edge/12 bg-ink-950 px-3 py-1.5">
+      <h2 className="font-display text-[0.68rem] font-semibold tracking-[0.18em] text-mist uppercase">
+        {children}
+      </h2>
+    </div>
   );
 }
 
