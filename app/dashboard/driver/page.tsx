@@ -3,6 +3,7 @@
 import { CheckCircle2, Circle, Clock, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { DashboardLoading, DashboardShell } from "@/components/auth/DashboardShell";
+import { DriverSideMenu } from "@/components/dashboard/DriverSideMenu";
 import { Badge } from "@/components/ui/Badge";
 import type { DriverStatus } from "@/lib/auth";
 import { getClient } from "@/lib/supabase";
@@ -100,102 +101,73 @@ export default function DriverDashboardPage() {
   if (loading || !profile) return <DashboardLoading />;
 
   const status = profile.driverStatus ?? "pending";
-
-  return (
-    <DashboardShell
-      clearBackdrop
-      sidebar={
-        <DriverSidebar
-          status={status}
-          driverProfile={driverProfile}
-          application={application}
-          documentKinds={documentKinds}
-        />
-      }
-    >
-      {null}
-    </DashboardShell>
-  );
-}
-
-/**
- * Everything the driver needs lives here now, not in the main content area —
- * so the clear backdrop (see DashboardShell's `clearBackdrop`) is what's
- * actually visible there, the same pinned-far-left-edge placement
- * `DashboardShell`'s `sidebar` slot already gives `AppSideMenu` on the
- * bookings page.
- */
-function DriverSidebar({
-  status,
-  driverProfile,
-  application,
-  documentKinds,
-}: {
-  status: DriverStatus;
-  driverProfile: ProfileRow | null;
-  application: ApplicationRow | null;
-  documentKinds: Set<string> | null;
-}) {
   const copy = STATUS_COPY[status];
   const Icon = copy.icon;
 
   return (
-    <div className="flex w-[21rem] flex-col gap-4 pl-6 pr-4">
-      <div>
-        <Badge pulse={status === "pending"}>
-          <Icon className="size-3" aria-hidden />
-          {copy.label}
-        </Badge>
-        <h1 className="mt-4 text-[1.35rem] font-extrabold tracking-[-0.02em] text-fg">
-          {driverProfile ? `Hi, ${driverProfile.first_name}` : "Your Driver Account"}
-        </h1>
-        <p className="mt-2 text-[0.85rem] leading-relaxed text-muted">{copy.body}</p>
+    <DashboardShell clearBackdrop sidebar={<DriverSideMenu activeKey="dashboard" />}>
+      <div className="flex w-full max-w-2xl flex-col gap-4">
+        {/* Its own solid card now, not bare on the backdrop — that was the
+         * one piece of the last version left directly on the (now much
+         * lighter) clear backdrop, which is exactly what made it illegible. */}
+        <section className="rounded-xl border border-edge/12 bg-ink-950 p-5">
+          <Badge pulse={status === "pending"}>
+            <Icon className="size-3" aria-hidden />
+            {copy.label}
+          </Badge>
+          <h1 className="mt-4 text-[1.5rem] font-extrabold tracking-[-0.02em] text-fg">
+            {driverProfile ? `Hi, ${driverProfile.first_name}` : "Your Driver Account"}
+          </h1>
+          <p className="mt-2 text-[0.88rem] leading-relaxed text-muted">{copy.body}</p>
+        </section>
+
+        <InfoCard title="Application Details">
+          {driverProfile && application ? (
+            <dl className="grid gap-3.5 sm:grid-cols-2">
+              <Row label="Name" value={`${driverProfile.first_name} ${driverProfile.last_name}`} />
+              <Row label="Phone" value={driverProfile.phone} />
+              <Row label="Licence Number" value={application.license_number} />
+              <Row
+                label="Vehicle"
+                value={`${application.vehicle_year} ${application.vehicle_make} ${application.vehicle_model}`}
+              />
+              <Row label="Vehicle Type" value={application.vehicle_type} />
+              <Row label="Registration No." value={application.vehicle_registration_no} />
+              <Row label="Capacity" value={application.vehicle_capacity} />
+            </dl>
+          ) : (
+            <p className="text-[0.85rem] text-muted">Loading…</p>
+          )}
+        </InfoCard>
+
+        <InfoCard title="Documents">
+          {documentKinds ? (
+            <ul className="flex flex-col gap-2.5">
+              {DOCUMENT_KINDS.map((doc) => {
+                const present = documentKinds.has(doc.kind);
+                return (
+                  <li key={doc.kind} className="flex items-center gap-2.5 text-[0.85rem]">
+                    {present ? (
+                      <CheckCircle2 className="size-4 shrink-0 text-brand" aria-hidden />
+                    ) : (
+                      <Circle className="size-4 shrink-0 text-muted" aria-hidden />
+                    )}
+                    <span className={present ? "text-fg" : "text-muted"}>{doc.label}</span>
+                    {!present ? (
+                      <span className="text-[0.72rem] text-muted">
+                        — {doc.required ? "missing" : "not provided"}
+                      </span>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="text-[0.85rem] text-muted">Loading…</p>
+          )}
+        </InfoCard>
       </div>
-
-      <InfoCard title="Application Details">
-        {driverProfile && application ? (
-          <dl className="flex flex-col gap-3">
-            <Row label="Name" value={`${driverProfile.first_name} ${driverProfile.last_name}`} />
-            <Row label="Phone" value={driverProfile.phone} />
-            <Row label="Licence Number" value={application.license_number} />
-            <Row
-              label="Vehicle"
-              value={`${application.vehicle_year} ${application.vehicle_make} ${application.vehicle_model}`}
-            />
-            <Row label="Vehicle Type" value={application.vehicle_type} />
-            <Row label="Registration No." value={application.vehicle_registration_no} />
-            <Row label="Capacity" value={application.vehicle_capacity} />
-          </dl>
-        ) : (
-          <p className="text-[0.85rem] text-muted">Loading…</p>
-        )}
-      </InfoCard>
-
-      <InfoCard title="Documents">
-        {documentKinds ? (
-          <ul className="flex flex-col gap-2.5">
-            {DOCUMENT_KINDS.map((doc) => {
-              const present = documentKinds.has(doc.kind);
-              return (
-                <li key={doc.kind} className="flex items-center gap-2.5 text-[0.85rem]">
-                  {present ? (
-                    <CheckCircle2 className="size-4 shrink-0 text-brand" aria-hidden />
-                  ) : (
-                    <Circle className="size-4 shrink-0 text-muted" aria-hidden />
-                  )}
-                  <span className={present ? "text-fg" : "text-muted"}>{doc.label}</span>
-                  {!present ? (
-                    <span className="text-[0.72rem] text-muted">— {doc.required ? "missing" : "not provided"}</span>
-                  ) : null}
-                </li>
-              );
-            })}
-          </ul>
-        ) : (
-          <p className="text-[0.85rem] text-muted">Loading…</p>
-        )}
-      </InfoCard>
-    </div>
+    </DashboardShell>
   );
 }
 
