@@ -34,6 +34,7 @@ export const ROUTES = {
   forgotPassword: "/forgot-password",
   dashboardCustomer: "/dashboard/customer",
   dashboardDriver: "/dashboard/driver",
+  driverJobs: "/dashboard/driver/jobs",
   dashboardAdmin: "/dashboard/admin",
   bookMove: "/dashboard/customer/move",
   bookSend: "/dashboard/customer/send",

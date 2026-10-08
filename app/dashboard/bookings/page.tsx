@@ -43,10 +43,13 @@ type BookingRow = {
   cargo_weight_kg: number | null;
   cargo_volume_m3: number | null;
   status: BookingStatus;
+  driver_id: string | null;
 };
 
 const BOOKING_COLUMNS =
-  "id, pickup_location, dropoff_location, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng, scheduled_for, cargo_description, vehicle_category, vehicle_size, loading_assistants, cargo_photo_url, distance_km, estimated_price, cargo_weight_kg, cargo_volume_m3, status";
+  "id, pickup_location, dropoff_location, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng, scheduled_for, cargo_description, vehicle_category, vehicle_size, loading_assistants, cargo_photo_url, distance_km, estimated_price, cargo_weight_kg, cargo_volume_m3, status, driver_id";
+
+type DriverRow = { first_name: string; last_name: string; phone: string };
 
 const PROGRESS_STEPS = [
   { status: "pending", label: "Requested" },
@@ -158,6 +161,7 @@ function BookingsContent() {
 
 function BookingDetailPanel({ booking }: { booking: BookingRow }) {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [driver, setDriver] = useState<DriverRow | null>(null);
 
   useEffect(() => {
     const path = booking.cargo_photo_url;
@@ -176,6 +180,29 @@ function BookingDetailPanel({ booking }: { booking: BookingRow }) {
       cancelled = true;
     };
   }, [booking.cargo_photo_url]);
+
+  // Readable once a driver has actually claimed this booking — RLS grants
+  // this one cross-table exception (see migration 015), not a general
+  // public-profile read.
+  useEffect(() => {
+    const driverId = booking.driver_id;
+    const supabase = getClient();
+    if (!driverId || !supabase) return;
+
+    let cancelled = false;
+    supabase
+      .from("profiles")
+      .select("first_name, last_name, phone")
+      .eq("id", driverId)
+      .single()
+      .then(({ data }) => {
+        if (!cancelled && data) setDriver(data as DriverRow);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [booking.driver_id]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -207,9 +234,16 @@ function BookingDetailPanel({ booking }: { booking: BookingRow }) {
 
       <Card>
         <SectionLabel>Driver</SectionLabel>
-        <p className="mt-2 text-[0.88rem]" style={{ color: MUTED }}>
-          Waiting for a driver to accept your request.
-        </p>
+        {driver ? (
+          <dl className="mt-3 flex flex-col gap-3 text-[0.88rem]" style={{ color: INK }}>
+            <DetailRow label="Name" value={`${driver.first_name} ${driver.last_name}`} />
+            <DetailRow label="Phone" value={driver.phone} />
+          </dl>
+        ) : (
+          <p className="mt-2 text-[0.88rem]" style={{ color: MUTED }}>
+            Waiting for a driver to accept your request.
+          </p>
+        )}
       </Card>
 
       <Card>

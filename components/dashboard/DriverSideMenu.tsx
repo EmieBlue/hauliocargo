@@ -19,13 +19,11 @@ type MenuItem = {
   href: string | null;
 };
 
-// Only "Dashboard" and "Profile" go anywhere real yet — Jobs and Chat are
-// disabled "coming soon" items, same honest-placeholder treatment
-// AppSideMenu already gives its own Chat item, not pretending job matching
-// exists before it does.
+// Chat stays disabled ("coming soon") — same honest-placeholder treatment
+// AppSideMenu already gives its own Chat item.
 const ITEMS: MenuItem[] = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: ROUTES.dashboardDriver },
-  { key: "jobs", label: "Jobs", icon: Truck, href: null },
+  { key: "jobs", label: "Jobs", icon: Truck, href: ROUTES.driverJobs },
   { key: "profile", label: "Profile", icon: User, href: ROUTES.profile },
   { key: "chat", label: "Chat", icon: MessageSquare, href: null },
 ];

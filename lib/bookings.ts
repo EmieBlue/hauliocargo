@@ -144,6 +144,141 @@ export async function analyzeCargoPhoto(file: File): Promise<AuthResult<CargoAna
   return { ok: true, data: data as CargoAnalysis };
 }
 
+// ---------------------------------------------------------------------------
+// Driver jobs
+// ---------------------------------------------------------------------------
+
+export type BookingStatus = "pending" | "confirmed" | "in_progress" | "completed" | "cancelled";
+
+export type JobRow = {
+  id: string;
+  pickup_location: string;
+  dropoff_location: string;
+  scheduled_for: string | null;
+  cargo_description: string;
+  vehicle_category: string;
+  vehicle_size: string;
+  distance_km: number | null;
+  estimated_price: number | null;
+  status: BookingStatus;
+};
+
+const JOB_COLUMNS =
+  "id, pickup_location, dropoff_location, scheduled_for, cargo_description, vehicle_category, vehicle_size, distance_km, estimated_price, status";
+
+/**
+ * Open jobs any verified driver can claim. RLS already scopes this to
+ * pending, unclaimed bookings for a verified driver (see migration 015) —
+ * the `.eq`/`.is` here are belt-and-suspenders, not what's actually doing
+ * the restricting.
+ */
+export async function fetchAvailableJobs(): Promise<AuthResult<JobRow[]>> {
+  if (!authEnabled) return { ok: false, message: NOT_CONFIGURED };
+  const supabase = getClient();
+  if (!supabase) return { ok: false, message: NOT_CONFIGURED };
+
+  const { data, error } = await supabase
+    .from("bookings")
+    .select(JOB_COLUMNS)
+    .is("driver_id", null)
+    .eq("status", "pending")
+    .order("created_at", { ascending: false });
+  if (error) {
+    console.error("fetch available jobs failed", error);
+    return { ok: false, message: "Couldn't load available jobs. Please try again." };
+  }
+  return { ok: true, data: data as JobRow[] };
+}
+
+/** The signed-in driver's own accepted/in-progress/completed jobs. */
+export async function fetchMyJobs(): Promise<AuthResult<JobRow[]>> {
+  if (!authEnabled) return { ok: false, message: NOT_CONFIGURED };
+  const supabase = getClient();
+  if (!supabase) return { ok: false, message: NOT_CONFIGURED };
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Please sign in again." };
+
+  const { data, error } = await supabase
+    .from("bookings")
+    .select(JOB_COLUMNS)
+    .eq("driver_id", user.id)
+    .order("created_at", { ascending: false });
+  if (error) {
+    console.error("fetch my jobs failed", error);
+    return { ok: false, message: "Couldn't load your jobs. Please try again." };
+  }
+  return { ok: true, data: data as JobRow[] };
+}
+
+/**
+ * Claims an open job — a conditional update (only if still pending and
+ * unclaimed) so two drivers racing for the same job can't both win: the
+ * first request to land satisfies the `.eq`/`.is` filters and succeeds,
+ * the second finds zero matching rows and comes back empty rather than
+ * overwriting the first driver's claim.
+ */
+export async function acceptJob(bookingId: string): Promise<AuthResult> {
+  if (!authEnabled) return { ok: false, message: NOT_CONFIGURED };
+  const supabase = getClient();
+  if (!supabase) return { ok: false, message: NOT_CONFIGURED };
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Please sign in again." };
+
+  const { data, error } = await supabase
+    .from("bookings")
+    .update({ driver_id: user.id, status: "confirmed" })
+    .eq("id", bookingId)
+    .eq("status", "pending")
+    .is("driver_id", null)
+    .select("id")
+    .maybeSingle();
+  if (error) {
+    console.error("accept job failed", error);
+    return { ok: false, message: "That didn't go through. Please try again." };
+  }
+  if (!data) {
+    return { ok: false, message: "This job was just taken by another driver." };
+  }
+  return { ok: true, data: undefined };
+}
+
+const NEXT_STATUS: Partial<Record<BookingStatus, BookingStatus>> = {
+  confirmed: "in_progress",
+  in_progress: "completed",
+};
+
+/** Moves the driver's own job one step forward: confirmed → in_progress → completed. */
+export async function advanceJob(bookingId: string, currentStatus: BookingStatus): Promise<AuthResult> {
+  if (!authEnabled) return { ok: false, message: NOT_CONFIGURED };
+  const supabase = getClient();
+  if (!supabase) return { ok: false, message: NOT_CONFIGURED };
+
+  const next = NEXT_STATUS[currentStatus];
+  if (!next) return { ok: false, message: "This job can't move forward from here." };
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Please sign in again." };
+
+  const { error } = await supabase
+    .from("bookings")
+    .update({ status: next })
+    .eq("id", bookingId)
+    .eq("driver_id", user.id);
+  if (error) {
+    console.error("advance job failed", error);
+    return { ok: false, message: "That didn't go through. Please try again." };
+  }
+  return { ok: true, data: undefined };
+}
+
 /** Strips the `data:image/...;base64,` prefix FileReader adds — the edge function wants raw base64. */
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
