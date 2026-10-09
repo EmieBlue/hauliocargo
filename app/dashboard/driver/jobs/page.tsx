@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState, type ReactNode } from "react";
 import { DashboardLoading, DashboardShell } from "@/components/auth/DashboardShell";
 import { BackButton } from "@/components/dashboard/BackButton";
+import { DeclineJobDialog } from "@/components/dashboard/DeclineJobDialog";
 import { DriverSideMenu } from "@/components/dashboard/DriverSideMenu";
 import type { LocationPoint } from "@/components/dashboard/MoveMap";
 import { MoveMapPanel } from "@/components/dashboard/MoveMapPanel";
@@ -12,7 +13,9 @@ import { Button } from "@/components/ui/Button";
 import {
   acceptJob,
   advanceJob,
+  declineJob,
   fetchAvailableJobs,
+  fetchDeclinedJobIds,
   fetchJob,
   fetchMyJobs,
   type BookingStatus,
@@ -23,34 +26,6 @@ import { formatPrice } from "@/lib/pricing";
 import { ROUTES } from "@/lib/site";
 import { getClient } from "@/lib/supabase";
 import { useRequireRole } from "@/lib/useRequireRole";
-
-/**
- * Declining a job is personal, not a rejection for everyone — it just
- * removes that job from this one driver's own list; the job stays open
- * for any other driver. Saved to this driver's own browser, not the
- * database, since nothing shared needs to change.
- */
-function declinedStorageKey(userId: string): string {
-  return `haulio:declined-jobs:${userId}`;
-}
-
-function loadDeclined(userId: string): Set<string> {
-  try {
-    const raw = localStorage.getItem(declinedStorageKey(userId));
-    return new Set(raw ? (JSON.parse(raw) as string[]) : []);
-  } catch {
-    return new Set();
-  }
-}
-
-function saveDeclined(userId: string, ids: Set<string>) {
-  try {
-    localStorage.setItem(declinedStorageKey(userId), JSON.stringify([...ids]));
-  } catch {
-    // Best effort — a driver who can't persist this just sees the job
-    // again next visit, not a broken page.
-  }
-}
 
 const STATUS_LABEL: Record<BookingStatus, string> = {
   pending: "Open",
@@ -81,38 +56,26 @@ function DriverJobsContent() {
   const [selected, setSelected] = useState<Selected | null>(null);
   const [actingOn, setActingOn] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
   const [declinedIds, setDeclinedIds] = useState<Set<string>>(new Set());
+  const [declineTarget, setDeclineTarget] = useState<string | null>(null);
+  const [declineFromDetail, setDeclineFromDetail] = useState(false);
+  const [declineBusy, setDeclineBusy] = useState(false);
 
   const verified = profile?.driverStatus === "verified";
 
-  useEffect(() => {
-    const supabase = getClient();
-    if (!supabase) return;
-    let cancelled = false;
-    supabase.auth.getUser().then(({ data }) => {
-      const id = data.user?.id;
-      if (cancelled || !id) return;
-      setUserId(id);
-      setDeclinedIds(loadDeclined(id));
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  // Initial list load — see the jobs list page's earlier version of this
-  // same comment: a direct call to an async helper from inside the effect
-  // trips React's "no setState in an effect body" lint rule, since it can't
-  // see the setState calls are deferred past this .then(). `reload` below
-  // (used by the button handlers, a normal event-handler context) is fine.
+  // Initial list load — a direct call to an async helper from inside the
+  // effect trips React's "no setState in an effect body" lint rule, since
+  // it can't see the setState calls are deferred past this .then().
+  // `reload` below (used by the button handlers, a normal event-handler
+  // context) is fine.
   useEffect(() => {
     if (!verified) return;
     let cancelled = false;
-    Promise.all([fetchAvailableJobs(), fetchMyJobs()]).then(([av, my]) => {
+    Promise.all([fetchAvailableJobs(), fetchMyJobs(), fetchDeclinedJobIds()]).then(([av, my, dec]) => {
       if (cancelled) return;
       if (av.ok) setAvailable(av.data);
       if (my.ok) setMine(my.data);
+      if (dec.ok) setDeclinedIds(new Set(dec.data));
     });
     return () => {
       cancelled = true;
@@ -167,19 +130,26 @@ function DriverJobsContent() {
     await reload();
   }
 
-  function handleDecline(id: string) {
-    if (!userId) return;
-    setDeclinedIds((prev) => {
-      const next = new Set(prev);
-      next.add(id);
-      saveDeclined(userId, next);
-      return next;
-    });
+  function openDecline(id: string, fromDetail: boolean) {
+    setDeclineTarget(id);
+    setDeclineFromDetail(fromDetail);
   }
 
-  function handleDeclineFromDetail(id: string) {
-    handleDecline(id);
-    router.push(ROUTES.driverJobs);
+  async function confirmDecline(reasons: string[]) {
+    if (!declineTarget) return;
+    setDeclineBusy(true);
+    setError(null);
+    const result = await declineJob(declineTarget, reasons);
+    setDeclineBusy(false);
+    if (!result.ok) {
+      setError(result.message);
+      return;
+    }
+    const returnToList = declineFromDetail;
+    setDeclineTarget(null);
+    const dec = await fetchDeclinedJobIds();
+    if (dec.ok) setDeclinedIds(new Set(dec.data));
+    if (returnToList) router.push(ROUTES.driverJobs);
   }
 
   const openMine = mine?.filter((j) => j.status === "confirmed" || j.status === "in_progress") ?? [];
@@ -239,7 +209,7 @@ function DriverJobsContent() {
                   busy={actingOn === current.row.id}
                   onAccept={() => handleAccept(current.row!.id)}
                   onAdvance={() => handleAdvance(current.row!.id, current.row!.status)}
-                  onDecline={() => handleDeclineFromDetail(current.row!.id)}
+                  onDecline={() => openDecline(current.row!.id, true)}
                 />
               ) : current ? (
                 <Panel>
@@ -306,7 +276,7 @@ function DriverJobsContent() {
                     job={job}
                     busy={actingOn === job.id}
                     action={{ label: "Accept", onClick: () => handleAccept(job.id) }}
-                    onDecline={() => handleDecline(job.id)}
+                    onDecline={() => openDecline(job.id, false)}
                   />
                 ))
               )}
@@ -314,6 +284,13 @@ function DriverJobsContent() {
           </>
         )}
       </div>
+
+      <DeclineJobDialog
+        open={declineTarget !== null}
+        busy={declineBusy}
+        onConfirm={confirmDecline}
+        onClose={() => setDeclineTarget(null)}
+      />
     </DashboardShell>
   );
 }
@@ -431,7 +408,7 @@ function JobDetailPanel({
             {busy ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
             Accept
           </Button>
-          <Button type="button" variant="ghost" disabled={busy} onClick={onDecline}>
+          <Button type="button" variant="ghost" className="flex-1" disabled={busy} onClick={onDecline}>
             Decline
           </Button>
         </div>
@@ -540,6 +517,7 @@ function JobCard({
               type="button"
               variant="ghost"
               size="sm"
+              className="flex-1"
               disabled={busy}
               onClick={(e) => {
                 e.stopPropagation();

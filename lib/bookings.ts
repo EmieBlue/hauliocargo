@@ -310,6 +310,50 @@ export async function advanceJob(bookingId: string, currentStatus: BookingStatus
   return { ok: true, data: undefined };
 }
 
+/**
+ * Records why the signed-in driver declined an open job — never touches
+ * the booking itself, so it stays open for every other driver. See
+ * supabase/016_job_declines.sql.
+ */
+export async function declineJob(bookingId: string, reasons: string[]): Promise<AuthResult> {
+  if (!authEnabled) return { ok: false, message: NOT_CONFIGURED };
+  const supabase = getClient();
+  if (!supabase) return { ok: false, message: NOT_CONFIGURED };
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Please sign in again." };
+
+  const { error } = await supabase
+    .from("job_declines")
+    .insert({ booking_id: bookingId, driver_id: user.id, reasons });
+  if (error) {
+    console.error("decline job failed", error);
+    return { ok: false, message: "That didn't go through. Please try again." };
+  }
+  return { ok: true, data: undefined };
+}
+
+/** The signed-in driver's own declined booking ids — used to filter them out of the available list. */
+export async function fetchDeclinedJobIds(): Promise<AuthResult<string[]>> {
+  if (!authEnabled) return { ok: false, message: NOT_CONFIGURED };
+  const supabase = getClient();
+  if (!supabase) return { ok: false, message: NOT_CONFIGURED };
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Please sign in again." };
+
+  const { data, error } = await supabase.from("job_declines").select("booking_id").eq("driver_id", user.id);
+  if (error) {
+    console.error("fetch declined jobs failed", error);
+    return { ok: false, message: "Couldn't load your declined jobs. Please try again." };
+  }
+  return { ok: true, data: (data ?? []).map((row) => row.booking_id as string) };
+}
+
 /** Strips the `data:image/...;base64,` prefix FileReader adds — the edge function wants raw base64. */
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
