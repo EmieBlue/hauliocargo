@@ -259,6 +259,93 @@ export async function uploadDriverDocument(
 }
 
 // ---------------------------------------------------------------------------
+// Profile editing
+// ---------------------------------------------------------------------------
+
+export type ProfileFields = {
+  firstName: string;
+  lastName: string;
+  phone: string;
+  /** Customer-only — omitted entirely for a driver's own profile edit. */
+  city?: string;
+  area?: string;
+};
+
+/**
+ * Updates the signed-in user's own `profiles` row — the same table
+ * `completeCustomerProfile`/`completeDriverProfile` write at signup, just
+ * from the Profile page instead. Already covered by that table's existing
+ * "update own profile" policy (migration 002), no new RLS needed.
+ */
+export async function updateOwnProfile(fields: ProfileFields): Promise<AuthResult> {
+  if (!authEnabled) return { ok: false, message: NOT_CONFIGURED };
+  const supabase = client();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: friendlyAuthError(new Error("no user")) };
+
+  const update: Record<string, string> = {
+    first_name: fields.firstName.trim(),
+    last_name: fields.lastName.trim(),
+    phone: fields.phone.trim(),
+  };
+  if (fields.city !== undefined) update.city = fields.city.trim();
+  if (fields.area !== undefined) update.area = fields.area.trim();
+
+  const { error } = await supabase.from("profiles").update(update).eq("id", user.id);
+  if (error) return { ok: false, message: friendlyAuthError(error) };
+
+  return { ok: true, data: undefined };
+}
+
+export type DriverApplicationFields = {
+  dateOfBirth?: string | null;
+  licenseNumber: string;
+  vehicleType: string;
+  vehicleMake: string;
+  vehicleModel: string;
+  vehicleYear: string;
+  vehicleRegistrationNo: string;
+  vehicleCapacity: string;
+};
+
+/**
+ * Updates the signed-in driver's own vehicle/licence details — never
+ * `status`, which supabase/019_driver_applications_self_edit.sql's own
+ * trigger silently protects regardless of what this sends, the same
+ * self-approval protection `driver_applications` has had since it was
+ * first created.
+ */
+export async function updateDriverApplication(fields: DriverApplicationFields): Promise<AuthResult> {
+  if (!authEnabled) return { ok: false, message: NOT_CONFIGURED };
+  const supabase = client();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: friendlyAuthError(new Error("no user")) };
+
+  const { error } = await supabase
+    .from("driver_applications")
+    .update({
+      date_of_birth: fields.dateOfBirth || null,
+      license_number: fields.licenseNumber.trim(),
+      vehicle_type: fields.vehicleType.trim(),
+      vehicle_make: fields.vehicleMake.trim(),
+      vehicle_model: fields.vehicleModel.trim(),
+      vehicle_year: Number(fields.vehicleYear),
+      vehicle_registration_no: fields.vehicleRegistrationNo.trim(),
+      vehicle_capacity: fields.vehicleCapacity.trim(),
+    })
+    .eq("profile_id", user.id);
+  if (error) return { ok: false, message: friendlyAuthError(error) };
+
+  return { ok: true, data: undefined };
+}
+
+// ---------------------------------------------------------------------------
 // Sign in / out
 // ---------------------------------------------------------------------------
 
