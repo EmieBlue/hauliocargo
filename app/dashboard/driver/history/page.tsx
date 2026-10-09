@@ -1,6 +1,7 @@
 "use client";
 
 import { CheckCircle2, Clock, MapPin, XCircle } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { DashboardLoading, DashboardShell } from "@/components/auth/DashboardShell";
 import { DriverSideMenu } from "@/components/dashboard/DriverSideMenu";
@@ -21,6 +22,12 @@ import { useRequireRole } from "@/lib/useRequireRole";
  * job's details since the live `bookings` row may no longer be readable
  * once another driver takes it over (migration 015's own-job-only SELECT
  * policy).
+ *
+ * Each section is one card with its title as an internal header, same
+ * shape as the dashboard's own `InfoCard` — rows live inside that same
+ * card, divided by thin borders, not as separate nested boxes. The first
+ * version floated the title above a separate card per section, which read
+ * as disconnected and left every card looking mostly empty.
  */
 export default function DriverHistoryPage() {
   const { loading, profile } = useRequireRole("driver");
@@ -66,25 +73,28 @@ export default function DriverHistoryPage() {
           <>
             <Section title="Completed Rides" icon={CheckCircle2} empty="Nothing delivered yet.">
               {completed?.map((job) => (
-                <Panel key={job.id}>
+                <div key={job.id} className="py-3.5 first:pt-0">
                   <RouteLine pickup={job.pickup_location} dropoff={job.dropoff_location} />
                   <p className="mt-2 text-[0.82rem] text-muted">{job.cargo_description}</p>
-                  <div className="mt-2.5 flex items-center justify-between text-[0.78rem] text-muted">
+                  <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.78rem] text-muted">
+                    <span>
+                      {job.vehicle_size} · {job.vehicle_category}
+                    </span>
                     <span>{formatSchedule(job.scheduled_for)}</span>
                     {job.estimated_price != null ? (
                       <span className="font-semibold text-fg">{formatPrice(job.estimated_price)}</span>
                     ) : null}
                   </div>
-                </Panel>
+                </div>
               ))}
             </Section>
 
             <Section title="Declined" icon={Clock} empty="No declines on record.">
-              {declines?.map((row) => <HistoryCard key={row.id} row={row} />)}
+              {declines?.map((row) => <HistoryRowItem key={row.id} row={row} />)}
             </Section>
 
             <Section title="Cancelled" icon={XCircle} empty="No cancellations on record.">
-              {cancellations?.map((row) => <HistoryCard key={row.id} row={row} />)}
+              {cancellations?.map((row) => <HistoryRowItem key={row.id} row={row} />)}
             </Section>
           </>
         )}
@@ -100,34 +110,39 @@ function Section({
   children,
 }: {
   title: string;
-  icon: typeof CheckCircle2;
+  icon: LucideIcon;
   empty: string;
   children: ReactNode;
 }) {
-  const hasChildren = Array.isArray(children) ? children.length > 0 : Boolean(children);
+  const hasChildren = Array.isArray(children) ? children.filter(Boolean).length > 0 : Boolean(children);
   return (
-    <section className="flex flex-col gap-3">
-      <div className="inline-flex w-fit items-center gap-2 self-start rounded-lg border border-edge/12 bg-ink-950 px-3 py-1.5">
-        <Icon className="size-3.5 text-brand" aria-hidden />
+    <Panel>
+      <div className="flex items-center gap-2">
+        <Icon className="size-4 text-brand" aria-hidden />
         <h2 className="font-display text-[0.68rem] font-semibold tracking-[0.18em] text-mist uppercase">{title}</h2>
       </div>
-      {hasChildren ? (
-        children
-      ) : (
-        <Panel>
-          <p className="text-[0.85rem] text-muted">{empty}</p>
-        </Panel>
-      )}
-    </section>
+      <div className="mt-3.5 border-t border-edge/10">
+        {hasChildren ? (
+          <div className="divide-y divide-edge/10">{children}</div>
+        ) : (
+          <p className="pt-3.5 text-[0.85rem] text-muted">{empty}</p>
+        )}
+      </div>
+    </Panel>
   );
 }
 
-function HistoryCard({ row }: { row: HistoryRow }) {
+function HistoryRowItem({ row }: { row: HistoryRow }) {
   return (
-    <Panel>
+    <div className="py-3.5 first:pt-0">
       <RouteLine pickup={row.pickup_location} dropoff={row.dropoff_location} />
       <p className="mt-2 text-[0.82rem] text-muted">{row.cargo_description}</p>
-      <div className="mt-2.5 flex flex-wrap gap-1.5">
+      {row.vehicle_size || row.vehicle_category ? (
+        <p className="mt-1 text-[0.78rem] text-muted">
+          {row.vehicle_size} · {row.vehicle_category}
+        </p>
+      ) : null}
+      <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
         {row.reasons.map((reason) => (
           <span
             key={reason}
@@ -136,11 +151,11 @@ function HistoryCard({ row }: { row: HistoryRow }) {
             {reason}
           </span>
         ))}
+        <span className="text-[0.75rem] text-muted">
+          {new Date(row.created_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}
+        </span>
       </div>
-      <p className="mt-2.5 text-[0.75rem] text-muted">
-        {new Date(row.created_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}
-      </p>
-    </Panel>
+    </div>
   );
 }
 
@@ -149,11 +164,11 @@ function RouteLine({ pickup, dropoff }: { pickup: string | null; dropoff: string
     <div>
       <p className="flex items-center gap-1.5 text-[0.85rem] font-semibold text-fg">
         <MapPin className="size-3.5 shrink-0 text-brand" aria-hidden />
-        <span className="truncate">{pickup ?? "—"}</span>
+        <span className="truncate">{pickup ?? "Not recorded"}</span>
       </p>
       <p className="mt-1 flex items-center gap-1.5 text-[0.85rem] text-muted">
         <MapPin className="size-3.5 shrink-0" aria-hidden />
-        <span className="truncate">{dropoff ?? "—"}</span>
+        <span className="truncate">{dropoff ?? "Not recorded"}</span>
       </p>
     </div>
   );

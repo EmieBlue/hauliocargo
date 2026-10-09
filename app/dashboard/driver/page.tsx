@@ -237,11 +237,7 @@ function CarCard({
         {application.vehicle_type} · {application.vehicle_capacity} capacity
       </p>
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-[1fr_auto]">
-        <div className="flex flex-col gap-3">
-          <StatTile icon={Truck} label="Vehicle Type" value={application.vehicle_type} />
-          <StatTile icon={Weight} label="Capacity" value={application.vehicle_capacity} />
-        </div>
+      <div className="mt-5 grid gap-3 sm:grid-cols-[auto_1fr]">
         <div
           className="h-40 w-full overflow-hidden rounded-xl sm:h-auto sm:w-56"
           style={{ background: CARD_TILE_BG }}
@@ -254,6 +250,10 @@ function CarCard({
               <Truck className="size-10" style={{ color: "rgba(0,0,0,0.2)" }} aria-hidden />
             </div>
           )}
+        </div>
+        <div className="flex flex-col gap-3">
+          <StatTile icon={Truck} label="Vehicle Type" value={application.vehicle_type} />
+          <StatTile icon={Weight} label="Capacity" value={application.vehicle_capacity} />
         </div>
       </div>
 
