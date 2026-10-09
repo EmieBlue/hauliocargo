@@ -1,6 +1,7 @@
 "use client";
 
-import { CheckCircle2, Circle, Clock, XCircle } from "lucide-react";
+import { CheckCircle2, Circle, Clock, Truck, Weight, XCircle } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { DashboardLoading, DashboardShell } from "@/components/auth/DashboardShell";
 import { DriverSideMenu } from "@/components/dashboard/DriverSideMenu";
@@ -8,6 +9,15 @@ import { Badge } from "@/components/ui/Badge";
 import type { DriverStatus } from "@/lib/auth";
 import { getClient } from "@/lib/supabase";
 import { useRequireRole } from "@/lib/useRequireRole";
+
+// A deliberate light-card exception on this one card, same reasoning as
+// Move With You's own cream/amber palette: a vehicle showcase reads as a
+// product card, not a dark dashboard panel — fixed, not theme-reactive.
+const CARD_INK = "#17181c";
+const CARD_MUTED = "#6b6b74";
+const CARD_CREAM = "#f6f3ed";
+const CARD_TILE_BG = "rgba(0,0,0,0.045)";
+const CARD_ACCENT = "#f0b429";
 
 const STATUS_COPY: Record<DriverStatus, { label: string; body: string; icon: typeof Clock }> = {
   pending: {
@@ -57,6 +67,7 @@ export default function DriverDashboardPage() {
   const [application, setApplication] = useState<ApplicationRow | null>(null);
   const [driverProfile, setDriverProfile] = useState<ProfileRow | null>(null);
   const [documentKinds, setDocumentKinds] = useState<Set<string> | null>(null);
+  const [vehiclePhotoUrl, setVehiclePhotoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const supabase = getClient();
@@ -89,11 +100,21 @@ export default function DriverDashboardPage() {
         .list(userId)
         .then(({ data: files }) => {
           const present = new Set<string>();
+          let photoPath: string | null = null;
           for (const file of files ?? []) {
             const match = DOCUMENT_KINDS.find((d) => file.name.startsWith(`${d.kind}-`));
             if (match) present.add(match.kind);
+            if (file.name.startsWith("vehicle-photo-")) photoPath = `${userId}/${file.name}`;
           }
           setDocumentKinds(present);
+          if (photoPath) {
+            supabase.storage
+              .from("driver-documents")
+              .createSignedUrl(photoPath, 3600)
+              .then(({ data: signed }) => {
+                if (signed?.signedUrl) setVehiclePhotoUrl(signed.signedUrl);
+              });
+          }
         });
     });
   }, []);
@@ -120,6 +141,8 @@ export default function DriverDashboardPage() {
           </h1>
           <p className="mt-2 text-[0.88rem] leading-relaxed text-muted">{copy.body}</p>
         </section>
+
+        {application ? <CarCard application={application} photoUrl={vehiclePhotoUrl} verified={status === "verified"} /> : null}
 
         <InfoCard title="Application Details">
           {driverProfile && application ? (
@@ -168,6 +191,113 @@ export default function DriverDashboardPage() {
         </InfoCard>
       </div>
     </DashboardShell>
+  );
+}
+
+/**
+ * A vehicle showcase card, like the reference the user sent — badges, a
+ * title, stat tiles and a photo. Adapted to what's actually collected at
+ * registration (driver_applications) rather than copied feature-for-
+ * feature: no "0-60 mph" or "Configure Vehicle" here, since neither
+ * applies to a cargo truck or exists as a real action in this app.
+ */
+function CarCard({
+  application,
+  photoUrl,
+  verified,
+}: {
+  application: ApplicationRow;
+  photoUrl: string | null;
+  verified: boolean;
+}) {
+  return (
+    <section
+      className="rounded-2xl border p-5"
+      style={{ borderColor: "rgba(0,0,0,0.08)", background: CARD_CREAM }}
+    >
+      <div className="flex flex-wrap items-center gap-2">
+        <span
+          className="rounded-full px-3 py-1 text-[0.68rem] font-semibold tracking-[0.04em]"
+          style={{ background: CARD_TILE_BG, color: CARD_INK }}
+        >
+          {verified ? "Verified" : "Pending Verification"}
+        </span>
+        <span
+          className="rounded-full px-3 py-1 text-[0.68rem] font-semibold tracking-[0.04em]"
+          style={{ background: CARD_TILE_BG, color: CARD_INK }}
+        >
+          {application.vehicle_year} Edition
+        </span>
+      </div>
+
+      <h2 className="mt-4 text-[1.6rem] font-extrabold tracking-[-0.02em]" style={{ color: CARD_INK }}>
+        {application.vehicle_make} {application.vehicle_model}
+      </h2>
+      <p className="mt-1 text-[0.85rem]" style={{ color: CARD_MUTED }}>
+        {application.vehicle_type} · {application.vehicle_capacity} capacity
+      </p>
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-[1fr_auto]">
+        <div className="flex flex-col gap-3">
+          <StatTile icon={Truck} label="Vehicle Type" value={application.vehicle_type} />
+          <StatTile icon={Weight} label="Capacity" value={application.vehicle_capacity} />
+        </div>
+        <div
+          className="h-40 w-full overflow-hidden rounded-xl sm:h-auto sm:w-56"
+          style={{ background: CARD_TILE_BG }}
+        >
+          {photoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element -- a signed storage URL, next/image gains nothing here
+            <img src={photoUrl} alt="Your vehicle" className="size-full object-cover" />
+          ) : (
+            <div className="grid size-full place-items-center">
+              <Truck className="size-10" style={{ color: "rgba(0,0,0,0.2)" }} aria-hidden />
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div
+        className="mt-5 flex items-center justify-between rounded-xl px-4 py-3"
+        style={{ background: CARD_TILE_BG }}
+      >
+        <div>
+          <p className="text-[0.65rem] font-semibold tracking-[0.08em] uppercase" style={{ color: CARD_MUTED }}>
+            Registration
+          </p>
+          <p className="text-[0.9rem] font-bold" style={{ color: CARD_INK }}>
+            {application.vehicle_registration_no}
+          </p>
+        </div>
+        <span
+          className="rounded-full px-3 py-1.5 text-[0.72rem] font-semibold"
+          style={{ background: CARD_INK, color: CARD_ACCENT }}
+        >
+          On File
+        </span>
+      </div>
+    </section>
+  );
+}
+
+function StatTile({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string }) {
+  return (
+    <div className="flex items-center gap-3 rounded-xl px-4 py-3" style={{ background: CARD_TILE_BG }}>
+      <span
+        className="grid size-9 shrink-0 place-items-center rounded-lg"
+        style={{ background: CARD_ACCENT, color: CARD_INK }}
+      >
+        <Icon className="size-4" aria-hidden />
+      </span>
+      <div className="min-w-0">
+        <p className="text-[0.65rem] font-semibold tracking-[0.06em] uppercase" style={{ color: CARD_MUTED }}>
+          {label}
+        </p>
+        <p className="truncate text-[0.88rem] font-bold" style={{ color: CARD_INK }}>
+          {value}
+        </p>
+      </div>
+    </div>
   );
 }
 

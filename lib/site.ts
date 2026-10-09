@@ -35,6 +35,7 @@ export const ROUTES = {
   dashboardCustomer: "/dashboard/customer",
   dashboardDriver: "/dashboard/driver",
   driverJobs: "/dashboard/driver/jobs",
+  driverHistory: "/dashboard/driver/history",
   dashboardAdmin: "/dashboard/admin",
   bookMove: "/dashboard/customer/move",
   bookSend: "/dashboard/customer/send",

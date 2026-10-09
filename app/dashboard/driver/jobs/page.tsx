@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState, type ReactNode } from "react";
 import { DashboardLoading, DashboardShell } from "@/components/auth/DashboardShell";
 import { BackButton } from "@/components/dashboard/BackButton";
-import { DeclineJobDialog } from "@/components/dashboard/DeclineJobDialog";
+import { CANCEL_REASONS, DECLINE_REASONS, ReasonDialog } from "@/components/dashboard/ReasonDialog";
 import { DriverSideMenu } from "@/components/dashboard/DriverSideMenu";
 import type { LocationPoint } from "@/components/dashboard/MoveMap";
 import { MoveMapPanel } from "@/components/dashboard/MoveMapPanel";
@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/Button";
 import {
   acceptJob,
   advanceJob,
+  cancelJob,
   declineJob,
   fetchAvailableJobs,
   fetchDeclinedJobIds,
@@ -57,9 +58,10 @@ function DriverJobsContent() {
   const [actingOn, setActingOn] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [declinedIds, setDeclinedIds] = useState<Set<string>>(new Set());
-  const [declineTarget, setDeclineTarget] = useState<string | null>(null);
-  const [declineFromDetail, setDeclineFromDetail] = useState(false);
-  const [declineBusy, setDeclineBusy] = useState(false);
+  const [reasonAction, setReasonAction] = useState<{ kind: "decline" | "cancel"; job: JobRow; fromDetail: boolean } | null>(
+    null,
+  );
+  const [reasonBusy, setReasonBusy] = useState(false);
 
   const verified = profile?.driverStatus === "verified";
 
@@ -130,26 +132,29 @@ function DriverJobsContent() {
     await reload();
   }
 
-  function openDecline(id: string, fromDetail: boolean) {
-    setDeclineTarget(id);
-    setDeclineFromDetail(fromDetail);
+  function openReason(kind: "decline" | "cancel", job: JobRow, fromDetail: boolean) {
+    setReasonAction({ kind, job, fromDetail });
   }
 
-  async function confirmDecline(reasons: string[]) {
-    if (!declineTarget) return;
-    setDeclineBusy(true);
+  async function confirmReason(reasons: string[]) {
+    if (!reasonAction) return;
+    const { kind, job, fromDetail } = reasonAction;
+    setReasonBusy(true);
     setError(null);
-    const result = await declineJob(declineTarget, reasons);
-    setDeclineBusy(false);
+    const result = kind === "decline" ? await declineJob(job, reasons) : await cancelJob(job, reasons);
+    setReasonBusy(false);
     if (!result.ok) {
       setError(result.message);
       return;
     }
-    const returnToList = declineFromDetail;
-    setDeclineTarget(null);
-    const dec = await fetchDeclinedJobIds();
-    if (dec.ok) setDeclinedIds(new Set(dec.data));
-    if (returnToList) router.push(ROUTES.driverJobs);
+    setReasonAction(null);
+    if (kind === "decline") {
+      const dec = await fetchDeclinedJobIds();
+      if (dec.ok) setDeclinedIds(new Set(dec.data));
+    } else {
+      await reload();
+    }
+    if (fromDetail) router.push(ROUTES.driverJobs);
   }
 
   const openMine = mine?.filter((j) => j.status === "confirmed" || j.status === "in_progress") ?? [];
@@ -209,7 +214,8 @@ function DriverJobsContent() {
                   busy={actingOn === current.row.id}
                   onAccept={() => handleAccept(current.row!.id)}
                   onAdvance={() => handleAdvance(current.row!.id, current.row!.status)}
-                  onDecline={() => openDecline(current.row!.id, true)}
+                  onDecline={() => openReason("decline", current.row!, true)}
+                  onCancel={() => openReason("cancel", current.row!, true)}
                 />
               ) : current ? (
                 <Panel>
@@ -250,6 +256,7 @@ function DriverJobsContent() {
                           ? { label: "Mark Delivered", onClick: () => handleAdvance(job.id, job.status) }
                           : null
                     }
+                    secondaryAction={{ label: "Cancel", onClick: () => openReason("cancel", job, false) }}
                   />
                 ))}
               </section>
@@ -276,7 +283,7 @@ function DriverJobsContent() {
                     job={job}
                     busy={actingOn === job.id}
                     action={{ label: "Accept", onClick: () => handleAccept(job.id) }}
-                    onDecline={() => openDecline(job.id, false)}
+                    secondaryAction={{ label: "Decline", onClick: () => openReason("decline", job, false) }}
                   />
                 ))
               )}
@@ -285,11 +292,19 @@ function DriverJobsContent() {
         )}
       </div>
 
-      <DeclineJobDialog
-        open={declineTarget !== null}
-        busy={declineBusy}
-        onConfirm={confirmDecline}
-        onClose={() => setDeclineTarget(null)}
+      <ReasonDialog
+        open={reasonAction !== null}
+        busy={reasonBusy}
+        title={reasonAction?.kind === "cancel" ? "Why cancel this job?" : "Why decline this job?"}
+        description={
+          reasonAction?.kind === "cancel"
+            ? "This goes back to the open list for another driver to pick up — we just want to know why."
+            : "This stays open for other drivers — we just want to know why it wasn't right for you."
+        }
+        confirmLabel={reasonAction?.kind === "cancel" ? "Confirm Cancel" : "Confirm Decline"}
+        reasons={reasonAction?.kind === "cancel" ? CANCEL_REASONS : DECLINE_REASONS}
+        onConfirm={confirmReason}
+        onClose={() => setReasonAction(null)}
       />
     </DashboardShell>
   );
@@ -301,12 +316,14 @@ function JobDetailPanel({
   onAccept,
   onAdvance,
   onDecline,
+  onCancel,
 }: {
   job: JobRow;
   busy: boolean;
   onAccept: () => void;
   onAdvance: () => void;
   onDecline: () => void;
+  onCancel: () => void;
 }) {
   const [customer, setCustomer] = useState<{ first_name: string; last_name: string; phone: string } | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
@@ -412,16 +429,16 @@ function JobDetailPanel({
             Decline
           </Button>
         </div>
-      ) : job.status === "confirmed" ? (
-        <Button type="button" variant="primary" className="w-full" disabled={busy} onClick={onAdvance}>
-          {busy ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
-          Start Trip
-        </Button>
-      ) : job.status === "in_progress" ? (
-        <Button type="button" variant="primary" className="w-full" disabled={busy} onClick={onAdvance}>
-          {busy ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
-          Mark Delivered
-        </Button>
+      ) : job.status === "confirmed" || job.status === "in_progress" ? (
+        <div className="flex gap-2.5">
+          <Button type="button" variant="primary" className="flex-1" disabled={busy} onClick={onAdvance}>
+            {busy ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
+            {job.status === "confirmed" ? "Start Trip" : "Mark Delivered"}
+          </Button>
+          <Button type="button" variant="ghost" className="flex-1" disabled={busy} onClick={onCancel}>
+            Cancel
+          </Button>
+        </div>
       ) : null}
     </div>
   );
@@ -431,14 +448,13 @@ function JobCard({
   job,
   action,
   busy,
-  onDecline,
+  secondaryAction,
 }: {
   job: JobRow;
   action: { label: string; onClick: () => void } | null;
   busy: boolean;
-  /** Only open (pending, unclaimed) jobs can be declined — a driver's own
-   * accepted job has Start Trip/Mark Delivered instead, never this. */
-  onDecline?: () => void;
+  /** Decline for an open job, Cancel for one the driver already accepted. */
+  secondaryAction?: { label: string; onClick: () => void };
 }) {
   const router = useRouter();
 
@@ -512,7 +528,7 @@ function JobCard({
             {busy ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
             {action.label}
           </Button>
-          {onDecline ? (
+          {secondaryAction ? (
             <Button
               type="button"
               variant="ghost"
@@ -521,10 +537,10 @@ function JobCard({
               disabled={busy}
               onClick={(e) => {
                 e.stopPropagation();
-                onDecline();
+                secondaryAction.onClick();
               }}
             >
-              Decline
+              {secondaryAction.label}
             </Button>
           ) : null}
         </div>

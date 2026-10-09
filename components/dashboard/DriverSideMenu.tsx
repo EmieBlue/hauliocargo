@@ -1,9 +1,10 @@
 "use client";
 
-import { LayoutDashboard, MessageSquare, Menu, Truck, User, X } from "lucide-react";
+import { History, LayoutDashboard, MessageSquare, Menu, Star, Truck, User, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { fetchDriverRatingSummary, type RatingSummary } from "@/lib/bookings";
 import { cn } from "@/lib/cn";
 import { ROUTES } from "@/lib/site";
 import { getClient } from "@/lib/supabase";
@@ -24,6 +25,7 @@ type MenuItem = {
 const ITEMS: MenuItem[] = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: ROUTES.dashboardDriver },
   { key: "jobs", label: "Jobs", icon: Truck, href: ROUTES.driverJobs },
+  { key: "history", label: "History", icon: History, href: ROUTES.driverHistory },
   { key: "profile", label: "Profile", icon: User, href: ROUTES.profile },
   { key: "chat", label: "Chat", icon: MessageSquare, href: null },
 ];
@@ -38,6 +40,7 @@ const ITEMS: MenuItem[] = [
  */
 export function DriverSideMenu({ activeKey = "dashboard" }: { activeKey?: string }) {
   const [name, setName] = useState("");
+  const [rating, setRating] = useState<RatingSummary | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => {
@@ -59,6 +62,10 @@ export function DriverSideMenu({ activeKey = "dashboard" }: { activeKey?: string
         });
     });
 
+    fetchDriverRatingSummary().then((result) => {
+      if (!cancelled && result.ok) setRating(result.data);
+    });
+
     return () => {
       cancelled = true;
     };
@@ -73,7 +80,7 @@ export function DriverSideMenu({ activeKey = "dashboard" }: { activeKey?: string
         )}
         style={{ background: INK_MENU, transitionTimingFunction: EASE }}
       >
-        <MenuBody activeKey={activeKey} name={name} expanded={false} />
+        <MenuBody activeKey={activeKey} name={name} rating={rating} expanded={false} />
       </aside>
 
       <button
@@ -107,7 +114,13 @@ export function DriverSideMenu({ activeKey = "dashboard" }: { activeKey?: string
             >
               <X className="size-5" aria-hidden />
             </button>
-            <MenuBody activeKey={activeKey} name={name} expanded onNavigate={() => setDrawerOpen(false)} />
+            <MenuBody
+              activeKey={activeKey}
+              name={name}
+              rating={rating}
+              expanded
+              onNavigate={() => setDrawerOpen(false)}
+            />
           </div>
         </div>
       ) : null}
@@ -118,11 +131,13 @@ export function DriverSideMenu({ activeKey = "dashboard" }: { activeKey?: string
 function MenuBody({
   activeKey,
   name,
+  rating,
   expanded,
   onNavigate,
 }: {
   activeKey: string;
   name: string;
+  rating: RatingSummary | null;
   expanded: boolean;
   onNavigate?: () => void;
 }) {
@@ -180,13 +195,17 @@ function MenuBody({
         </span>
         <span
           className={cn(
-            "min-w-0 truncate text-[0.85rem] font-semibold text-white transition-[opacity,transform] duration-300",
+            "min-w-0 transition-[opacity,transform] duration-300",
             expanded
               ? "opacity-100"
               : "opacity-0 group-hover:opacity-100 group-hover:delay-[120ms] group-focus-within:opacity-100",
           )}
         >
-          {name || "Driver"}
+          <span className="block truncate text-[0.85rem] font-semibold text-white">{name || "Driver"}</span>
+          <span className="flex items-center gap-1 text-[0.72rem]" style={{ color: "#c9c6c0" }}>
+            <Star className="size-3 shrink-0" fill={rating?.average ? AMBER : "none"} style={{ color: AMBER }} aria-hidden />
+            {rating?.average != null ? `${rating.average.toFixed(1)} (${rating.count})` : "No ratings yet"}
+          </span>
         </span>
       </div>
     </>

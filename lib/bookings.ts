@@ -311,11 +311,40 @@ export async function advanceJob(bookingId: string, currentStatus: BookingStatus
 }
 
 /**
+ * The display fields worth keeping a copy of when a driver declines or
+ * cancels a job — once another driver later accepts that booking,
+ * migration 015's own-job-only SELECT policy means the original driver
+ * loses read access to the live row, so their own history needs its own
+ * copy rather than a join back to `bookings`.
+ */
+function jobSnapshot(job: JobRow) {
+  return {
+    pickup_location: job.pickup_location,
+    dropoff_location: job.dropoff_location,
+    cargo_description: job.cargo_description,
+    vehicle_size: job.vehicle_size,
+    vehicle_category: job.vehicle_category,
+    scheduled_for: job.scheduled_for,
+  };
+}
+
+export type HistoryRow = ReturnType<typeof jobSnapshot> & {
+  id: string;
+  booking_id: string;
+  reasons: string[];
+  created_at: string;
+};
+
+const HISTORY_COLUMNS =
+  "id, booking_id, reasons, pickup_location, dropoff_location, cargo_description, vehicle_size, vehicle_category, scheduled_for, created_at";
+
+/**
  * Records why the signed-in driver declined an open job — never touches
  * the booking itself, so it stays open for every other driver. See
- * supabase/016_job_declines.sql.
+ * supabase/016_job_declines.sql and 017_job_cancellations.sql (the
+ * snapshot columns).
  */
-export async function declineJob(bookingId: string, reasons: string[]): Promise<AuthResult> {
+export async function declineJob(job: JobRow, reasons: string[]): Promise<AuthResult> {
   if (!authEnabled) return { ok: false, message: NOT_CONFIGURED };
   const supabase = getClient();
   if (!supabase) return { ok: false, message: NOT_CONFIGURED };
@@ -327,7 +356,7 @@ export async function declineJob(bookingId: string, reasons: string[]): Promise<
 
   const { error } = await supabase
     .from("job_declines")
-    .insert({ booking_id: bookingId, driver_id: user.id, reasons });
+    .insert({ booking_id: job.id, driver_id: user.id, reasons, ...jobSnapshot(job) });
   if (error) {
     console.error("decline job failed", error);
     return { ok: false, message: "That didn't go through. Please try again." };
@@ -352,6 +381,168 @@ export async function fetchDeclinedJobIds(): Promise<AuthResult<string[]>> {
     return { ok: false, message: "Couldn't load your declined jobs. Please try again." };
   }
   return { ok: true, data: (data ?? []).map((row) => row.booking_id as string) };
+}
+
+/**
+ * Releases an already-accepted job back to the open pool — status back to
+ * pending, driver_id cleared, so any driver can pick it up — rather than
+ * ending the customer's request. Records why the same way a decline does.
+ * See supabase/017_job_cancellations.sql.
+ */
+export async function cancelJob(job: JobRow, reasons: string[]): Promise<AuthResult> {
+  if (!authEnabled) return { ok: false, message: NOT_CONFIGURED };
+  const supabase = getClient();
+  if (!supabase) return { ok: false, message: NOT_CONFIGURED };
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Please sign in again." };
+
+  const { error } = await supabase
+    .from("bookings")
+    .update({ driver_id: null, status: "pending" })
+    .eq("id", job.id)
+    .eq("driver_id", user.id);
+  if (error) {
+    console.error("cancel job failed", error);
+    return { ok: false, message: "That didn't go through. Please try again." };
+  }
+
+  // The cancel itself already took effect — recording why is secondary,
+  // so a failure here is logged, not surfaced as the whole action failing.
+  const { error: logError } = await supabase
+    .from("job_cancellations")
+    .insert({ booking_id: job.id, driver_id: user.id, reasons, ...jobSnapshot(job) });
+  if (logError) console.error("log job cancellation failed", logError);
+
+  return { ok: true, data: undefined };
+}
+
+/** The signed-in driver's own declined jobs, most recent first. */
+export async function fetchDeclineHistory(): Promise<AuthResult<HistoryRow[]>> {
+  if (!authEnabled) return { ok: false, message: NOT_CONFIGURED };
+  const supabase = getClient();
+  if (!supabase) return { ok: false, message: NOT_CONFIGURED };
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Please sign in again." };
+
+  const { data, error } = await supabase
+    .from("job_declines")
+    .select(HISTORY_COLUMNS)
+    .eq("driver_id", user.id)
+    .order("created_at", { ascending: false });
+  if (error) {
+    console.error("fetch decline history failed", error);
+    return { ok: false, message: "Couldn't load your decline history. Please try again." };
+  }
+  return { ok: true, data: data as HistoryRow[] };
+}
+
+/** The signed-in driver's own cancelled jobs, most recent first. */
+export async function fetchCancellationHistory(): Promise<AuthResult<HistoryRow[]>> {
+  if (!authEnabled) return { ok: false, message: NOT_CONFIGURED };
+  const supabase = getClient();
+  if (!supabase) return { ok: false, message: NOT_CONFIGURED };
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Please sign in again." };
+
+  const { data, error } = await supabase
+    .from("job_cancellations")
+    .select(HISTORY_COLUMNS)
+    .eq("driver_id", user.id)
+    .order("created_at", { ascending: false });
+  if (error) {
+    console.error("fetch cancellation history failed", error);
+    return { ok: false, message: "Couldn't load your cancellation history. Please try again." };
+  }
+  return { ok: true, data: data as HistoryRow[] };
+}
+
+// ---------------------------------------------------------------------------
+// Driver ratings
+// ---------------------------------------------------------------------------
+
+/**
+ * Submitted by the customer once a booking is completed — one rating per
+ * booking (see supabase/018_driver_ratings.sql). `driverId` is the
+ * booking's own `driver_id`; the insert policy checks it actually matches.
+ */
+export async function submitDriverRating(
+  bookingId: string,
+  driverId: string,
+  stars: number,
+  comment: string | null,
+): Promise<AuthResult> {
+  if (!authEnabled) return { ok: false, message: NOT_CONFIGURED };
+  const supabase = getClient();
+  if (!supabase) return { ok: false, message: NOT_CONFIGURED };
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Please sign in again." };
+
+  const { error } = await supabase.from("driver_ratings").insert({
+    booking_id: bookingId,
+    driver_id: driverId,
+    customer_id: user.id,
+    stars,
+    comment: comment?.trim() || null,
+  });
+  if (error) {
+    console.error("submit driver rating failed", error);
+    return { ok: false, message: "That didn't go through. Please try again." };
+  }
+  return { ok: true, data: undefined };
+}
+
+/** Whether the signed-in customer has already rated this booking — so the form doesn't show twice. */
+export async function fetchBookingRating(bookingId: string): Promise<AuthResult<{ stars: number } | null>> {
+  if (!authEnabled) return { ok: false, message: NOT_CONFIGURED };
+  const supabase = getClient();
+  if (!supabase) return { ok: false, message: NOT_CONFIGURED };
+
+  const { data, error } = await supabase
+    .from("driver_ratings")
+    .select("stars")
+    .eq("booking_id", bookingId)
+    .maybeSingle();
+  if (error) {
+    console.error("fetch booking rating failed", error);
+    return { ok: false, message: "Couldn't check your rating. Please try again." };
+  }
+  return { ok: true, data: data as { stars: number } | null };
+}
+
+export type RatingSummary = { average: number | null; count: number };
+
+/** The signed-in driver's own average rating, computed from their own ratings. */
+export async function fetchDriverRatingSummary(): Promise<AuthResult<RatingSummary>> {
+  if (!authEnabled) return { ok: false, message: NOT_CONFIGURED };
+  const supabase = getClient();
+  if (!supabase) return { ok: false, message: NOT_CONFIGURED };
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Please sign in again." };
+
+  const { data, error } = await supabase.from("driver_ratings").select("stars").eq("driver_id", user.id);
+  if (error) {
+    console.error("fetch driver rating summary failed", error);
+    return { ok: false, message: "Couldn't load your rating. Please try again." };
+  }
+  const rows = (data ?? []) as { stars: number }[];
+  if (rows.length === 0) return { ok: true, data: { average: null, count: 0 } };
+  const average = rows.reduce((sum, row) => sum + row.stars, 0) / rows.length;
+  return { ok: true, data: { average, count: rows.length } };
 }
 
 /** Strips the `data:image/...;base64,` prefix FileReader adds — the edge function wants raw base64. */

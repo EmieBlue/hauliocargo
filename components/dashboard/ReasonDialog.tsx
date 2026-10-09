@@ -6,7 +6,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { EASE } from "@/lib/motion";
 
-const REASONS = [
+export const DECLINE_REASONS = [
   "Too far from me",
   "My truck doesn't match",
   "Price is too low",
@@ -14,31 +14,70 @@ const REASONS = [
   "Other",
 ] as const;
 
+export const CANCEL_REASONS = [
+  "Vehicle trouble",
+  "Running too late",
+  "Can't reach the customer",
+  "Changed my mind",
+  "Other",
+] as const;
+
 /**
- * Same modal pattern as components/ui/SignupDialog.tsx (overlay, Escape to
- * close, focus on open) — a checkbox popup asking why, since a decline is
- * meant to actually be recorded (see declineJob in lib/bookings.ts), not
- * just a silent dismissal.
+ * A checkbox popup asking why — used for both declining an open job and
+ * cancelling an already-accepted one (same modal pattern as
+ * components/ui/SignupDialog.tsx: overlay, Escape to close, focus on
+ * open), since both are meant to actually be recorded, not just a silent
+ * dismissal. See declineJob/cancelJob in lib/bookings.ts.
  */
-export function DeclineJobDialog({
+export function ReasonDialog({
   open,
   busy,
+  title,
+  description,
+  confirmLabel,
+  reasons,
   onConfirm,
   onClose,
 }: {
   open: boolean;
   busy: boolean;
+  title: string;
+  description: string;
+  confirmLabel: string;
+  reasons: readonly string[];
   onConfirm: (reasons: string[]) => void;
   onClose: () => void;
 }) {
-  return <AnimatePresence>{open ? <Panel busy={busy} onConfirm={onConfirm} onClose={onClose} /> : null}</AnimatePresence>;
+  return (
+    <AnimatePresence>
+      {open ? (
+        <Panel
+          title={title}
+          description={description}
+          confirmLabel={confirmLabel}
+          reasons={reasons}
+          busy={busy}
+          onConfirm={onConfirm}
+          onClose={onClose}
+        />
+      ) : null}
+    </AnimatePresence>
+  );
 }
 
 function Panel({
+  title,
+  description,
+  confirmLabel,
+  reasons,
   busy,
   onConfirm,
   onClose,
 }: {
+  title: string;
+  description: string;
+  confirmLabel: string;
+  reasons: readonly string[];
   busy: boolean;
   onConfirm: (reasons: string[]) => void;
   onClose: () => void;
@@ -104,14 +143,12 @@ function Panel({
         </button>
 
         <h2 id={titleId} className="font-display text-xl font-bold text-fg">
-          Why decline this job?
+          {title}
         </h2>
-        <p className="mt-2 text-[0.88rem] leading-relaxed text-muted">
-          This stays open for other drivers — we just want to know why it wasn&rsquo;t right for you.
-        </p>
+        <p className="mt-2 text-[0.88rem] leading-relaxed text-muted">{description}</p>
 
         <div className="mt-5 flex flex-col gap-2.5">
-          {REASONS.map((reason) => {
+          {reasons.map((reason) => {
             const isChecked = checked.has(reason);
             return (
               <label
@@ -140,10 +177,10 @@ function Panel({
           {busy ? (
             <>
               <Loader2 className="size-4 animate-spin" aria-hidden />
-              Declining
+              Submitting
             </>
           ) : (
-            "Confirm Decline"
+            confirmLabel
           )}
         </Button>
       </motion.div>

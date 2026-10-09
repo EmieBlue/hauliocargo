@@ -1,5 +1,6 @@
 "use client";
 
+import { Loader2, Star } from "lucide-react";
 import { Outfit } from "next/font/google";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState, type ReactNode } from "react";
@@ -8,6 +9,8 @@ import { BackButton } from "@/components/dashboard/BackButton";
 import { DashboardLoading, DashboardShell } from "@/components/auth/DashboardShell";
 import type { LocationPoint } from "@/components/dashboard/MoveMap";
 import { MoveMapPanel } from "@/components/dashboard/MoveMapPanel";
+import { Button } from "@/components/ui/Button";
+import { fetchBookingRating, submitDriverRating } from "@/lib/bookings";
 import { cn } from "@/lib/cn";
 import { formatPrice } from "@/lib/pricing";
 import { ROUTES } from "@/lib/site";
@@ -162,6 +165,8 @@ function BookingsContent() {
 function BookingDetailPanel({ booking }: { booking: BookingRow }) {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [driver, setDriver] = useState<DriverRow | null>(null);
+  // undefined = not checked yet, null = checked and not rated, number = already rated this many stars.
+  const [existingRating, setExistingRating] = useState<number | null | undefined>(undefined);
 
   useEffect(() => {
     const path = booking.cargo_photo_url;
@@ -204,6 +209,18 @@ function BookingDetailPanel({ booking }: { booking: BookingRow }) {
     };
   }, [booking.driver_id]);
 
+  useEffect(() => {
+    if (booking.status !== "completed" || !booking.driver_id) return;
+    let cancelled = false;
+    fetchBookingRating(booking.id).then((result) => {
+      if (cancelled) return;
+      if (result.ok) setExistingRating(result.data?.stars ?? null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [booking.id, booking.status, booking.driver_id]);
+
   return (
     <div className="flex flex-col gap-4">
       <Card>
@@ -235,10 +252,17 @@ function BookingDetailPanel({ booking }: { booking: BookingRow }) {
       <Card>
         <SectionLabel>Driver</SectionLabel>
         {driver ? (
-          <dl className="mt-3 flex flex-col gap-3 text-[0.88rem]" style={{ color: INK }}>
-            <DetailRow label="Name" value={`${driver.first_name} ${driver.last_name}`} />
-            <DetailRow label="Phone" value={driver.phone} />
-          </dl>
+          <>
+            <dl className="mt-3 flex flex-col gap-3 text-[0.88rem]" style={{ color: INK }}>
+              <DetailRow label="Name" value={`${driver.first_name} ${driver.last_name}`} />
+              <DetailRow label="Phone" value={driver.phone} />
+            </dl>
+            {booking.status === "completed" && booking.driver_id ? (
+              <div className="mt-4 border-t pt-4" style={{ borderColor: "rgba(0,0,0,0.08)" }}>
+                <RatingBox bookingId={booking.id} driverId={booking.driver_id} existingRating={existingRating} onRated={setExistingRating} />
+              </div>
+            ) : null}
+          </>
         ) : (
           <p className="mt-2 text-[0.88rem]" style={{ color: MUTED }}>
             Waiting for a driver to accept your request.
@@ -278,6 +302,115 @@ function BookingDetailPanel({ booking }: { booking: BookingRow }) {
           Chat opens once a driver accepts.
         </p>
       </Card>
+    </div>
+  );
+}
+
+function RatingBox({
+  bookingId,
+  driverId,
+  existingRating,
+  onRated,
+}: {
+  bookingId: string;
+  driverId: string;
+  existingRating: number | null | undefined;
+  onRated: (stars: number) => void;
+}) {
+  const [hovered, setHovered] = useState(0);
+  const [stars, setStars] = useState(0);
+  const [comment, setComment] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (existingRating === undefined) return null;
+
+  if (existingRating !== null) {
+    return (
+      <div>
+        <SectionLabel>Your rating</SectionLabel>
+        <div className="mt-2 flex items-center gap-1">
+          {[1, 2, 3, 4, 5].map((n) => (
+            <Star
+              key={n}
+              className="size-4"
+              fill={n <= existingRating ? AMBER : "none"}
+              style={{ color: AMBER }}
+              aria-hidden
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  async function handleSubmit() {
+    if (stars === 0 || submitting) return;
+    setSubmitting(true);
+    setError(null);
+    const result = await submitDriverRating(bookingId, driverId, stars, comment);
+    setSubmitting(false);
+    if (!result.ok) {
+      setError(result.message);
+      return;
+    }
+    onRated(stars);
+  }
+
+  return (
+    <div>
+      <SectionLabel>Rate Your Driver</SectionLabel>
+      <div className="mt-2 flex items-center gap-1">
+        {[1, 2, 3, 4, 5].map((n) => (
+          <button
+            key={n}
+            type="button"
+            onClick={() => setStars(n)}
+            onMouseEnter={() => setHovered(n)}
+            onMouseLeave={() => setHovered(0)}
+            aria-label={`${n} star${n === 1 ? "" : "s"}`}
+            className="p-0.5"
+          >
+            <Star
+              className="size-5"
+              fill={n <= (hovered || stars) ? AMBER : "none"}
+              style={{ color: AMBER }}
+              aria-hidden
+            />
+          </button>
+        ))}
+      </div>
+      <textarea
+        value={comment}
+        onChange={(e) => setComment(e.target.value)}
+        placeholder="Anything you'd like to add? (optional)"
+        rows={2}
+        className="mt-2.5 w-full resize-none rounded-xl border px-3.5 py-2.5 text-[0.85rem] focus:outline-none"
+        style={{ borderColor: "rgba(0,0,0,0.1)", background: CREAM, color: INK }}
+      />
+      {error ? (
+        <p role="alert" className="mt-2 text-[0.8rem]" style={{ color: AMBER }}>
+          {error}
+        </p>
+      ) : null}
+      <Button
+        type="button"
+        variant="primary"
+        size="sm"
+        className="mt-2.5"
+        style={{ background: stars === 0 || submitting ? undefined : AMBER }}
+        disabled={stars === 0 || submitting}
+        onClick={handleSubmit}
+      >
+        {submitting ? (
+          <>
+            <Loader2 className="size-4 animate-spin" aria-hidden />
+            Submitting
+          </>
+        ) : (
+          "Submit Rating"
+        )}
+      </Button>
     </div>
   );
 }
