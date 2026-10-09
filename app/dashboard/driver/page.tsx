@@ -10,15 +10,6 @@ import { uploadDriverDocument, type DriverStatus } from "@/lib/auth";
 import { getClient } from "@/lib/supabase";
 import { useRequireRole } from "@/lib/useRequireRole";
 
-// A deliberate light-card exception on this one card, same reasoning as
-// Move With You's own cream/amber palette: a vehicle showcase reads as a
-// product card, not a dark dashboard panel — fixed, not theme-reactive.
-const CARD_INK = "#17181c";
-const CARD_MUTED = "#6b6b74";
-const CARD_CREAM = "#f6f3ed";
-const CARD_TILE_BG = "rgba(0,0,0,0.045)";
-const CARD_ACCENT = "#f0b429";
-
 const STATUS_COPY: Record<DriverStatus, { label: string; body: string; icon: typeof Clock }> = {
   pending: {
     label: "Pending Verification",
@@ -154,9 +145,9 @@ export default function DriverDashboardPage() {
 
   return (
     <DashboardShell clearBackdrop sidebar={<DriverSideMenu activeKey="dashboard" />}>
-      <div className="flex w-full max-w-2xl flex-col gap-4">
+      <div className="flex w-full max-w-5xl flex-col gap-5">
         {/* Its own solid card now, not bare on the backdrop — that was the
-         * one piece of the last version left directly on the (now much
+         * one piece of an earlier version left directly on the (much
          * lighter) clear backdrop, which is exactly what made it illegible. */}
         <section className="rounded-xl border border-edge/12 bg-ink-950 p-5">
           <Badge pulse={status === "pending"}>
@@ -169,62 +160,71 @@ export default function DriverDashboardPage() {
           <p className="mt-2 text-[0.88rem] leading-relaxed text-muted">{copy.body}</p>
         </section>
 
-        {application ? (
-          <CarCard
-            application={application}
-            photoUrl={vehiclePhotoUrl}
-            verified={status === "verified"}
-            uploading={photoUploading}
-            error={photoError}
-            onPhotoSelected={handlePhotoSelected}
-          />
-        ) : null}
+        {/* Same left-info/right-visual split as the Jobs detail view and
+         * the customer Bookings page — details on the left, the car card
+         * on the right. */}
+        <div className="flex min-w-0 flex-1 flex-col gap-5 lg:flex-row lg:items-start">
+          <div className="order-2 flex w-full min-w-0 flex-col gap-4 lg:order-1 lg:w-1/2">
+            <InfoCard title="Application Details">
+              {driverProfile && application ? (
+                <dl className="grid gap-3.5 sm:grid-cols-2">
+                  <Row label="Name" value={`${driverProfile.first_name} ${driverProfile.last_name}`} />
+                  <Row label="Phone" value={driverProfile.phone} />
+                  <Row label="Licence Number" value={application.license_number} />
+                  <Row
+                    label="Vehicle"
+                    value={`${application.vehicle_year} ${application.vehicle_make} ${application.vehicle_model}`}
+                  />
+                  <Row label="Vehicle Type" value={application.vehicle_type} />
+                  <Row label="Registration No." value={application.vehicle_registration_no} />
+                  <Row label="Capacity" value={application.vehicle_capacity} />
+                </dl>
+              ) : (
+                <p className="text-[0.85rem] text-muted">Loading…</p>
+              )}
+            </InfoCard>
 
-        <InfoCard title="Application Details">
-          {driverProfile && application ? (
-            <dl className="grid gap-3.5 sm:grid-cols-2">
-              <Row label="Name" value={`${driverProfile.first_name} ${driverProfile.last_name}`} />
-              <Row label="Phone" value={driverProfile.phone} />
-              <Row label="Licence Number" value={application.license_number} />
-              <Row
-                label="Vehicle"
-                value={`${application.vehicle_year} ${application.vehicle_make} ${application.vehicle_model}`}
+            <InfoCard title="Documents">
+              {documentKinds ? (
+                <ul className="flex flex-col gap-2.5">
+                  {DOCUMENT_KINDS.map((doc) => {
+                    const present = documentKinds.has(doc.kind);
+                    return (
+                      <li key={doc.kind} className="flex items-center gap-2.5 text-[0.85rem]">
+                        {present ? (
+                          <CheckCircle2 className="size-4 shrink-0 text-brand" aria-hidden />
+                        ) : (
+                          <Circle className="size-4 shrink-0 text-muted" aria-hidden />
+                        )}
+                        <span className={present ? "text-fg" : "text-muted"}>{doc.label}</span>
+                        {!present ? (
+                          <span className="text-[0.72rem] text-muted">
+                            — {doc.required ? "missing" : "not provided"}
+                          </span>
+                        ) : null}
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <p className="text-[0.85rem] text-muted">Loading…</p>
+              )}
+            </InfoCard>
+          </div>
+
+          <div className="order-1 w-full min-w-0 lg:order-2 lg:sticky lg:top-28 lg:w-1/2 lg:self-start">
+            {application ? (
+              <CarCard
+                application={application}
+                photoUrl={vehiclePhotoUrl}
+                verified={status === "verified"}
+                uploading={photoUploading}
+                error={photoError}
+                onPhotoSelected={handlePhotoSelected}
               />
-              <Row label="Vehicle Type" value={application.vehicle_type} />
-              <Row label="Registration No." value={application.vehicle_registration_no} />
-              <Row label="Capacity" value={application.vehicle_capacity} />
-            </dl>
-          ) : (
-            <p className="text-[0.85rem] text-muted">Loading…</p>
-          )}
-        </InfoCard>
-
-        <InfoCard title="Documents">
-          {documentKinds ? (
-            <ul className="flex flex-col gap-2.5">
-              {DOCUMENT_KINDS.map((doc) => {
-                const present = documentKinds.has(doc.kind);
-                return (
-                  <li key={doc.kind} className="flex items-center gap-2.5 text-[0.85rem]">
-                    {present ? (
-                      <CheckCircle2 className="size-4 shrink-0 text-brand" aria-hidden />
-                    ) : (
-                      <Circle className="size-4 shrink-0 text-muted" aria-hidden />
-                    )}
-                    <span className={present ? "text-fg" : "text-muted"}>{doc.label}</span>
-                    {!present ? (
-                      <span className="text-[0.72rem] text-muted">
-                        — {doc.required ? "missing" : "not provided"}
-                      </span>
-                    ) : null}
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <p className="text-[0.85rem] text-muted">Loading…</p>
-          )}
-        </InfoCard>
+            ) : null}
+          </div>
+        </div>
       </div>
     </DashboardShell>
   );
@@ -255,104 +255,80 @@ function CarCard({
   const fileInput = useRef<HTMLInputElement>(null);
 
   return (
-    <section
-      className="rounded-2xl border p-5"
-      style={{ borderColor: "rgba(0,0,0,0.08)", background: CARD_CREAM }}
-    >
-      <div className="flex flex-wrap items-center gap-2">
-        <span
-          className="rounded-full px-3 py-1 text-[0.68rem] font-semibold tracking-[0.04em]"
-          style={{ background: CARD_TILE_BG, color: CARD_INK }}
-        >
-          {verified ? "Verified" : "Pending Verification"}
-        </span>
-        <span
-          className="rounded-full px-3 py-1 text-[0.68rem] font-semibold tracking-[0.04em]"
-          style={{ background: CARD_TILE_BG, color: CARD_INK }}
-        >
-          {application.vehicle_year} Edition
-        </span>
-      </div>
-
-      <h2 className="mt-4 text-[1.6rem] font-extrabold tracking-[-0.02em]" style={{ color: CARD_INK }}>
-        {application.vehicle_make} {application.vehicle_model}
-      </h2>
-      <p className="mt-1 text-[0.85rem]" style={{ color: CARD_MUTED }}>
-        {application.vehicle_type} · {application.vehicle_capacity} capacity
-      </p>
-
-      <div className="mt-5 grid gap-3 sm:grid-cols-[auto_1fr]">
-        <div>
-          <div
-            className="relative h-40 w-full overflow-hidden rounded-xl sm:h-auto sm:w-56"
-            style={{ background: CARD_TILE_BG }}
-          >
-            {photoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element -- a signed storage URL, next/image gains nothing here
-              <img src={photoUrl} alt="Your vehicle" className="size-full object-cover" />
-            ) : (
-              <div className="grid size-full place-items-center">
-                <Truck className="size-10" style={{ color: "rgba(0,0,0,0.2)" }} aria-hidden />
-              </div>
-            )}
-
-            <input
-              ref={fileInput}
-              type="file"
-              accept="image/*"
-              className="sr-only"
-              onChange={(e) => onPhotoSelected(e.target.files?.[0] ?? null)}
-            />
-            <button
-              type="button"
-              onClick={() => fileInput.current?.click()}
-              disabled={uploading}
-              className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1.5 px-2 py-2 text-[0.72rem] font-semibold transition-opacity disabled:opacity-70"
-              style={{ background: "rgba(0,0,0,0.55)", color: "#fff" }}
-            >
-              {uploading ? (
-                <>
-                  <Loader2 className="size-3.5 animate-spin" aria-hidden />
-                  Uploading
-                </>
-              ) : (
-                <>
-                  <Upload className="size-3.5" aria-hidden />
-                  {photoUrl ? "Replace Photo" : "Add Photo"}
-                </>
-              )}
-            </button>
+    <section className="overflow-hidden rounded-xl border border-edge/12 bg-ink-950">
+      {/* A full-width hero photo, not a small framed box next to the
+       * stats — this card gets its own column now, so the photo can lead. */}
+      <div className="relative h-52 w-full">
+        {photoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element -- a signed storage URL, next/image gains nothing here
+          <img src={photoUrl} alt="Your vehicle" className="size-full object-cover" />
+        ) : (
+          <div className="grid size-full place-items-center bg-ink-900">
+            <Truck className="size-12 text-muted" aria-hidden />
           </div>
-          {error ? (
-            <p role="alert" className="mt-1.5 text-[0.72rem]" style={{ color: "#b91c1c" }}>
-              {error}
-            </p>
-          ) : null}
+        )}
+
+        <input
+          ref={fileInput}
+          type="file"
+          accept="image/*"
+          className="sr-only"
+          onChange={(e) => onPhotoSelected(e.target.files?.[0] ?? null)}
+        />
+        <button
+          type="button"
+          onClick={() => fileInput.current?.click()}
+          disabled={uploading}
+          className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1.5 bg-black/55 px-2 py-2.5 text-[0.75rem] font-semibold text-white transition-opacity disabled:opacity-70"
+        >
+          {uploading ? (
+            <>
+              <Loader2 className="size-3.5 animate-spin" aria-hidden />
+              Uploading
+            </>
+          ) : (
+            <>
+              <Upload className="size-3.5" aria-hidden />
+              {photoUrl ? "Replace Photo" : "Add Photo"}
+            </>
+          )}
+        </button>
+      </div>
+      {error ? (
+        <p role="alert" className="px-5 pt-3 text-[0.72rem] text-brand">
+          {error}
+        </p>
+      ) : null}
+
+      <div className="p-5">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-full bg-edge/8 px-3 py-1 text-[0.68rem] font-semibold tracking-[0.04em] text-fg">
+            {verified ? "Verified" : "Pending Verification"}
+          </span>
+          <span className="rounded-full bg-edge/8 px-3 py-1 text-[0.68rem] font-semibold tracking-[0.04em] text-fg">
+            {application.vehicle_year} Edition
+          </span>
         </div>
-        <div className="flex flex-col gap-3">
+
+        <h2 className="mt-4 text-[1.4rem] font-extrabold tracking-[-0.02em] text-fg">
+          {application.vehicle_make} {application.vehicle_model}
+        </h2>
+        <p className="mt-1 text-[0.85rem] text-muted">
+          {application.vehicle_type} · {application.vehicle_capacity} capacity
+        </p>
+
+        <div className="mt-4 flex flex-col gap-3">
           <StatTile icon={Truck} label="Vehicle Type" value={application.vehicle_type} />
           <StatTile icon={Weight} label="Capacity" value={application.vehicle_capacity} />
         </div>
-      </div>
 
-      <div
-        className="mt-5 flex items-center justify-between rounded-xl px-4 py-3"
-        style={{ background: CARD_TILE_BG }}
-      >
-        <div>
-          <p className="text-[0.65rem] font-semibold tracking-[0.08em] uppercase" style={{ color: CARD_MUTED }}>
-            Registration
-          </p>
-          <p className="text-[0.9rem] font-bold" style={{ color: CARD_INK }}>
-            {application.vehicle_registration_no}
-          </p>
+        <div className="mt-4 flex items-center justify-between rounded-xl bg-ink-900 px-4 py-3">
+          <div>
+            <p className="text-[0.65rem] font-semibold tracking-[0.08em] uppercase text-muted">Registration</p>
+            <p className="text-[0.9rem] font-bold text-fg">{application.vehicle_registration_no}</p>
+          </div>
+          <span className="rounded-full bg-brand px-3 py-1.5 text-[0.72rem] font-semibold text-black">On File</span>
         </div>
-        <span
-          className="rounded-full px-3 py-1.5 text-[0.72rem] font-semibold"
-          style={{ background: CARD_INK, color: CARD_ACCENT }}
-        >
-          On File
-        </span>
       </div>
     </section>
   );
@@ -360,20 +336,13 @@ function CarCard({
 
 function StatTile({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string }) {
   return (
-    <div className="flex items-center gap-3 rounded-xl px-4 py-3" style={{ background: CARD_TILE_BG }}>
-      <span
-        className="grid size-9 shrink-0 place-items-center rounded-lg"
-        style={{ background: CARD_ACCENT, color: CARD_INK }}
-      >
+    <div className="flex items-center gap-3 rounded-xl bg-ink-900 px-4 py-3">
+      <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-brand text-black">
         <Icon className="size-4" aria-hidden />
       </span>
       <div className="min-w-0">
-        <p className="text-[0.65rem] font-semibold tracking-[0.06em] uppercase" style={{ color: CARD_MUTED }}>
-          {label}
-        </p>
-        <p className="truncate text-[0.88rem] font-bold" style={{ color: CARD_INK }}>
-          {value}
-        </p>
+        <p className="text-[0.65rem] font-semibold tracking-[0.06em] uppercase text-muted">{label}</p>
+        <p className="truncate text-[0.88rem] font-bold text-fg">{value}</p>
       </div>
     </div>
   );
