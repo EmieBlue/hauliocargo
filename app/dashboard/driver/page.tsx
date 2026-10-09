@@ -1,12 +1,12 @@
 "use client";
 
-import { CheckCircle2, Circle, Clock, Truck, Weight, XCircle } from "lucide-react";
+import { CheckCircle2, Circle, Clock, Loader2, Truck, Upload, Weight, XCircle } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DashboardLoading, DashboardShell } from "@/components/auth/DashboardShell";
 import { DriverSideMenu } from "@/components/dashboard/DriverSideMenu";
 import { Badge } from "@/components/ui/Badge";
-import type { DriverStatus } from "@/lib/auth";
+import { uploadDriverDocument, type DriverStatus } from "@/lib/auth";
 import { getClient } from "@/lib/supabase";
 import { useRequireRole } from "@/lib/useRequireRole";
 
@@ -68,6 +68,9 @@ export default function DriverDashboardPage() {
   const [driverProfile, setDriverProfile] = useState<ProfileRow | null>(null);
   const [documentKinds, setDocumentKinds] = useState<Set<string> | null>(null);
   const [vehiclePhotoUrl, setVehiclePhotoUrl] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
 
   useEffect(() => {
     const supabase = getClient();
@@ -76,6 +79,7 @@ export default function DriverDashboardPage() {
     supabase.auth.getUser().then(({ data }) => {
       const userId = data.user?.id;
       if (!userId) return;
+      setUserId(userId);
 
       supabase
         .from("profiles")
@@ -125,6 +129,29 @@ export default function DriverDashboardPage() {
   const copy = STATUS_COPY[status];
   const Icon = copy.icon;
 
+  async function handlePhotoSelected(file: File | null) {
+    if (!file || !userId) return;
+    const supabase = getClient();
+    if (!supabase) return;
+
+    setPhotoUploading(true);
+    setPhotoError(null);
+    const result = await uploadDriverDocument(userId, "vehicle-photo", file);
+    if (!result.ok) {
+      setPhotoUploading(false);
+      setPhotoError(result.message);
+      return;
+    }
+
+    // Old vehicle-photo uploads are left in place, not deleted — harmless
+    // clutter in storage, never shown again once this newer one exists,
+    // since the dashboard always displays the most recently uploaded one.
+    const { data: signed } = await supabase.storage.from("driver-documents").createSignedUrl(result.data, 3600);
+    setPhotoUploading(false);
+    if (signed?.signedUrl) setVehiclePhotoUrl(signed.signedUrl);
+    setDocumentKinds((prev) => new Set(prev).add("vehicle-photo"));
+  }
+
   return (
     <DashboardShell clearBackdrop sidebar={<DriverSideMenu activeKey="dashboard" />}>
       <div className="flex w-full max-w-2xl flex-col gap-4">
@@ -142,7 +169,16 @@ export default function DriverDashboardPage() {
           <p className="mt-2 text-[0.88rem] leading-relaxed text-muted">{copy.body}</p>
         </section>
 
-        {application ? <CarCard application={application} photoUrl={vehiclePhotoUrl} verified={status === "verified"} /> : null}
+        {application ? (
+          <CarCard
+            application={application}
+            photoUrl={vehiclePhotoUrl}
+            verified={status === "verified"}
+            uploading={photoUploading}
+            error={photoError}
+            onPhotoSelected={handlePhotoSelected}
+          />
+        ) : null}
 
         <InfoCard title="Application Details">
           {driverProfile && application ? (
@@ -205,11 +241,19 @@ function CarCard({
   application,
   photoUrl,
   verified,
+  uploading,
+  error,
+  onPhotoSelected,
 }: {
   application: ApplicationRow;
   photoUrl: string | null;
   verified: boolean;
+  uploading: boolean;
+  error: string | null;
+  onPhotoSelected: (file: File | null) => void;
 }) {
+  const fileInput = useRef<HTMLInputElement>(null);
+
   return (
     <section
       className="rounded-2xl border p-5"
@@ -238,18 +282,52 @@ function CarCard({
       </p>
 
       <div className="mt-5 grid gap-3 sm:grid-cols-[auto_1fr]">
-        <div
-          className="h-40 w-full overflow-hidden rounded-xl sm:h-auto sm:w-56"
-          style={{ background: CARD_TILE_BG }}
-        >
-          {photoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element -- a signed storage URL, next/image gains nothing here
-            <img src={photoUrl} alt="Your vehicle" className="size-full object-cover" />
-          ) : (
-            <div className="grid size-full place-items-center">
-              <Truck className="size-10" style={{ color: "rgba(0,0,0,0.2)" }} aria-hidden />
-            </div>
-          )}
+        <div>
+          <div
+            className="relative h-40 w-full overflow-hidden rounded-xl sm:h-auto sm:w-56"
+            style={{ background: CARD_TILE_BG }}
+          >
+            {photoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- a signed storage URL, next/image gains nothing here
+              <img src={photoUrl} alt="Your vehicle" className="size-full object-cover" />
+            ) : (
+              <div className="grid size-full place-items-center">
+                <Truck className="size-10" style={{ color: "rgba(0,0,0,0.2)" }} aria-hidden />
+              </div>
+            )}
+
+            <input
+              ref={fileInput}
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              onChange={(e) => onPhotoSelected(e.target.files?.[0] ?? null)}
+            />
+            <button
+              type="button"
+              onClick={() => fileInput.current?.click()}
+              disabled={uploading}
+              className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1.5 px-2 py-2 text-[0.72rem] font-semibold transition-opacity disabled:opacity-70"
+              style={{ background: "rgba(0,0,0,0.55)", color: "#fff" }}
+            >
+              {uploading ? (
+                <>
+                  <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                  Uploading
+                </>
+              ) : (
+                <>
+                  <Upload className="size-3.5" aria-hidden />
+                  {photoUrl ? "Replace Photo" : "Add Photo"}
+                </>
+              )}
+            </button>
+          </div>
+          {error ? (
+            <p role="alert" className="mt-1.5 text-[0.72rem]" style={{ color: "#b91c1c" }}>
+              {error}
+            </p>
+          ) : null}
         </div>
         <div className="flex flex-col gap-3">
           <StatTile icon={Truck} label="Vehicle Type" value={application.vehicle_type} />
