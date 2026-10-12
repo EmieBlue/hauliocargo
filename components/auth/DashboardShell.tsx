@@ -85,7 +85,7 @@ export function DashboardShell({
       </header>
       {sidebar ? (
         <div className="relative flex flex-1 items-start pt-28 pb-16">
-          <div className="sticky top-28 shrink-0">{sidebar}</div>
+          <div className="sticky top-28 z-30 shrink-0">{sidebar}</div>
           <div className="container-page relative flex min-w-0 flex-1 items-start justify-center">{children}</div>
         </div>
       ) : (
