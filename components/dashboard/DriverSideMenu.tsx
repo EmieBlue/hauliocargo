@@ -20,14 +20,15 @@ type MenuItem = {
   href: string | null;
 };
 
-// Chat stays disabled ("coming soon") — same honest-placeholder treatment
-// AppSideMenu already gives its own Chat item.
+// Chat lives inside each accepted job's own detail panel (ROUTES.driverJobs
+// + ?id=), not a page of its own — this just gets there, same as
+// AppSideMenu's own Chat item on the customer side.
 const ITEMS: MenuItem[] = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: ROUTES.dashboardDriver },
   { key: "jobs", label: "Jobs", icon: Truck, href: ROUTES.driverJobs },
   { key: "history", label: "History", icon: History, href: ROUTES.driverHistory },
   { key: "profile", label: "Profile", icon: User, href: ROUTES.profile },
-  { key: "chat", label: "Chat", icon: MessageSquare, href: null },
+  { key: "chat", label: "Chat", icon: MessageSquare, href: ROUTES.driverJobs },
 ];
 
 /**

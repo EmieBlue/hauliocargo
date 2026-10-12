@@ -36,7 +36,12 @@ const ITEMS: MenuItem[] = [
   { key: "send", label: "Send only", icon: Send, href: ROUTES.bookSend },
   { key: "packages", label: "Packages", icon: Package, href: ROUTES.bookReceive },
   { key: "tracking", label: "Tracking", icon: Navigation, href: ROUTES.bookings, badge: "tracking" },
-  { key: "chat", label: "Chat", icon: MessageSquare, href: null, badge: "chat" },
+  // Chat now lives inside each request's own detail panel (ROUTES.bookings
+  // + ?id=), not its own page — this just gets there. No "chat" badge
+  // dot anymore either: that was a permanent decoration, not tied to
+  // real unread state, which would be actively misleading now that chat
+  // is real.
+  { key: "chat", label: "Chat", icon: MessageSquare, href: ROUTES.bookings },
 ];
 
 const ACTIVE_STATUSES: RequestStatus[] = ["pending", "confirmed", "in_progress"];

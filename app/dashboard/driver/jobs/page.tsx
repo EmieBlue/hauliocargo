@@ -2,7 +2,7 @@
 
 import { Clock, Loader2, MapPin, Truck } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState, type ReactNode } from "react";
+import { Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { DashboardLoading, DashboardShell } from "@/components/auth/DashboardShell";
 import { BackButton } from "@/components/dashboard/BackButton";
 import { CANCEL_REASONS, DECLINE_REASONS, ReasonDialog } from "@/components/dashboard/ReasonDialog";
@@ -23,6 +23,7 @@ import {
   type JobRow,
 } from "@/lib/bookings";
 import { cn } from "@/lib/cn";
+import { fetchMessages, sendMessage, subscribeToMessages, type MessageRow } from "@/lib/messages";
 import { formatPrice } from "@/lib/pricing";
 import { ROUTES } from "@/lib/site";
 import { getClient } from "@/lib/supabase";
@@ -419,6 +420,12 @@ function JobDetailPanel({
         </Panel>
       ) : null}
 
+      {job.driver_id ? (
+        <Panel title="Chat">
+          <ChatThread bookingId={job.id} />
+        </Panel>
+      ) : null}
+
       {job.status === "pending" ? (
         <div className="flex gap-2.5">
           <Button type="button" variant="primary" className="flex-1" disabled={busy} onClick={onAccept}>
@@ -441,6 +448,108 @@ function JobDetailPanel({
         </div>
       ) : null}
     </div>
+  );
+}
+
+/**
+ * One conversation per booking (see lib/messages.ts / migration 020),
+ * same logic as the customer bookings page's own `ChatThread`, just dark
+ * tokens here instead of that page's cream palette.
+ */
+function ChatThread({ bookingId }: { bookingId: string }) {
+  const [userId, setUserId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<MessageRow[] | null>(null);
+  const [body, setBody] = useState("");
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const supabase = getClient();
+    if (!supabase) return;
+    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchMessages(bookingId).then((result) => {
+      if (!cancelled && result.ok) setMessages(result.data);
+    });
+    const unsubscribe = subscribeToMessages(bookingId, (message) => {
+      setMessages((prev) => (prev ? [...prev, message] : [message]));
+    });
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, [bookingId]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ block: "nearest" });
+  }, [messages]);
+
+  async function handleSend() {
+    if (!body.trim() || sending) return;
+    setSending(true);
+    setError(null);
+    const toSend = body;
+    setBody("");
+    const result = await sendMessage(bookingId, toSend);
+    setSending(false);
+    if (!result.ok) {
+      setError(result.message);
+      setBody(toSend);
+    }
+  }
+
+  return (
+    <>
+      <div className="flex max-h-64 flex-col gap-2 overflow-y-auto rounded-xl border border-edge/10 bg-ink-900 px-3 py-3">
+        {messages === null ? (
+          <p className="text-[0.82rem] text-muted">Loading…</p>
+        ) : messages.length === 0 ? (
+          <p className="text-[0.82rem] text-muted">No messages yet — say hello.</p>
+        ) : (
+          messages.map((m) => {
+            const mine = m.sender_id === userId;
+            return (
+              <div
+                key={m.id}
+                className={cn(
+                  "max-w-[80%] rounded-2xl px-3 py-2 text-[0.85rem]",
+                  mine ? "self-end bg-brand text-black" : "self-start bg-edge/10 text-fg",
+                )}
+              >
+                {m.body}
+              </div>
+            );
+          })
+        )}
+        <div ref={bottomRef} />
+      </div>
+      {error ? (
+        <p role="alert" className="mt-2 text-[0.78rem] text-brand">
+          {error}
+        </p>
+      ) : null}
+      <div className="mt-2.5 flex gap-2">
+        <input
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              handleSend();
+            }
+          }}
+          placeholder="Type a message…"
+          className="h-11 flex-1 rounded-xl border border-edge/12 bg-ink-950 px-3.5 text-[0.85rem] text-fg placeholder:text-muted focus:border-brand/50 focus:outline-none"
+        />
+        <Button type="button" variant="primary" size="sm" disabled={!body.trim() || sending} onClick={handleSend}>
+          {sending ? <Loader2 className="size-4 animate-spin" aria-hidden /> : "Send"}
+        </Button>
+      </div>
+    </>
   );
 }
 

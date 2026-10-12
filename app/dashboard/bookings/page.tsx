@@ -3,7 +3,7 @@
 import { Loader2, Star } from "lucide-react";
 import { Outfit } from "next/font/google";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState, type ReactNode } from "react";
+import { Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { AppSideMenu } from "@/components/dashboard/AppSideMenu";
 import { BackButton } from "@/components/dashboard/BackButton";
 import { DashboardLoading, DashboardShell } from "@/components/auth/DashboardShell";
@@ -12,6 +12,7 @@ import { MoveMapPanel } from "@/components/dashboard/MoveMapPanel";
 import { Button } from "@/components/ui/Button";
 import { fetchBookingRating, submitDriverRating } from "@/lib/bookings";
 import { cn } from "@/lib/cn";
+import { fetchMessages, sendMessage, subscribeToMessages, type MessageRow } from "@/lib/messages";
 import { formatPrice } from "@/lib/pricing";
 import { ROUTES } from "@/lib/site";
 import { getClient } from "@/lib/supabase";
@@ -298,9 +299,13 @@ function BookingDetailPanel({ booking }: { booking: BookingRow }) {
 
       <Card>
         <SectionLabel>Chat</SectionLabel>
-        <p className="mt-2 text-[0.88rem]" style={{ color: MUTED }}>
-          Chat opens once a driver accepts.
-        </p>
+        {driver && booking.driver_id ? (
+          <ChatThread bookingId={booking.id} />
+        ) : (
+          <p className="mt-2 text-[0.88rem]" style={{ color: MUTED }}>
+            Chat opens once a driver accepts.
+          </p>
+        )}
       </Card>
     </div>
   );
@@ -412,6 +417,123 @@ function RatingBox({
         )}
       </Button>
     </div>
+  );
+}
+
+/**
+ * One conversation per booking (see lib/messages.ts / migration 020),
+ * reused with the opposite dark-token styling in the driver job detail
+ * panel — the chat logic is identical either side, only the look differs,
+ * same split this project already keeps between shared data functions and
+ * page-local presentation.
+ */
+function ChatThread({ bookingId }: { bookingId: string }) {
+  const [userId, setUserId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<MessageRow[] | null>(null);
+  const [body, setBody] = useState("");
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const supabase = getClient();
+    if (!supabase) return;
+    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchMessages(bookingId).then((result) => {
+      if (!cancelled && result.ok) setMessages(result.data);
+    });
+    const unsubscribe = subscribeToMessages(bookingId, (message) => {
+      setMessages((prev) => (prev ? [...prev, message] : [message]));
+    });
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, [bookingId]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ block: "nearest" });
+  }, [messages]);
+
+  async function handleSend() {
+    if (!body.trim() || sending) return;
+    setSending(true);
+    setError(null);
+    const toSend = body;
+    setBody("");
+    const result = await sendMessage(bookingId, toSend);
+    setSending(false);
+    if (!result.ok) {
+      setError(result.message);
+      setBody(toSend);
+    }
+  }
+
+  return (
+    <>
+      <div
+        className="mt-3 flex max-h-64 flex-col gap-2 overflow-y-auto rounded-xl border px-3 py-3"
+        style={{ borderColor: "rgba(0,0,0,0.08)" }}
+      >
+        {messages === null ? (
+          <p className="text-[0.82rem]" style={{ color: MUTED }}>
+            Loading…
+          </p>
+        ) : messages.length === 0 ? (
+          <p className="text-[0.82rem]" style={{ color: MUTED }}>
+            No messages yet — say hello.
+          </p>
+        ) : (
+          messages.map((m) => {
+            const mine = m.sender_id === userId;
+            return (
+              <div
+                key={m.id}
+                className={cn("max-w-[80%] rounded-2xl px-3 py-2 text-[0.85rem]", mine ? "self-end" : "self-start")}
+                style={{ background: mine ? AMBER : "rgba(0,0,0,0.05)", color: INK }}
+              >
+                {m.body}
+              </div>
+            );
+          })
+        )}
+        <div ref={bottomRef} />
+      </div>
+      {error ? (
+        <p role="alert" className="mt-2 text-[0.78rem]" style={{ color: AMBER }}>
+          {error}
+        </p>
+      ) : null}
+      <div className="mt-2.5 flex gap-2">
+        <input
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              handleSend();
+            }
+          }}
+          placeholder="Type a message…"
+          className="h-11 flex-1 rounded-xl border px-3.5 text-[0.85rem] focus:outline-none"
+          style={{ borderColor: "rgba(0,0,0,0.1)", background: CREAM, color: INK }}
+        />
+        <Button
+          type="button"
+          variant="primary"
+          size="sm"
+          style={{ background: body.trim() && !sending ? AMBER : undefined }}
+          disabled={!body.trim() || sending}
+          onClick={handleSend}
+        >
+          {sending ? <Loader2 className="size-4 animate-spin" aria-hidden /> : "Send"}
+        </Button>
+      </div>
+    </>
   );
 }
 
