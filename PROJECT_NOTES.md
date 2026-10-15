@@ -10,6 +10,17 @@ carries it over. Never put secrets/credentials here — this file is as visible 
 third-party dashboard (GitHub, Vercel, Supabase) — name the actual platform, never just "the dashboard."
 Screenshots of their own screen are the most reliable way they report state back.
 
+## Session log
+
+Plain-English recap of each work session, newest first — this is for the user to read back, not just for
+Claude's context. Add a new dated entry here at the end of a session; don't rewrite old ones.
+
+**2026-10-15** — Set up this file so work survives switching between the work laptop and the user's home
+laptop (both already have Claude Code + this repo). Separately, checked today's driver-side pages on an actual
+phone-width screen and found the mobile menu button (the hamburger icon that opens the side navigation on a
+phone) was invisible-but-unclickable on every dashboard page, for both customer and driver — fixed with a
+one-line CSS change in `DashboardShell.tsx`. Confirmed fixed and pushed live.
+
 ## Stack and deploy
 
 - Next.js 16 (static export) + Supabase (Auth, Postgres, Storage, Realtime, one Edge Function). Repo:
