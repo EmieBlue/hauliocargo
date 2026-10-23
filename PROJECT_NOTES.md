@@ -15,6 +15,15 @@ Screenshots of their own screen are the most reliable way they report state back
 Plain-English recap of each work session, newest first — this is for the user to read back, not just for
 Claude's context. Add a new dated entry here at the end of a session; don't rewrite old ones.
 
+**2026-10-23** — Renewed the Anthropic (Claude) API key that powers SmartLoad (cargo-photo analysis on the
+booking form, `supabase/functions/analyze-cargo`). The key only ever lives as a Supabase Edge Function secret
+(`ANTHROPIC_API_KEY`), never in the repo, so this was a dashboard-only change: new key generated in
+console.anthropic.com, pasted into Supabase → Project Settings → Edge Functions → Secrets, old key revoked
+after confirming the new one worked. Verified directly by calling the function with a curl test rather than
+trusting the dashboard save — confirmed the new key authenticates fine. SmartLoad still won't actually return
+results right now because the Anthropic account's credit balance is too low (separate from the key itself) —
+see Known open items.
+
 **2026-10-15** — Set up this file so work survives switching between the work laptop and the user's home
 laptop (both already have Claude Code + this repo). Separately, checked today's driver-side pages on an actual
 phone-width screen and found the mobile menu button (the hamburger icon that opens the side navigation on a
@@ -57,6 +66,11 @@ introduced by the driver-side work — just never checked on an actual phone-wid
 
 ## Known open items (not yet fixed, flagged but not blocking)
 
+- SmartLoad (cargo-photo analysis) is currently non-functional: the Anthropic account's credit balance is too
+  low, confirmed via the Edge Function's own logs ("Your credit balance is too low to access the Anthropic
+  API"). The API key itself is fine (renewed 2026-10-23) — this just needs a top-up in console.anthropic.com
+  whenever the user wants SmartLoad working again. Booking still works fine without it; the photo-analysis step
+  just won't return a suggestion.
 - `profiles`' "update own profile" RLS policy has no `WITH CHECK`, so a user could technically change their own
   `role` via a direct API call. Low priority until a real admin panel exists — fix then.
 - Driver verification is still manual via the Supabase Table Editor/SQL Editor — no admin panel yet.
