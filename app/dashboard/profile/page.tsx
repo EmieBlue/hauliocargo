@@ -1,8 +1,8 @@
 "use client";
 
-import { CheckCircle2, Clock, Loader2, XCircle } from "lucide-react";
+import { CheckCircle2, Clock, Loader2, User, XCircle } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DashboardLoading, DashboardShell } from "@/components/auth/DashboardShell";
 import { PasswordField } from "@/components/auth/PasswordField";
 import { PasswordRequirements } from "@/components/auth/PasswordRequirements";
@@ -11,9 +11,11 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import {
   redirectPathFor,
+  updateAvatarPath,
   updateDriverApplication,
   updateOwnProfile,
   updatePassword,
+  uploadAvatar,
   type DriverStatus,
 } from "@/lib/auth";
 import { getClient } from "@/lib/supabase";
@@ -26,6 +28,7 @@ type ProfileRow = {
   phone: string;
   city: string | null;
   area: string | null;
+  avatar_path: string | null;
 };
 
 type ApplicationRow = {
@@ -37,6 +40,7 @@ type ApplicationRow = {
   vehicle_year: number;
   vehicle_registration_no: string;
   vehicle_capacity: string;
+  vehicle_color: string | null;
   status: DriverStatus;
 };
 
@@ -52,6 +56,10 @@ export default function ProfilePage() {
   const [row, setRow] = useState<ProfileRow | null>(null);
   const [application, setApplication] = useState<ApplicationRow | null>(null);
   const [email, setEmail] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
 
   useEffect(() => {
     const supabase = getClient();
@@ -59,26 +67,37 @@ export default function ProfilePage() {
     let cancelled = false;
 
     supabase.auth.getUser().then(({ data }) => {
-      const userId = data.user?.id;
-      if (!userId || cancelled) return;
+      const uid = data.user?.id;
+      if (!uid || cancelled) return;
       setEmail(data.user?.email ?? null);
+      setUserId(uid);
 
       supabase
         .from("profiles")
-        .select("first_name, last_name, phone, city, area")
-        .eq("id", userId)
+        .select("first_name, last_name, phone, city, area, avatar_path")
+        .eq("id", uid)
         .single()
         .then(({ data: profileRow }) => {
-          if (!cancelled) setRow((profileRow as ProfileRow | null) ?? null);
+          if (cancelled) return;
+          const typed = (profileRow as ProfileRow | null) ?? null;
+          setRow(typed);
+          if (typed?.avatar_path) {
+            supabase.storage
+              .from("avatars")
+              .createSignedUrl(typed.avatar_path, 3600)
+              .then(({ data: signed }) => {
+                if (!cancelled && signed?.signedUrl) setAvatarUrl(signed.signedUrl);
+              });
+          }
         });
 
       if (profile?.role === "driver") {
         supabase
           .from("driver_applications")
           .select(
-            "date_of_birth, license_number, vehicle_type, vehicle_make, vehicle_model, vehicle_year, vehicle_registration_no, vehicle_capacity, status",
+            "date_of_birth, license_number, vehicle_type, vehicle_make, vehicle_model, vehicle_year, vehicle_registration_no, vehicle_capacity, vehicle_color, status",
           )
-          .eq("profile_id", userId)
+          .eq("profile_id", uid)
           .single()
           .then(({ data: appRow }) => {
             if (!cancelled) setApplication((appRow as ApplicationRow | null) ?? null);
@@ -90,6 +109,30 @@ export default function ProfilePage() {
       cancelled = true;
     };
   }, [profile?.role]);
+
+  async function handleAvatarSelected(file: File | null) {
+    if (!file || !userId) return;
+    const supabase = getClient();
+    if (!supabase) return;
+
+    setAvatarUploading(true);
+    setAvatarError(null);
+    const uploadResult = await uploadAvatar(userId, file);
+    if (!uploadResult.ok) {
+      setAvatarUploading(false);
+      setAvatarError(uploadResult.message);
+      return;
+    }
+    const pathResult = await updateAvatarPath(uploadResult.data);
+    if (!pathResult.ok) {
+      setAvatarUploading(false);
+      setAvatarError(pathResult.message);
+      return;
+    }
+    const { data: signed } = await supabase.storage.from("avatars").createSignedUrl(uploadResult.data, 3600);
+    setAvatarUploading(false);
+    if (signed?.signedUrl) setAvatarUrl(signed.signedUrl);
+  }
 
   if (loading || !profile) return <DashboardLoading />;
 
@@ -108,6 +151,13 @@ export default function ProfilePage() {
           {email ? <p className="mt-1.5 text-[0.88rem] text-muted">{email}</p> : null}
         </div>
 
+        <AvatarCard
+          avatarUrl={avatarUrl}
+          uploading={avatarUploading}
+          error={avatarError}
+          onPhotoSelected={handleAvatarSelected}
+        />
+
         {row ? <PersonalInfoCard initial={row} isCustomer={profile.role === "customer"} /> : <LoadingCard />}
 
         {profile.role === "driver" ? (
@@ -121,6 +171,70 @@ export default function ProfilePage() {
         <PasswordCard />
       </div>
     </DashboardShell>
+  );
+}
+
+function AvatarCard({
+  avatarUrl,
+  uploading,
+  error,
+  onPhotoSelected,
+}: {
+  avatarUrl: string | null;
+  uploading: boolean;
+  error: string | null;
+  onPhotoSelected: (file: File | null) => void;
+}) {
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  return (
+    <Card title="Profile Photo">
+      <div className="flex items-center gap-4">
+        <div className="relative size-20 shrink-0 overflow-hidden rounded-full border border-edge/12 bg-ink-900">
+          {avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element -- a signed storage URL, next/image gains nothing here
+            <img src={avatarUrl} alt="Your profile photo" className="size-full object-cover" />
+          ) : (
+            <div className="grid size-full place-items-center">
+              <User className="size-8 text-muted" aria-hidden />
+            </div>
+          )}
+        </div>
+        <div className="flex flex-col gap-2">
+          <input
+            ref={fileInput}
+            type="file"
+            accept="image/*"
+            className="sr-only"
+            onChange={(e) => onPhotoSelected(e.target.files?.[0] ?? null)}
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            disabled={uploading}
+            onClick={() => fileInput.current?.click()}
+            className="self-start"
+          >
+            {uploading ? (
+              <>
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+                Uploading
+              </>
+            ) : avatarUrl ? (
+              "Replace Photo"
+            ) : (
+              "Add Photo"
+            )}
+          </Button>
+          {error ? (
+            <p role="alert" className="text-[0.78rem] text-brand">
+              {error}
+            </p>
+          ) : null}
+        </div>
+      </div>
+    </Card>
   );
 }
 
@@ -181,6 +295,7 @@ function VehicleInfoCard({ initial }: { initial: ApplicationRow }) {
   const [vehicleYear, setVehicleYear] = useState(String(initial.vehicle_year));
   const [vehicleRegistrationNo, setVehicleRegistrationNo] = useState(initial.vehicle_registration_no);
   const [vehicleCapacity, setVehicleCapacity] = useState(initial.vehicle_capacity);
+  const [vehicleColor, setVehicleColor] = useState(initial.vehicle_color ?? "");
   const [dateOfBirth, setDateOfBirth] = useState(initial.date_of_birth ?? "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -202,6 +317,7 @@ function VehicleInfoCard({ initial }: { initial: ApplicationRow }) {
       vehicleYear,
       vehicleRegistrationNo,
       vehicleCapacity,
+      vehicleColor,
     });
     setSaving(false);
     if (!result.ok) {
@@ -252,6 +368,7 @@ function VehicleInfoCard({ initial }: { initial: ApplicationRow }) {
           />
           <TextField label="Capacity" value={vehicleCapacity} onChange={(e) => setVehicleCapacity(e.target.value)} />
         </div>
+        <TextField label="Vehicle Color" value={vehicleColor} onChange={(e) => setVehicleColor(e.target.value)} />
 
         <SaveRow saving={saving} saved={saved} error={error} onSave={handleSave} />
       </div>

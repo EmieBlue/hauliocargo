@@ -545,6 +545,36 @@ export async function fetchDriverRatingSummary(): Promise<AuthResult<RatingSumma
   return { ok: true, data: { average, count: rows.length } };
 }
 
+export type MatchedDriverVehicle = {
+  vehicle_make: string;
+  vehicle_model: string;
+  vehicle_year: number;
+  vehicle_color: string | null;
+  vehicle_registration_no: string;
+  vehicle_type: string;
+};
+
+/**
+ * A matched customer's narrow peek at their driver's truck — make, model,
+ * color, registration, type, nothing else. Goes through the
+ * `get_matched_driver_vehicle` RPC (migration 021) rather than a direct
+ * `driver_applications` select, since that table has no customer-facing
+ * policy at all (it also holds the driver's licence number/birthdate).
+ */
+export async function fetchMatchedDriverVehicle(bookingId: string): Promise<AuthResult<MatchedDriverVehicle | null>> {
+  if (!authEnabled) return { ok: false, message: NOT_CONFIGURED };
+  const supabase = getClient();
+  if (!supabase) return { ok: false, message: NOT_CONFIGURED };
+
+  const { data, error } = await supabase.rpc("get_matched_driver_vehicle", { p_booking_id: bookingId });
+  if (error) {
+    console.error("fetch matched driver vehicle failed", error);
+    return { ok: false, message: "Couldn't load the driver's vehicle details." };
+  }
+  const rows = (data ?? []) as MatchedDriverVehicle[];
+  return { ok: true, data: rows[0] ?? null };
+}
+
 /** Strips the `data:image/...;base64,` prefix FileReader adds — the edge function wants raw base64. */
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {

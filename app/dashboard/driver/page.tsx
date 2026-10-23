@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, Circle, Clock, Loader2, Truck, Upload, Weight, XCircle } from "lucide-react";
+import { CheckCircle2, Circle, Clock, Loader2, Palette, Truck, Upload, Weight, XCircle } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { DashboardLoading, DashboardShell } from "@/components/auth/DashboardShell";
@@ -37,6 +37,7 @@ type ApplicationRow = {
   vehicle_year: number;
   vehicle_registration_no: string;
   vehicle_capacity: string;
+  vehicle_color: string | null;
   status: DriverStatus;
 };
 
@@ -81,7 +82,7 @@ export default function DriverDashboardPage() {
 
       supabase
         .from("driver_applications")
-        .select("date_of_birth, license_number, vehicle_type, vehicle_make, vehicle_model, vehicle_year, vehicle_registration_no, vehicle_capacity, status")
+        .select("date_of_birth, license_number, vehicle_type, vehicle_make, vehicle_model, vehicle_year, vehicle_registration_no, vehicle_capacity, vehicle_color, status")
         .eq("profile_id", userId)
         .single()
         .then(({ data: row }) => setApplication((row as ApplicationRow | null) ?? null));
@@ -178,6 +179,7 @@ export default function DriverDashboardPage() {
                   <Row label="Vehicle Type" value={application.vehicle_type} />
                   <Row label="Registration No." value={application.vehicle_registration_no} />
                   <Row label="Capacity" value={application.vehicle_capacity} />
+                  {application.vehicle_color ? <Row label="Color" value={application.vehicle_color} /> : null}
                 </dl>
               ) : (
                 <p className="text-[0.85rem] text-muted">Loading…</p>
@@ -320,6 +322,9 @@ function CarCard({
         <div className="mt-4 flex flex-col gap-3">
           <StatTile icon={Truck} label="Vehicle Type" value={application.vehicle_type} />
           <StatTile icon={Weight} label="Capacity" value={application.vehicle_capacity} />
+          {application.vehicle_color ? (
+            <StatTile icon={Palette} label="Color" value={application.vehicle_color} />
+          ) : null}
         </div>
 
         <div className="mt-4 flex items-center justify-between rounded-xl bg-ink-900 px-4 py-3">

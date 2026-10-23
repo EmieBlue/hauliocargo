@@ -28,6 +28,7 @@ type Fields = {
   vehicleYear: string;
   vehicleRegistrationNo: string;
   vehicleCapacity: string;
+  vehicleColor: string;
 };
 
 const EMPTY: Fields = {
@@ -45,6 +46,7 @@ const EMPTY: Fields = {
   vehicleYear: "",
   vehicleRegistrationNo: "",
   vehicleCapacity: "",
+  vehicleColor: "",
 };
 
 export function DriverRegisterForm({
@@ -108,6 +110,7 @@ export function DriverRegisterForm({
         vehicleYear: fields.vehicleYear,
         vehicleRegistrationNo: fields.vehicleRegistrationNo,
         vehicleCapacity: fields.vehicleCapacity,
+        vehicleColor: fields.vehicleColor,
       }),
     );
     onSubmitted(fields.email);
@@ -234,6 +237,13 @@ export function DriverRegisterForm({
             onChange={(e) => set("vehicleCapacity", e.target.value)}
           />
         </div>
+        <TextField
+          label="Vehicle Color"
+          required
+          placeholder="e.g. Silver"
+          value={fields.vehicleColor}
+          onChange={(e) => set("vehicleColor", e.target.value)}
+        />
       </FormSection>
 
       <p className="text-[0.8rem] text-muted">

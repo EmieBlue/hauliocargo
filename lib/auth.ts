@@ -54,6 +54,7 @@ export type DriverFields = {
   vehicleYear: string;
   vehicleRegistrationNo: string;
   vehicleCapacity: string;
+  vehicleColor: string;
 };
 
 export type AuthResult<T = undefined> =
@@ -228,6 +229,7 @@ export async function completeDriverProfile(
         vehicle_year: Number(fields.vehicleYear),
         vehicle_registration_no: fields.vehicleRegistrationNo.trim(),
         vehicle_capacity: fields.vehicleCapacity.trim(),
+        vehicle_color: fields.vehicleColor.trim(),
       },
       { onConflict: "profile_id" },
     );
@@ -309,6 +311,7 @@ export type DriverApplicationFields = {
   vehicleYear: string;
   vehicleRegistrationNo: string;
   vehicleCapacity: string;
+  vehicleColor: string;
 };
 
 /**
@@ -338,8 +341,45 @@ export async function updateDriverApplication(fields: DriverApplicationFields): 
       vehicle_year: Number(fields.vehicleYear),
       vehicle_registration_no: fields.vehicleRegistrationNo.trim(),
       vehicle_capacity: fields.vehicleCapacity.trim(),
+      vehicle_color: fields.vehicleColor.trim(),
     })
     .eq("profile_id", user.id);
+  if (error) return { ok: false, message: friendlyAuthError(error) };
+
+  return { ok: true, data: undefined };
+}
+
+/**
+ * Uploads a profile photo to the private `avatars` bucket, under a path
+ * prefixed with the signed-in user's own id (migration 021's storage
+ * policy only allows writing inside your own prefix) — same shape as
+ * `uploadDriverDocument`, just a separate bucket since this one also
+ * grants a narrow read exception to a matched customer.
+ */
+export async function uploadAvatar(userId: string, file: File): Promise<AuthResult<string>> {
+  if (!authEnabled) return { ok: false, message: NOT_CONFIGURED };
+  const supabase = client();
+
+  const path = `${userId}/avatar-${Date.now()}-${file.name}`;
+  const { error } = await supabase.storage.from("avatars").upload(path, file, {
+    upsert: false,
+  });
+  if (error) return { ok: false, message: friendlyAuthError(error) };
+
+  return { ok: true, data: path };
+}
+
+/** Points the signed-in user's own `profiles.avatar_path` at a newly uploaded photo. */
+export async function updateAvatarPath(path: string): Promise<AuthResult> {
+  if (!authEnabled) return { ok: false, message: NOT_CONFIGURED };
+  const supabase = client();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: friendlyAuthError(new Error("no user")) };
+
+  const { error } = await supabase.from("profiles").update({ avatar_path: path }).eq("id", user.id);
   if (error) return { ok: false, message: friendlyAuthError(error) };
 
   return { ok: true, data: undefined };

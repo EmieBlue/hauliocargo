@@ -10,7 +10,7 @@ import { DashboardLoading, DashboardShell } from "@/components/auth/DashboardShe
 import type { LocationPoint } from "@/components/dashboard/MoveMap";
 import { MoveMapPanel } from "@/components/dashboard/MoveMapPanel";
 import { Button } from "@/components/ui/Button";
-import { fetchBookingRating, submitDriverRating } from "@/lib/bookings";
+import { fetchBookingRating, fetchMatchedDriverVehicle, submitDriverRating, type MatchedDriverVehicle } from "@/lib/bookings";
 import { cn } from "@/lib/cn";
 import { fetchMessages, sendMessage, subscribeToMessages, type MessageRow } from "@/lib/messages";
 import { formatPrice } from "@/lib/pricing";
@@ -53,7 +53,7 @@ type BookingRow = {
 const BOOKING_COLUMNS =
   "id, pickup_location, dropoff_location, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng, scheduled_for, cargo_description, vehicle_category, vehicle_size, loading_assistants, cargo_photo_url, distance_km, estimated_price, cargo_weight_kg, cargo_volume_m3, status, driver_id";
 
-type DriverRow = { first_name: string; last_name: string; phone: string };
+type DriverRow = { first_name: string; last_name: string; phone: string; avatar_path: string | null };
 
 const PROGRESS_STEPS = [
   { status: "pending", label: "Requested" },
@@ -166,6 +166,8 @@ function BookingsContent() {
 function BookingDetailPanel({ booking }: { booking: BookingRow }) {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [driver, setDriver] = useState<DriverRow | null>(null);
+  const [driverAvatarUrl, setDriverAvatarUrl] = useState<string | null>(null);
+  const [driverVehicle, setDriverVehicle] = useState<MatchedDriverVehicle | null>(null);
   // undefined = not checked yet, null = checked and not rated, number = already rated this many stars.
   const [existingRating, setExistingRating] = useState<number | null | undefined>(undefined);
 
@@ -198,17 +200,42 @@ function BookingDetailPanel({ booking }: { booking: BookingRow }) {
     let cancelled = false;
     supabase
       .from("profiles")
-      .select("first_name, last_name, phone")
+      .select("first_name, last_name, phone, avatar_path")
       .eq("id", driverId)
       .single()
       .then(({ data }) => {
-        if (!cancelled && data) setDriver(data as DriverRow);
+        if (cancelled || !data) return;
+        const row = data as DriverRow;
+        setDriver(row);
+        if (row.avatar_path) {
+          supabase.storage
+            .from("avatars")
+            .createSignedUrl(row.avatar_path, 3600)
+            .then(({ data: signed }) => {
+              if (!cancelled && signed?.signedUrl) setDriverAvatarUrl(signed.signedUrl);
+            });
+        }
       });
 
     return () => {
       cancelled = true;
     };
   }, [booking.driver_id]);
+
+  // The driver's truck details (color, registration, make/model) — a
+  // narrow, security-definer-gated peek (migration 021), never a direct
+  // driver_applications read, since that table also holds the driver's
+  // licence number and birthdate.
+  useEffect(() => {
+    if (!booking.driver_id) return;
+    let cancelled = false;
+    fetchMatchedDriverVehicle(booking.id).then((result) => {
+      if (!cancelled && result.ok) setDriverVehicle(result.data);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [booking.id, booking.driver_id]);
 
   useEffect(() => {
     if (booking.status !== "completed" || !booking.driver_id) return;
@@ -254,10 +281,35 @@ function BookingDetailPanel({ booking }: { booking: BookingRow }) {
         <SectionLabel>Driver</SectionLabel>
         {driver ? (
           <>
-            <dl className="mt-3 flex flex-col gap-3 text-[0.88rem]" style={{ color: INK }}>
-              <DetailRow label="Name" value={`${driver.first_name} ${driver.last_name}`} />
-              <DetailRow label="Phone" value={driver.phone} />
-            </dl>
+            <div className="mt-3 flex items-center gap-3">
+              <div
+                className="size-12 shrink-0 overflow-hidden rounded-full border"
+                style={{ borderColor: "rgba(0,0,0,0.08)", background: "rgba(0,0,0,0.04)" }}
+              >
+                {driverAvatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- a signed storage URL, next/image gains nothing here
+                  <img src={driverAvatarUrl} alt={`${driver.first_name} ${driver.last_name}`} className="size-full object-cover" />
+                ) : null}
+              </div>
+              <div>
+                <p className="text-[0.92rem] font-semibold" style={{ color: INK }}>
+                  {driver.first_name} {driver.last_name}
+                </p>
+                <p className="text-[0.82rem]" style={{ color: MUTED }}>
+                  {driver.phone}
+                </p>
+              </div>
+            </div>
+            {driverVehicle ? (
+              <dl className="mt-4 flex flex-col gap-3 text-[0.88rem]" style={{ color: INK }}>
+                <DetailRow
+                  label="Truck"
+                  value={`${driverVehicle.vehicle_year} ${driverVehicle.vehicle_make} ${driverVehicle.vehicle_model}`}
+                />
+                {driverVehicle.vehicle_color ? <DetailRow label="Color" value={driverVehicle.vehicle_color} /> : null}
+                <DetailRow label="Registration" value={driverVehicle.vehicle_registration_no} />
+              </dl>
+            ) : null}
             {booking.status === "completed" && booking.driver_id ? (
               <div className="mt-4 border-t pt-4" style={{ borderColor: "rgba(0,0,0,0.08)" }}>
                 <RatingBox bookingId={booking.id} driverId={booking.driver_id} existingRating={existingRating} onRated={setExistingRating} />
