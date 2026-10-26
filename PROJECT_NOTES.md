@@ -15,6 +15,19 @@ Screenshots of their own screen are the most reliable way they report state back
 Plain-English recap of each work session, newest first — this is for the user to read back, not just for
 Claude's context. Add a new dated entry here at the end of a session; don't rewrite old ones.
 
+**2026-10-26** — Profile photos (any user, via Profile settings) and vehicle color (collected at driver
+registration, editable later) shipped in migration 021. A matched customer's Bookings page now shows the
+driver's photo, truck color, and registration number — via a security-definer function
+(`get_matched_driver_vehicle`) rather than a direct `driver_applications` read, since that table also holds the
+driver's licence number and birthdate, which must stay private. Hit one real bug along the way: saving vehicle
+color looked successful but didn't actually persist — `updateDriverApplication` wasn't checking for the classic
+Supabase/RLS gotcha where an UPDATE can report success with zero rows written if a policy's USING clause
+filters the row out before the update ever touches it. Fixed by checking the returned row count explicitly
+(`lib/auth.ts`); it also resolved itself on retry, so the exact original trigger is still unconfirmed — worth
+watching for a repeat. Also added (migration 022) a narrow storage policy so the customer can see the driver's
+uploaded truck photo specifically, without exposing the driver's licence or other documents in that same
+storage folder.
+
 **2026-10-23** — Renewed the Anthropic (Claude) API key that powers SmartLoad (cargo-photo analysis on the
 booking form, `supabase/functions/analyze-cargo`). The key only ever lives as a Supabase Edge Function secret
 (`ANTHROPIC_API_KEY`), never in the repo, so this was a dashboard-only change: new key generated in
@@ -40,15 +53,21 @@ one-line CSS change in `DashboardShell.tsx`. Confirmed fixed and pushed live.
   read-only via an anon-key curl against the REST API (200 = exists, 400/42703 = missing) → only then push code
   that depends on it.
 
-## What's built and shipped (as of 2026-10-15)
+## What's built and shipped (as of 2026-10-26)
 
 - Full customer registration/auth, dashboard, and booking forms (Move With You / Send / Receive), DB-backed.
 - Driver side: application/registration, a dashboard with an editable vehicle "car card" (photo upload,
-  stat tiles), a Jobs page (accept/decline/cancel with required reasons, start/deliver flow), a History page
-  (completed/declined/cancelled, snapshot-based so it survives RLS visibility changes), and a driver ratings
-  system (customers rate completed rides; average shown in the driver's own side menu).
-- Role-aware `/dashboard/profile` page for both customer and driver (editable fields + password change).
+  stat tiles, color), a Jobs page (accept/decline/cancel with required reasons, start/deliver flow), a History
+  page (completed/declined/cancelled, snapshot-based so it survives RLS visibility changes), and a driver
+  ratings system (customers rate completed rides; average shown in the driver's own side menu).
+- Role-aware `/dashboard/profile` page for both customer and driver (editable fields, password change, and a
+  profile photo upload for either role).
 - Real-time chat between a matched customer and driver, scoped per booking (Supabase Realtime + RLS).
+- Once matched, a customer's Bookings page shows the driver's photo, truck color, registration number, and the
+  driver's own uploaded vehicle photo — each exposed through a narrow, purpose-built exception (a
+  security-definer function for the vehicle fields, a filename-pattern-scoped storage policy for the photo)
+  rather than broad table/bucket access, since those same tables/buckets also hold the driver's licence number,
+  birthdate, and other documents that must stay private.
 - Driver self-edit of their own application is locked against self-approving verification status via a
   `BEFORE UPDATE` trigger (`lock_driver_application_status`, migration 019) — they can edit vehicle/licence
   fields but not `status`.
