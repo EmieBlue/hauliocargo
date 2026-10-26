@@ -168,6 +168,7 @@ function BookingDetailPanel({ booking }: { booking: BookingRow }) {
   const [driver, setDriver] = useState<DriverRow | null>(null);
   const [driverAvatarUrl, setDriverAvatarUrl] = useState<string | null>(null);
   const [driverVehicle, setDriverVehicle] = useState<MatchedDriverVehicle | null>(null);
+  const [truckPhotoUrl, setTruckPhotoUrl] = useState<string | null>(null);
   // undefined = not checked yet, null = checked and not rated, number = already rated this many stars.
   const [existingRating, setExistingRating] = useState<number | null | undefined>(undefined);
 
@@ -236,6 +237,41 @@ function BookingDetailPanel({ booking }: { booking: BookingRow }) {
       cancelled = true;
     };
   }, [booking.id, booking.driver_id]);
+
+  // The driver's uploaded vehicle photo — same bucket/listing approach the
+  // driver's own dashboard uses to find its own photo, just scoped to the
+  // matched driver's folder. Migration 022's storage policy only lets this
+  // listing/signing succeed for files matching "vehicle-photo-*"; the
+  // driver's licence and other documents in that same folder stay invisible.
+  useEffect(() => {
+    const driverId = booking.driver_id;
+    const supabase = getClient();
+    if (!driverId || !supabase) return;
+
+    let cancelled = false;
+    supabase.storage
+      .from("driver-documents")
+      .list(driverId)
+      .then(({ data: files }) => {
+        if (cancelled) return;
+        let photoPath: string | null = null;
+        for (const file of files ?? []) {
+          if (file.name.startsWith("vehicle-photo-")) photoPath = `${driverId}/${file.name}`;
+        }
+        if (photoPath) {
+          supabase.storage
+            .from("driver-documents")
+            .createSignedUrl(photoPath, 3600)
+            .then(({ data: signed }) => {
+              if (!cancelled && signed?.signedUrl) setTruckPhotoUrl(signed.signedUrl);
+            });
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [booking.driver_id]);
 
   useEffect(() => {
     if (booking.status !== "completed" || !booking.driver_id) return;
@@ -309,6 +345,10 @@ function BookingDetailPanel({ booking }: { booking: BookingRow }) {
                 {driverVehicle.vehicle_color ? <DetailRow label="Color" value={driverVehicle.vehicle_color} /> : null}
                 <DetailRow label="Registration" value={driverVehicle.vehicle_registration_no} />
               </dl>
+            ) : null}
+            {truckPhotoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- a signed storage URL, next/image gains nothing here
+              <img src={truckPhotoUrl} alt="Driver's truck" className="mt-4 h-36 w-full rounded-xl object-cover" />
             ) : null}
             {booking.status === "completed" && booking.driver_id ? (
               <div className="mt-4 border-t pt-4" style={{ borderColor: "rgba(0,0,0,0.08)" }}>
