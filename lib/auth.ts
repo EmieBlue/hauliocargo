@@ -330,7 +330,12 @@ export async function updateDriverApplication(fields: DriverApplicationFields): 
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, message: friendlyAuthError(new Error("no user")) };
 
-  const { error } = await supabase
+  // `.select("id")` here isn't for display — it's how a silent "0 rows
+  // matched" update gets caught. Postgres RLS filters non-matching rows out
+  // before the UPDATE ever sees them, so a USING-clause mismatch returns
+  // success with no error and nothing written; checking the returned rows
+  // is the only way to tell that apart from a real save.
+  const { data, error } = await supabase
     .from("driver_applications")
     .update({
       date_of_birth: fields.dateOfBirth || null,
@@ -343,8 +348,15 @@ export async function updateDriverApplication(fields: DriverApplicationFields): 
       vehicle_capacity: fields.vehicleCapacity.trim(),
       vehicle_color: fields.vehicleColor.trim(),
     })
-    .eq("profile_id", user.id);
+    .eq("profile_id", user.id)
+    .select("id");
   if (error) return { ok: false, message: friendlyAuthError(error) };
+  if (!data || data.length === 0) {
+    return {
+      ok: false,
+      message: "We couldn't save that — your driver application couldn't be found. Please contact support.",
+    };
+  }
 
   return { ok: true, data: undefined };
 }
