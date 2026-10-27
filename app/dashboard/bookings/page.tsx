@@ -348,7 +348,7 @@ function BookingDetailPanel({ booking }: { booking: BookingRow }) {
                 </dl>
                 {truckPhotoUrl ? (
                   <div
-                    className="h-20 w-28 shrink-0 overflow-hidden rounded-lg border"
+                    className="h-28 w-36 shrink-0 overflow-hidden rounded-lg border"
                     style={{ borderColor: "rgba(0,0,0,0.08)" }}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element -- a signed storage URL, next/image gains nothing here */}
