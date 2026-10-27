@@ -337,18 +337,25 @@ function BookingDetailPanel({ booking }: { booking: BookingRow }) {
               </div>
             </div>
             {driverVehicle ? (
-              <dl className="mt-4 flex flex-col gap-3 text-[0.88rem]" style={{ color: INK }}>
-                <DetailRow
-                  label="Truck"
-                  value={`${driverVehicle.vehicle_year} ${driverVehicle.vehicle_make} ${driverVehicle.vehicle_model}`}
-                />
-                {driverVehicle.vehicle_color ? <DetailRow label="Color" value={driverVehicle.vehicle_color} /> : null}
-                <DetailRow label="Registration" value={driverVehicle.vehicle_registration_no} />
-              </dl>
-            ) : null}
-            {truckPhotoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element -- a signed storage URL, next/image gains nothing here
-              <img src={truckPhotoUrl} alt="Driver's truck" className="mt-4 h-36 w-full rounded-xl object-cover" />
+              <div className="mt-4 flex items-start justify-between gap-3">
+                <dl className="flex flex-col gap-3 text-[0.88rem]" style={{ color: INK }}>
+                  <DetailRow
+                    label="Truck"
+                    value={`${driverVehicle.vehicle_year} ${driverVehicle.vehicle_make} ${driverVehicle.vehicle_model}`}
+                  />
+                  {driverVehicle.vehicle_color ? <DetailRow label="Color" value={driverVehicle.vehicle_color} /> : null}
+                  <DetailRow label="Registration" value={driverVehicle.vehicle_registration_no} />
+                </dl>
+                {truckPhotoUrl ? (
+                  <div
+                    className="h-20 w-28 shrink-0 overflow-hidden rounded-lg border"
+                    style={{ borderColor: "rgba(0,0,0,0.08)" }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element -- a signed storage URL, next/image gains nothing here */}
+                    <img src={truckPhotoUrl} alt="Driver's truck" className="size-full object-cover" />
+                  </div>
+                ) : null}
+              </div>
             ) : null}
             {booking.status === "completed" && booking.driver_id ? (
               <div className="mt-4 border-t pt-4" style={{ borderColor: "rgba(0,0,0,0.08)" }}>
