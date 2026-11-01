@@ -347,11 +347,15 @@ function BookingDetailPanel({ booking }: { booking: BookingRow }) {
                   <DetailRow label="Registration" value={driverVehicle.vehicle_registration_no} />
                 </dl>
                 {truckPhotoUrl ? (
+                  // Sized by the photo's own aspect ratio (capped by
+                  // max-height/max-width), not forced into a fixed box —
+                  // a fixed box plus object-contain can letterbox, leaving
+                  // empty space around the truck instead of filling it.
                   // eslint-disable-next-line @next/next/no-img-element -- a signed storage URL, next/image gains nothing here
                   <img
                     src={truckPhotoUrl}
                     alt="Driver's truck"
-                    className="h-40 w-56 shrink-0 object-contain"
+                    className="max-h-48 w-auto max-w-[14rem] shrink-0"
                   />
                 ) : null}
               </div>
