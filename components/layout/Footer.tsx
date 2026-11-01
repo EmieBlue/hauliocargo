@@ -83,6 +83,7 @@ export function Footer() {
           <p className="text-[0.82rem] text-muted/70">
             Haulio SmartLoad™ is in development.
           </p>
+          <p className="text-[0.82rem] text-muted">Powered by Haulio Orbits</p>
         </div>
       </div>
     </footer>

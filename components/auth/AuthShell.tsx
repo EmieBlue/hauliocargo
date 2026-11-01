@@ -183,6 +183,8 @@ export function AuthShell({
           })()}
         </motion.div>
       </div>
+
+      <p className="relative pb-6 text-center text-[0.82rem] text-muted">Powered by Haulio Orbits</p>
     </div>
   );
 }
