@@ -317,49 +317,57 @@ function BookingDetailPanel({ booking }: { booking: BookingRow }) {
         <SectionLabel>Driver</SectionLabel>
         {driver ? (
           <>
-            <div className="mt-3 flex items-center gap-3">
-              <div
-                className="size-12 shrink-0 overflow-hidden rounded-full border"
-                style={{ borderColor: "rgba(0,0,0,0.08)", background: "rgba(0,0,0,0.04)" }}
-              >
-                {driverAvatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element -- a signed storage URL, next/image gains nothing here
-                  <img src={driverAvatarUrl} alt={`${driver.first_name} ${driver.last_name}`} className="size-full object-cover" />
+            <div className="mt-3 flex items-stretch gap-4">
+              <div className="flex min-w-0 flex-1 flex-col gap-4">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="size-12 shrink-0 overflow-hidden rounded-full border"
+                    style={{ borderColor: "rgba(0,0,0,0.08)", background: "rgba(0,0,0,0.04)" }}
+                  >
+                    {driverAvatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- a signed storage URL, next/image gains nothing here
+                      <img src={driverAvatarUrl} alt={`${driver.first_name} ${driver.last_name}`} className="size-full object-cover" />
+                    ) : null}
+                  </div>
+                  <div>
+                    <p className="text-[0.92rem] font-semibold" style={{ color: INK }}>
+                      {driver.first_name} {driver.last_name}
+                    </p>
+                    <p className="text-[0.82rem]" style={{ color: MUTED }}>
+                      {driver.phone}
+                    </p>
+                  </div>
+                </div>
+                {driverVehicle ? (
+                  <dl className="flex flex-col gap-3 text-[0.88rem]" style={{ color: INK }}>
+                    <DetailRow
+                      label="Truck"
+                      value={`${driverVehicle.vehicle_year} ${driverVehicle.vehicle_make} ${driverVehicle.vehicle_model}`}
+                    />
+                    {driverVehicle.vehicle_color ? <DetailRow label="Color" value={driverVehicle.vehicle_color} /> : null}
+                    <DetailRow label="Registration" value={driverVehicle.vehicle_registration_no} />
+                  </dl>
                 ) : null}
               </div>
-              <div>
-                <p className="text-[0.92rem] font-semibold" style={{ color: INK }}>
-                  {driver.first_name} {driver.last_name}
-                </p>
-                <p className="text-[0.82rem]" style={{ color: MUTED }}>
-                  {driver.phone}
-                </p>
-              </div>
+              {truckPhotoUrl ? (
+                // Stretches to match the left column's height (self-stretch,
+                // h-full) rather than a small fixed thumbnail, so it actually
+                // fills the space instead of floating in a tiny box.
+                // mixBlendMode "multiply" drops the photo's own white
+                // background into the card's near-white cream background —
+                // a real CSS technique for a white-background product photo
+                // on a tinted page, not a hack that only works by luck. It
+                // only erases a *white* background specifically; a future
+                // photo with a different backdrop would need real cutout.
+                // eslint-disable-next-line @next/next/no-img-element -- a signed storage URL, next/image gains nothing here
+                <img
+                  src={truckPhotoUrl}
+                  alt="Driver's truck"
+                  className="h-full w-auto max-w-[55%] shrink-0 self-stretch object-contain"
+                  style={{ mixBlendMode: "multiply" }}
+                />
+              ) : null}
             </div>
-            {driverVehicle ? (
-              <div className="mt-4 flex items-start justify-between gap-3">
-                <dl className="flex flex-col gap-3 text-[0.88rem]" style={{ color: INK }}>
-                  <DetailRow
-                    label="Truck"
-                    value={`${driverVehicle.vehicle_year} ${driverVehicle.vehicle_make} ${driverVehicle.vehicle_model}`}
-                  />
-                  {driverVehicle.vehicle_color ? <DetailRow label="Color" value={driverVehicle.vehicle_color} /> : null}
-                  <DetailRow label="Registration" value={driverVehicle.vehicle_registration_no} />
-                </dl>
-                {truckPhotoUrl ? (
-                  // Sized by the photo's own aspect ratio (capped by
-                  // max-height/max-width), not forced into a fixed box —
-                  // a fixed box plus object-contain can letterbox, leaving
-                  // empty space around the truck instead of filling it.
-                  // eslint-disable-next-line @next/next/no-img-element -- a signed storage URL, next/image gains nothing here
-                  <img
-                    src={truckPhotoUrl}
-                    alt="Driver's truck"
-                    className="max-h-48 w-auto max-w-[14rem] shrink-0"
-                  />
-                ) : null}
-              </div>
-            ) : null}
             {booking.status === "completed" && booking.driver_id ? (
               <div className="mt-4 border-t pt-4" style={{ borderColor: "rgba(0,0,0,0.08)" }}>
                 <RatingBox bookingId={booking.id} driverId={booking.driver_id} existingRating={existingRating} onRated={setExistingRating} />
