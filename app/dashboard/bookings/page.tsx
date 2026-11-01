@@ -347,13 +347,12 @@ function BookingDetailPanel({ booking }: { booking: BookingRow }) {
                   <DetailRow label="Registration" value={driverVehicle.vehicle_registration_no} />
                 </dl>
                 {truckPhotoUrl ? (
-                  <div
-                    className="h-28 w-36 shrink-0 overflow-hidden rounded-lg border"
-                    style={{ borderColor: "rgba(0,0,0,0.08)" }}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element -- a signed storage URL, next/image gains nothing here */}
-                    <img src={truckPhotoUrl} alt="Driver's truck" className="size-full object-cover" />
-                  </div>
+                  // eslint-disable-next-line @next/next/no-img-element -- a signed storage URL, next/image gains nothing here
+                  <img
+                    src={truckPhotoUrl}
+                    alt="Driver's truck"
+                    className="h-40 w-56 shrink-0 object-contain"
+                  />
                 ) : null}
               </div>
             ) : null}
