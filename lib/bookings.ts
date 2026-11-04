@@ -176,7 +176,9 @@ export type JobRow = {
 // Same field set as the customer side's own BOOKING_COLUMNS
 // (app/dashboard/bookings/page.tsx) — a job is the same `bookings` row the
 // customer sees, just through a driver's RLS instead of a customer's.
-const JOB_COLUMNS =
+// Exported: lib/admin.ts reuses this verbatim for the admin Bookings
+// section, which reads the same row shape through the admin's own RLS.
+export const JOB_COLUMNS =
   "id, pickup_location, dropoff_location, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng, scheduled_for, cargo_description, vehicle_category, vehicle_size, loading_assistants, cargo_photo_url, distance_km, estimated_price, cargo_weight_kg, cargo_volume_m3, status, driver_id, customer_id";
 
 /**
