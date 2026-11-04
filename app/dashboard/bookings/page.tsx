@@ -8,7 +8,7 @@ import { AppSideMenu } from "@/components/dashboard/AppSideMenu";
 import { BackButton } from "@/components/dashboard/BackButton";
 import { DashboardLoading, DashboardShell } from "@/components/auth/DashboardShell";
 import type { LocationPoint } from "@/components/dashboard/MoveMap";
-import { MoveMapPanel } from "@/components/dashboard/MoveMapPanel";
+import { LiveLocationNote, MoveMapPanel } from "@/components/dashboard/MoveMapPanel";
 import { Button } from "@/components/ui/Button";
 import { fetchBookingRating, fetchMatchedDriverVehicle, submitDriverRating, type MatchedDriverVehicle } from "@/lib/bookings";
 import { cn } from "@/lib/cn";
@@ -16,6 +16,7 @@ import { fetchMessages, sendMessage, subscribeToMessages, type MessageRow } from
 import { formatPrice } from "@/lib/pricing";
 import { ROUTES } from "@/lib/site";
 import { getClient } from "@/lib/supabase";
+import { useLiveLocation } from "@/lib/useLiveLocation";
 import { useRequireAuth } from "@/lib/useRequireAuth";
 
 const outfit = Outfit({ subsets: ["latin"], weight: ["400", "500", "600", "700", "800"] });
@@ -104,11 +105,17 @@ function BookingsContent() {
     };
   }, [bookingId]);
 
-  if (loading || !profile) return <DashboardLoading />;
-
   const current = bookingId && fetched && fetched.id === bookingId ? fetched : null;
   const row = current?.row ?? null;
   const missing = Boolean(bookingId && current && !current.row);
+
+  // Called unconditionally, above the early return below, same as every
+  // other hook here — the conditional part is the argument, not the call.
+  const { position: livePosition, updatedAt: liveUpdatedAt } = useLiveLocation(
+    row?.status === "in_progress" ? row.id : null,
+  );
+
+  if (loading || !profile) return <DashboardLoading />;
 
   const pickupPoint: LocationPoint | null =
     row && row.pickup_lat != null && row.pickup_lng != null
@@ -149,9 +156,11 @@ function BookingsContent() {
               panelOpen ? "lg:sticky lg:top-28 lg:w-1/2 lg:self-start" : "lg:w-full",
             )}
           >
+            {livePosition ? <LiveLocationNote updatedAt={liveUpdatedAt} /> : null}
             <MoveMapPanel
               pickup={pickupPoint}
               dropoff={dropoffPoint}
+              livePosition={livePosition}
               className="h-[22rem] lg:h-[42rem]"
               defaultCenter={ACCRA_CENTER}
               emptyMessage="Pick a request from the menu to see its route."

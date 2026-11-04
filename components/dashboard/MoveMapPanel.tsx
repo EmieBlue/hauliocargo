@@ -23,6 +23,7 @@ const MoveMap = dynamic(() => import("./MoveMap"), {
 export function MoveMapPanel({
   pickup,
   dropoff,
+  livePosition,
   className,
   defaultCenter,
   emptyMessage,
@@ -30,6 +31,7 @@ export function MoveMapPanel({
 }: {
   pickup: LocationPoint | null;
   dropoff: LocationPoint | null;
+  livePosition?: LocationPoint | null;
   className?: string;
   defaultCenter?: [number, number];
   emptyMessage?: string;
@@ -39,10 +41,36 @@ export function MoveMapPanel({
     <MoveMap
       pickup={pickup}
       dropoff={dropoff}
+      livePosition={livePosition}
       className={className}
       defaultCenter={defaultCenter}
       emptyMessage={emptyMessage}
       onRouteDistance={onRouteDistance}
     />
+  );
+}
+
+/**
+ * A small "Live · updated HH:MM:SS" line to sit above a `MoveMapPanel`
+ * showing `livePosition` — so a stale dot (driver closed their tab) doesn't
+ * read as currently accurate. An absolute time, not a ticking "Xs ago" —
+ * that would mean calling `Date.now()` during render, which React's purity
+ * rules (correctly) reject; this only ever formats the fixed `updatedAt` it
+ * was given.
+ */
+export function LiveLocationNote({ updatedAt }: { updatedAt: string | null }) {
+  if (!updatedAt) return null;
+
+  const time = new Date(updatedAt).toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+
+  return (
+    <p className="mb-2 flex items-center gap-1.5 text-[0.78rem] font-medium text-muted">
+      <span className="size-1.5 rounded-full bg-brand" aria-hidden />
+      Live position · updated {time}
+    </p>
   );
 }

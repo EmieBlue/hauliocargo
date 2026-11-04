@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 import { BackButton } from "@/components/dashboard/BackButton";
 import { Panel, Row, SectionLabel } from "@/components/dashboard/admin/ApplicationsSection";
 import type { LocationPoint } from "@/components/dashboard/MoveMap";
-import { MoveMapPanel } from "@/components/dashboard/MoveMapPanel";
+import { LiveLocationNote, MoveMapPanel } from "@/components/dashboard/MoveMapPanel";
 import { Badge } from "@/components/ui/Badge";
 import { fetchAdminBooking, fetchAdminBookings, fetchBookingTimeline, type AdminBookingRow, type BookingStatusEvent } from "@/lib/admin";
 import type { BookingStatus } from "@/lib/bookings";
@@ -16,6 +16,7 @@ import { formatPrice } from "@/lib/pricing";
 import { cn } from "@/lib/cn";
 import { ROUTES } from "@/lib/site";
 import { getClient } from "@/lib/supabase";
+import { useLiveLocation } from "@/lib/useLiveLocation";
 
 const ACCRA_CENTER: [number, number] = [-0.2, 5.6];
 
@@ -173,6 +174,10 @@ function DetailPanel({ booking }: { booking: AdminBookingRow }) {
       ? { placeName: booking.dropoff_location, center: [booking.dropoff_lng, booking.dropoff_lat] }
       : null;
 
+  const { position: livePosition, updatedAt: liveUpdatedAt } = useLiveLocation(
+    booking.status === "in_progress" ? booking.id : null,
+  );
+
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-5 lg:flex-row lg:items-start">
       <div className="flex w-full min-w-0 flex-col gap-4 lg:w-2/3">
@@ -195,8 +200,17 @@ function DetailPanel({ booking }: { booking: AdminBookingRow }) {
 
         <Panel>
           <SectionLabel>Route</SectionLabel>
-          <div className="mt-3 h-80 overflow-hidden rounded-xl">
-            <MoveMapPanel pickup={pickup} dropoff={dropoff} defaultCenter={ACCRA_CENTER} emptyMessage="No map points saved for this trip." />
+          <div className="mt-3">
+            {livePosition ? <LiveLocationNote updatedAt={liveUpdatedAt} /> : null}
+            <div className="h-80 overflow-hidden rounded-xl">
+              <MoveMapPanel
+                pickup={pickup}
+                dropoff={dropoff}
+                livePosition={livePosition}
+                defaultCenter={ACCRA_CENTER}
+                emptyMessage="No map points saved for this trip."
+              />
+            </div>
           </div>
         </Panel>
 

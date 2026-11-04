@@ -41,6 +41,23 @@ function formatAddress(placeName: string): { line1: string; line2: string } {
   return { line1: placeName.slice(0, idx), line2: placeName.slice(idx + 1).trim() };
 }
 
+// A pulsing gold dot, not another address pin — this is a live position, not
+// a third stop, and shouldn't read as one. Reuses the same `pulse-ring`
+// keyframe (app/globals.css) Badge.tsx already uses for its own "pending"
+// pulse — same semantic, a global Tailwind utility class works fine on a
+// Mapbox marker's plain DOM element too.
+function createLiveMarkerElement(): HTMLDivElement {
+  const el = document.createElement("div");
+  el.className = "relative grid place-items-center";
+  el.innerHTML = `
+    <span class="absolute size-7 rounded-full animate-pulse-ring" style="background:${AMBER}"></span>
+    <span class="relative grid size-7 place-items-center rounded-full ring-2 ring-white" style="background:${AMBER};box-shadow:0 8px 18px -6px rgba(0,0,0,0.55)">
+      ${TRUCK_GLYPH}
+    </span>
+  `;
+  return el;
+}
+
 function createPinElement(): HTMLDivElement {
   const el = document.createElement("div");
   el.className = "relative flex flex-col items-center";
@@ -107,6 +124,7 @@ const ROUTE_SOURCE_ID = "move-route";
 export default function MoveMap({
   pickup,
   dropoff,
+  livePosition,
   className,
   defaultCenter,
   emptyMessage = "Add a pickup to see it on the map.",
@@ -114,6 +132,9 @@ export default function MoveMap({
 }: {
   pickup: LocationPoint | null;
   dropoff: LocationPoint | null;
+  /** The driver's current position while a job is in progress — a pulsing
+   * dot, not another address pin. Omit or pass null outside that window. */
+  livePosition?: LocationPoint | null;
   className?: string;
   /** Shows a bare map centered here when there are no points yet. */
   defaultCenter?: [number, number];
@@ -125,17 +146,18 @@ export default function MoveMap({
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const pickupMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const dropoffMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  const liveMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const [ready, setReady] = useState(false);
   const [tab, setTab] = useState<Tab>("route");
 
-  const hasAny = Boolean(pickup || dropoff);
+  const hasAny = Boolean(pickup || dropoff || livePosition);
   const showMap = hasAny || Boolean(defaultCenter);
 
   // Created once, the first time there's something to show — not on mount,
   // so the empty state costs nothing.
   useEffect(() => {
     if (!showMap || mapRef.current || !containerRef.current || !TOKEN) return;
-    const initialCenter = (pickup ?? dropoff)?.center ?? defaultCenter!;
+    const initialCenter = (pickup ?? dropoff ?? livePosition)?.center ?? defaultCenter!;
     const map = new mapboxgl.Map({
       container: containerRef.current,
       // Mapbox's standard colorful style — green parks, blue water, colored
@@ -152,7 +174,7 @@ export default function MoveMap({
     map.addControl(new mapboxgl.AttributionControl({ compact: true }));
     map.on("load", () => setReady(true));
     mapRef.current = map;
-  }, [showMap, hasAny, pickup, dropoff, defaultCenter]);
+  }, [showMap, hasAny, pickup, dropoff, livePosition, defaultCenter]);
 
   // Torn down only when the panel itself unmounts — not on every coordinate
   // change, which is handled by the sync effect below instead.
@@ -195,13 +217,27 @@ export default function MoveMap({
       dropoffMarkerRef.current = null;
     }
 
-    const points: [number, number][] = [pickup?.center, dropoff?.center].filter(
+    if (livePosition) {
+      if (!liveMarkerRef.current) {
+        liveMarkerRef.current = new mapboxgl.Marker({ element: createLiveMarkerElement(), anchor: "center" })
+          .setLngLat(livePosition.center)
+          .addTo(map);
+      } else {
+        liveMarkerRef.current.setLngLat(livePosition.center);
+      }
+    } else {
+      liveMarkerRef.current?.remove();
+      liveMarkerRef.current = null;
+    }
+
+    const points: [number, number][] = [pickup?.center, dropoff?.center, livePosition?.center].filter(
       (p): p is [number, number] => Boolean(p),
     );
     if (points.length === 1) {
       map.easeTo({ center: points[0], zoom: 12, duration: 500 });
-    } else if (points.length === 2) {
-      const bounds = new mapboxgl.LngLatBounds(points[0], points[0]).extend(points[1]);
+    } else if (points.length >= 2) {
+      const bounds = new mapboxgl.LngLatBounds(points[0], points[0]);
+      for (const point of points.slice(1)) bounds.extend(point);
       map.fitBounds(bounds, { padding: 64, maxZoom: 14, duration: 600 });
     }
 
@@ -243,7 +279,7 @@ export default function MoveMap({
     return () => {
       cancelled = true;
     };
-  }, [pickup, dropoff, ready, onRouteDistance]);
+  }, [pickup, dropoff, livePosition, ready, onRouteDistance]);
 
   if (!TOKEN) return null;
 

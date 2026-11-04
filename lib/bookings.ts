@@ -577,6 +577,69 @@ export async function fetchMatchedDriverVehicle(bookingId: string): Promise<Auth
   return { ok: true, data: rows[0] ?? null };
 }
 
+// ---------------------------------------------------------------------------
+// Live location (migration 028)
+// ---------------------------------------------------------------------------
+
+export type LocationPing = { lat: number; lng: number; recorded_at: string };
+
+/** The assigned driver reporting their current position for a job that's
+ * in progress — RLS (028) only allows this for that booking's own driver. */
+export async function reportLocation(bookingId: string, lat: number, lng: number): Promise<AuthResult> {
+  if (!authEnabled) return { ok: false, message: NOT_CONFIGURED };
+  const supabase = getClient();
+  if (!supabase) return { ok: false, message: NOT_CONFIGURED };
+
+  const { error } = await supabase.from("booking_locations").insert({ booking_id: bookingId, lat, lng });
+  if (error) {
+    console.error("report location failed", error);
+    return { ok: false, message: "Couldn't share your location. Please try again." };
+  }
+  return { ok: true, data: undefined };
+}
+
+/** The most recent ping for a booking, if any — the initial position shown
+ * before any Realtime event arrives. */
+export async function fetchLatestLocation(bookingId: string): Promise<AuthResult<LocationPing | null>> {
+  if (!authEnabled) return { ok: false, message: NOT_CONFIGURED };
+  const supabase = getClient();
+  if (!supabase) return { ok: false, message: NOT_CONFIGURED };
+
+  const { data, error } = await supabase
+    .from("booking_locations")
+    .select("lat, lng, recorded_at")
+    .eq("booking_id", bookingId)
+    .order("recorded_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) {
+    console.error("fetch latest location failed", error);
+    return { ok: false, message: "Couldn't load the live position." };
+  }
+  return { ok: true, data: (data as LocationPing | null) ?? null };
+}
+
+/** Live new-ping updates for one booking, via Supabase Realtime (migration
+ * 028 adds booking_locations to the supabase_realtime publication) — same
+ * shape as lib/messages.ts's subscribeToMessages. */
+export function subscribeToLocation(bookingId: string, onInsert: (ping: LocationPing) => void): () => void {
+  const supabase = getClient();
+  if (!supabase) return () => {};
+
+  const channel = supabase
+    .channel(`booking-location:${bookingId}`)
+    .on(
+      "postgres_changes",
+      { event: "INSERT", schema: "public", table: "booking_locations", filter: `booking_id=eq.${bookingId}` },
+      (payload) => onInsert(payload.new as LocationPing),
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}
+
 /** Strips the `data:image/...;base64,` prefix FileReader adds — the edge function wants raw base64. */
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
