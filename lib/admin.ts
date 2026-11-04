@@ -278,3 +278,24 @@ export async function fetchAdminBooking(id: string): Promise<AuthResult<AdminBoo
   const [row] = await withNames(supabase, [data as unknown as AdminBookingBase]);
   return { ok: true, data: row };
 }
+
+export type BookingStatusEvent = { status: BookingStatus; created_at: string };
+
+/** A booking's status history (migration 027) — when it moved from pending
+ * to confirmed to in_progress to completed, not just what it is now. */
+export async function fetchBookingTimeline(bookingId: string): Promise<AuthResult<BookingStatusEvent[]>> {
+  if (!authEnabled) return { ok: false, message: NOT_CONFIGURED };
+  const supabase = getClient();
+  if (!supabase) return { ok: false, message: NOT_CONFIGURED };
+
+  const { data, error } = await supabase
+    .from("booking_status_events")
+    .select("status, created_at")
+    .eq("booking_id", bookingId)
+    .order("created_at", { ascending: true });
+  if (error) {
+    console.error("fetch booking timeline failed", error);
+    return { ok: false, message: "Couldn't load this booking's history." };
+  }
+  return { ok: true, data: (data ?? []) as BookingStatusEvent[] };
+}

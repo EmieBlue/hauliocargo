@@ -10,7 +10,7 @@ import { Panel, Row, SectionLabel } from "@/components/dashboard/admin/Applicati
 import type { LocationPoint } from "@/components/dashboard/MoveMap";
 import { MoveMapPanel } from "@/components/dashboard/MoveMapPanel";
 import { Badge } from "@/components/ui/Badge";
-import { fetchAdminBooking, fetchAdminBookings, type AdminBookingRow } from "@/lib/admin";
+import { fetchAdminBooking, fetchAdminBookings, fetchBookingTimeline, type AdminBookingRow, type BookingStatusEvent } from "@/lib/admin";
 import type { BookingStatus } from "@/lib/bookings";
 import { formatPrice } from "@/lib/pricing";
 import { cn } from "@/lib/cn";
@@ -201,6 +201,11 @@ function DetailPanel({ booking }: { booking: AdminBookingRow }) {
         </Panel>
 
         <Panel>
+          <SectionLabel>Timeline</SectionLabel>
+          <Timeline bookingId={booking.id} />
+        </Panel>
+
+        <Panel>
           <SectionLabel>Cargo</SectionLabel>
           <dl className="mt-3 grid gap-3.5 sm:grid-cols-2">
             <Row label="Type" value={booking.booking_type} />
@@ -243,6 +248,56 @@ function DetailPanel({ booking }: { booking: AdminBookingRow }) {
         </Panel>
       </div>
     </div>
+  );
+}
+
+/**
+ * A booking's status history (migration 027) — when it moved from pending to
+ * confirmed to in_progress to completed, not just what it is now. This is a
+ * stage timeline, not live location: it answers "what's happened and when",
+ * not "where is it right now" — that's a separate future round.
+ */
+function Timeline({ bookingId }: { bookingId: string }) {
+  const [events, setEvents] = useState<BookingStatusEvent[] | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchBookingTimeline(bookingId).then((result) => {
+      if (!cancelled && result.ok) setEvents(result.data);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [bookingId]);
+
+  if (events === null) return <p className="mt-3 text-[0.85rem] text-muted">Loading…</p>;
+  if (events.length === 0) return <p className="mt-3 text-[0.85rem] text-muted">No history yet.</p>;
+
+  return (
+    <ol className="mt-3 flex flex-col gap-3">
+      {events.map((event, index) => {
+        const copy = BOOKING_STATUS_COPY[event.status];
+        const Icon = copy.icon;
+        return (
+          <li key={`${event.status}-${event.created_at}`} className="flex items-center gap-3">
+            <span
+              className={cn(
+                "grid size-7 shrink-0 place-items-center rounded-full border",
+                index === events.length - 1 ? "border-brand bg-brand/10 text-brand" : "border-edge/12 text-muted",
+              )}
+            >
+              <Icon className="size-3.5" aria-hidden />
+            </span>
+            <div className="min-w-0">
+              <p className="text-[0.85rem] font-medium text-fg">{copy.label}</p>
+              <p className="text-[0.75rem] text-muted">
+                {new Date(event.created_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}
+              </p>
+            </div>
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 
