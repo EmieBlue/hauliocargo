@@ -22,6 +22,14 @@ export const CANCEL_REASONS = [
   "Other",
 ] as const;
 
+export const REJECTION_REASONS = [
+  "Documents incomplete or unclear",
+  "Licence could not be verified",
+  "Vehicle doesn't meet requirements",
+  "Details don't match submitted documents",
+  "Other",
+] as const;
+
 /**
  * A checkbox popup asking why — used for both declining an open job and
  * cancelling an already-accepted one (same modal pattern as

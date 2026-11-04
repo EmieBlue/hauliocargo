@@ -42,6 +42,7 @@ type ApplicationRow = {
   vehicle_capacity: string;
   vehicle_color: string | null;
   status: DriverStatus;
+  rejection_reasons: string[] | null;
 };
 
 const STATUS_LABEL: Record<DriverStatus, { label: string; icon: typeof Clock }> = {
@@ -95,7 +96,7 @@ export default function ProfilePage() {
         supabase
           .from("driver_applications")
           .select(
-            "date_of_birth, license_number, vehicle_type, vehicle_make, vehicle_model, vehicle_year, vehicle_registration_no, vehicle_capacity, vehicle_color, status",
+            "date_of_birth, license_number, vehicle_type, vehicle_make, vehicle_model, vehicle_year, vehicle_registration_no, vehicle_capacity, vehicle_color, status, rejection_reasons",
           )
           .eq("profile_id", uid)
           .single()
@@ -338,6 +339,19 @@ function VehicleInfoCard({ initial }: { initial: ApplicationRow }) {
           <StatusIcon className="size-3" aria-hidden />
           {statusCopy.label}
         </Badge>
+
+        {initial.status === "rejected" && initial.rejection_reasons?.length ? (
+          <div className="flex flex-wrap items-center gap-1.5">
+            {initial.rejection_reasons.map((reason) => (
+              <span
+                key={reason}
+                className="rounded-full border border-edge/12 bg-edge/[0.04] px-2.5 py-1 text-[0.7rem] text-muted"
+              >
+                {reason}
+              </span>
+            ))}
+          </div>
+        ) : null}
 
         <TextField label="Driver's Licence Number" value={licenseNumber} onChange={(e) => setLicenseNumber(e.target.value)} />
         <TextField
