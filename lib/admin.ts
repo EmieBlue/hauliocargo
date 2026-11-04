@@ -220,8 +220,8 @@ export async function fetchCustomer(id: string): Promise<AuthResult<CustomerDeta
 type AdminBookingBase = JobRow & { created_at: string; booking_type: string };
 
 export type AdminBookingRow = AdminBookingBase & {
-  customer: { first_name: string; last_name: string; phone: string } | null;
-  driver: { first_name: string; last_name: string; phone: string } | null;
+  customer: { first_name: string; last_name: string; phone: string; avatar_path: string | null } | null;
+  driver: { first_name: string; last_name: string; phone: string; avatar_path: string | null } | null;
 };
 
 const ADMIN_BOOKING_COLUMNS = `${JOB_COLUMNS}, created_at, booking_type`;
@@ -236,7 +236,7 @@ async function withNames(supabase: SupabaseClient, rows: AdminBookingBase[]): Pr
   if (rows.length === 0) return [];
 
   const ids = [...new Set(rows.flatMap((r) => [r.customer_id, r.driver_id]).filter((v): v is string => Boolean(v)))];
-  const { data: profiles } = await supabase.from("profiles").select("id, first_name, last_name, phone").in("id", ids);
+  const { data: profiles } = await supabase.from("profiles").select("id, first_name, last_name, phone, avatar_path").in("id", ids);
   const byId = new Map((profiles ?? []).map((p) => [p.id, p]));
 
   return rows.map((r) => ({

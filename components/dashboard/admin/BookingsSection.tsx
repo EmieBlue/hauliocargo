@@ -15,6 +15,7 @@ import type { BookingStatus } from "@/lib/bookings";
 import { formatPrice } from "@/lib/pricing";
 import { cn } from "@/lib/cn";
 import { ROUTES } from "@/lib/site";
+import { getClient } from "@/lib/supabase";
 
 const ACCRA_CENTER: [number, number] = [-0.2, 5.6];
 
@@ -224,6 +225,9 @@ function DetailPanel({ booking }: { booking: AdminBookingRow }) {
 
         <Panel>
           <SectionLabel>Driver</SectionLabel>
+          {booking.driver_id ? (
+            <DriverMedia driverId={booking.driver_id} avatarPath={booking.driver?.avatar_path ?? null} />
+          ) : null}
           <dl className="mt-3 flex flex-col gap-3.5">
             <Row label="Name" value={driverName} />
             {booking.driver ? <Row label="Phone" value={booking.driver.phone} /> : null}
@@ -237,6 +241,79 @@ function DetailPanel({ booking }: { booking: AdminBookingRow }) {
             <Row label="Estimated Price" value={booking.estimated_price != null ? formatPrice(booking.estimated_price) : "—"} />
           </dl>
         </Panel>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The driver's profile picture (`avatars` bucket, admin-wide read added in
+ * migration 026) and truck photo (`driver-documents` bucket, `vehicle-photo-`
+ * prefix — same convention `ApplicationsSection`'s own `DocumentsPanel`
+ * already relies on, already admin-readable since 023/024).
+ */
+function DriverMedia({ driverId, avatarPath }: { driverId: string; avatarPath: string | null }) {
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [truckUrl, setTruckUrl] = useState<string | null | undefined>(undefined);
+
+  useEffect(() => {
+    const supabase = getClient();
+    if (!supabase) return;
+    let cancelled = false;
+
+    if (avatarPath) {
+      supabase.storage
+        .from("avatars")
+        .createSignedUrl(avatarPath, 3600)
+        .then(({ data }) => {
+          if (!cancelled) setAvatarUrl(data?.signedUrl ?? null);
+        });
+    }
+
+    supabase.storage
+      .from("driver-documents")
+      .list(driverId)
+      .then(({ data: files }) => {
+        if (cancelled) return;
+        const vehiclePhoto = files?.find((f) => f.name.startsWith("vehicle-photo-"));
+        if (!vehiclePhoto) {
+          setTruckUrl(null);
+          return;
+        }
+        supabase.storage
+          .from("driver-documents")
+          .createSignedUrl(`${driverId}/${vehiclePhoto.name}`, 3600)
+          .then(({ data }) => {
+            if (!cancelled) setTruckUrl(data?.signedUrl ?? null);
+          });
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [driverId, avatarPath]);
+
+  return (
+    <div className="mt-3 flex flex-col gap-3">
+      <div className="flex items-center gap-3">
+        {avatarUrl ? (
+          <img src={avatarUrl} alt="" className="size-12 shrink-0 rounded-full border border-edge/12 object-cover" />
+        ) : (
+          <span className="grid size-12 shrink-0 place-items-center rounded-full border border-edge/12 bg-edge/[0.04] text-[0.62rem] text-muted">
+            No photo
+          </span>
+        )}
+      </div>
+
+      <div>
+        <p className="text-[0.7rem] font-semibold tracking-[0.05em] text-muted uppercase">Truck Photo</p>
+        {truckUrl === undefined ? (
+          <p className="mt-1.5 text-[0.8rem] text-muted">Loading…</p>
+        ) : truckUrl ? (
+          <img src={truckUrl} alt="" className="mt-1.5 h-36 w-full rounded-lg border border-edge/12 object-cover" />
+        ) : (
+          <p className="mt-1.5 text-[0.8rem] text-muted">Not provided</p>
+        )}
       </div>
     </div>
   );
