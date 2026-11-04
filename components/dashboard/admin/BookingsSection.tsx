@@ -275,14 +275,22 @@ function DriverMedia({ driverId, avatarPath }: { driverId: string; avatarPath: s
       .list(driverId)
       .then(({ data: files }) => {
         if (cancelled) return;
-        const vehiclePhoto = files?.find((f) => f.name.startsWith("vehicle-photo-"));
-        if (!vehiclePhoto) {
+        // `upsert: false` on upload (lib/auth.ts) means re-uploading the same
+        // document kind adds another file rather than replacing one — take
+        // the last match in list order (same "latest wins" convention
+        // ApplicationsSection's own DocumentsPanel already uses), not the
+        // first, or a driver's older test upload can outrank their real photo.
+        let latestName: string | null = null;
+        for (const f of files ?? []) {
+          if (f.name.startsWith("vehicle-photo-")) latestName = f.name;
+        }
+        if (!latestName) {
           setTruckUrl(null);
           return;
         }
         supabase.storage
           .from("driver-documents")
-          .createSignedUrl(`${driverId}/${vehiclePhoto.name}`, 3600)
+          .createSignedUrl(`${driverId}/${latestName}`, 3600)
           .then(({ data }) => {
             if (!cancelled) setTruckUrl(data?.signedUrl ?? null);
           });

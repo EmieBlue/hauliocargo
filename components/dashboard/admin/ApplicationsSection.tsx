@@ -248,11 +248,14 @@ function DetailPanel({
       <div className="flex w-full min-w-0 flex-col gap-4 lg:w-2/3">
         <Panel>
           <div className="flex items-start justify-between gap-3">
-            <div>
-              <h1 className="text-[1.4rem] font-extrabold tracking-[-0.02em] text-fg">{name}</h1>
-              <p className="mt-1 text-[0.85rem] text-muted">
-                Submitted {new Date(application.submitted_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}
-              </p>
+            <div className="flex items-center gap-3">
+              <ApplicantAvatar avatarPath={application.profiles?.avatar_path ?? null} />
+              <div>
+                <h1 className="text-[1.4rem] font-extrabold tracking-[-0.02em] text-fg">{name}</h1>
+                <p className="mt-1 text-[0.85rem] text-muted">
+                  Submitted {new Date(application.submitted_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}
+                </p>
+              </div>
             </div>
             <Badge pulse={application.status === "pending"} className="shrink-0">
               <Icon className="size-3" aria-hidden />
@@ -324,6 +327,40 @@ function DetailPanel({
       </div>
     </div>
   );
+}
+
+/** The applicant's profile picture — `avatars` bucket, admin-wide read added
+ * in migration 026. Same signed-URL pattern as `BookingsSection`'s own
+ * `DriverMedia`. */
+function ApplicantAvatar({ avatarPath }: { avatarPath: string | null }) {
+  const [url, setUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!avatarPath) return;
+    const supabase = getClient();
+    if (!supabase) return;
+    let cancelled = false;
+
+    supabase.storage
+      .from("avatars")
+      .createSignedUrl(avatarPath, 3600)
+      .then(({ data }) => {
+        if (!cancelled) setUrl(data?.signedUrl ?? null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [avatarPath]);
+
+  if (!url) {
+    return (
+      <span className="grid size-12 shrink-0 place-items-center rounded-full border border-edge/12 bg-edge/[0.04] text-[0.62rem] text-muted">
+        No photo
+      </span>
+    );
+  }
+  return <img src={url} alt="" className="size-12 shrink-0 rounded-full border border-edge/12 object-cover" />;
 }
 
 function DocumentsPanel({ profileId }: { profileId: string }) {

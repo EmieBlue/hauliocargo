@@ -35,11 +35,11 @@ export type DriverApplicationRow = {
   status: DriverStatus;
   rejection_reasons: string[] | null;
   submitted_at: string;
-  profiles: { first_name: string; last_name: string; phone: string } | null;
+  profiles: { first_name: string; last_name: string; phone: string; avatar_path: string | null } | null;
 };
 
 const APPLICATION_COLUMNS =
-  "id, profile_id, date_of_birth, license_number, vehicle_type, vehicle_make, vehicle_model, vehicle_year, vehicle_registration_no, vehicle_capacity, vehicle_color, status, rejection_reasons, submitted_at, profiles(first_name, last_name, phone)";
+  "id, profile_id, date_of_birth, license_number, vehicle_type, vehicle_make, vehicle_model, vehicle_year, vehicle_registration_no, vehicle_capacity, vehicle_color, status, rejection_reasons, submitted_at, profiles(first_name, last_name, phone, avatar_path)";
 
 export async function fetchDriverApplications(status?: DriverStatus): Promise<AuthResult<DriverApplicationRow[]>> {
   if (!authEnabled) return { ok: false, message: NOT_CONFIGURED };
