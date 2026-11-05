@@ -13,17 +13,17 @@
 --
 -- Safe to re-run: every statement either checks first or replaces cleanly.
 
--- Both tables' constraints have to allow the new values *before* the remap
--- below runs -- the UPDATE writes 'heading_to_pickup' to bookings directly,
--- and also fires migration 027's own logging trigger, which inserts that
--- same new value into booking_status_events. Either constraint still being
--- the old one at that point rejects the remap (hit twice already: first
--- bookings' own constraint, then the trigger's insert into
--- booking_status_events once that one was fixed).
+-- Ordering matters here, in both directions:
+--  - bookings stays UNCONSTRAINED while the remap runs below -- adding the
+--    tightened constraint first rejects any row still sitting at
+--    'in_progress' the instant before the UPDATE reaches it.
+--  - booking_status_events gets its WIDENED constraint first (not dropped
+--    bare) -- the remap's UPDATE fires migration 027's own logging trigger,
+--    which inserts that same new value into booking_status_events, so that
+--    table needs to already accept it.
+-- Only once the remap has actually run does bookings get its real,
+-- tightened constraint back on.
 alter table public.bookings drop constraint if exists bookings_status_check;
-alter table public.bookings
-  add constraint bookings_status_check
-  check (status in ('pending', 'confirmed', 'heading_to_pickup', 'arrived_at_pickup', 'heading_to_dropoff', 'completed', 'cancelled'));
 
 alter table public.booking_status_events drop constraint if exists booking_status_events_status_check;
 alter table public.booking_status_events
@@ -31,6 +31,10 @@ alter table public.booking_status_events
   check (status in ('pending', 'confirmed', 'in_progress', 'heading_to_pickup', 'arrived_at_pickup', 'heading_to_dropoff', 'completed', 'cancelled'));
 
 update public.bookings set status = 'heading_to_pickup' where status = 'in_progress';
+
+alter table public.bookings
+  add constraint bookings_status_check
+  check (status in ('pending', 'confirmed', 'heading_to_pickup', 'arrived_at_pickup', 'heading_to_dropoff', 'completed', 'cancelled'));
 
 alter table public.bookings
   add column if not exists final_price numeric,
