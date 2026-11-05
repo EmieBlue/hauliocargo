@@ -91,6 +91,11 @@ export function DashboardShell({
       ) : (
         <div className="container-page relative flex flex-1 items-center justify-center pt-28 pb-16">{children}</div>
       )}
+      {/* Same line and styling as Footer.tsx (homepage) / AuthShell.tsx
+       * (sign-in, register, forgot-password, verify) — this is the one
+       * shared shell those two don't cover, so adding it here is what makes
+       * it present on every page in the app. */}
+      <p className="relative pb-6 text-center text-[0.82rem] text-muted">Powered by Haulio Orbits</p>
     </div>
   );
 }

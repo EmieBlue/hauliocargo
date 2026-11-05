@@ -368,13 +368,25 @@ function BookingDetailPanel({ booking }: { booking: BookingRow }) {
                 // on a tinted page, not a hack that only works by luck. It
                 // only erases a *white* background specifically; a future
                 // photo with a different backdrop would need real cutout.
-                // eslint-disable-next-line @next/next/no-img-element -- a signed storage URL, next/image gains nothing here
-                <img
-                  src={truckPhotoUrl}
-                  alt="Driver's truck"
-                  className="h-full w-auto max-w-[55%] shrink-0 self-stretch object-contain"
-                  style={{ mixBlendMode: "multiply" }}
-                />
+                //
+                // The blurred ellipse below is a fake "contact shadow" for
+                // depth — a `filter: drop-shadow` on the image itself would
+                // just halo the whole rectangular photo frame (no real alpha
+                // cutout to trace), not read as a shadow under the truck.
+                <div className="relative h-full w-auto max-w-[55%] shrink-0 self-stretch">
+                  <div
+                    className="absolute inset-x-[12%] bottom-2 h-4 rounded-full blur-md"
+                    style={{ background: "rgba(0,0,0,0.25)" }}
+                    aria-hidden
+                  />
+                  {/* eslint-disable-next-line @next/next/no-img-element -- a signed storage URL, next/image gains nothing here */}
+                  <img
+                    src={truckPhotoUrl}
+                    alt="Driver's truck"
+                    className="relative h-full w-full object-contain"
+                    style={{ mixBlendMode: "multiply" }}
+                  />
+                </div>
               ) : null}
             </div>
             {booking.status === "completed" && booking.driver_id ? (
