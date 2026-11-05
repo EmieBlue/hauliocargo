@@ -13,13 +13,14 @@
 --
 -- Safe to re-run: every statement either checks first or replaces cleanly.
 
--- Drop the old constraint *before* the remap below -- otherwise the UPDATE
--- tries to write 'heading_to_pickup' while the old constraint (which
--- doesn't allow it yet) is still active, and rejects its own remap.
+-- Both tables' constraints have to allow the new values *before* the remap
+-- below runs -- the UPDATE writes 'heading_to_pickup' to bookings directly,
+-- and also fires migration 027's own logging trigger, which inserts that
+-- same new value into booking_status_events. Either constraint still being
+-- the old one at that point rejects the remap (hit twice already: first
+-- bookings' own constraint, then the trigger's insert into
+-- booking_status_events once that one was fixed).
 alter table public.bookings drop constraint if exists bookings_status_check;
-
-update public.bookings set status = 'heading_to_pickup' where status = 'in_progress';
-
 alter table public.bookings
   add constraint bookings_status_check
   check (status in ('pending', 'confirmed', 'heading_to_pickup', 'arrived_at_pickup', 'heading_to_dropoff', 'completed', 'cancelled'));
@@ -28,6 +29,8 @@ alter table public.booking_status_events drop constraint if exists booking_statu
 alter table public.booking_status_events
   add constraint booking_status_events_status_check
   check (status in ('pending', 'confirmed', 'in_progress', 'heading_to_pickup', 'arrived_at_pickup', 'heading_to_dropoff', 'completed', 'cancelled'));
+
+update public.bookings set status = 'heading_to_pickup' where status = 'in_progress';
 
 alter table public.bookings
   add column if not exists final_price numeric,
