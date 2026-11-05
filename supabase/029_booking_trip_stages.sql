@@ -13,9 +13,13 @@
 --
 -- Safe to re-run: every statement either checks first or replaces cleanly.
 
+-- Drop the old constraint *before* the remap below -- otherwise the UPDATE
+-- tries to write 'heading_to_pickup' while the old constraint (which
+-- doesn't allow it yet) is still active, and rejects its own remap.
+alter table public.bookings drop constraint if exists bookings_status_check;
+
 update public.bookings set status = 'heading_to_pickup' where status = 'in_progress';
 
-alter table public.bookings drop constraint if exists bookings_status_check;
 alter table public.bookings
   add constraint bookings_status_check
   check (status in ('pending', 'confirmed', 'heading_to_pickup', 'arrived_at_pickup', 'heading_to_dropoff', 'completed', 'cancelled'));
