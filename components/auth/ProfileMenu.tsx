@@ -3,8 +3,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { LogOut, Package, User, UserCircle } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { signOut } from "@/lib/auth";
 import { cn } from "@/lib/cn";
@@ -20,7 +18,6 @@ import { getClient } from "@/lib/supabase";
  * just a small positioned panel instead of a full-screen takeover.
  */
 export function ProfileMenu({ dark = false }: { dark?: boolean }) {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -53,7 +50,9 @@ export function ProfileMenu({ dark = false }: { dark?: boolean }) {
 
   async function handleSignOut() {
     await signOut();
-    router.push(ROUTES.signin);
+    // Hard navigation, not router.push — see Button.tsx's own comment: the
+    // site's client-side router is currently broken.
+    window.location.assign(ROUTES.signin);
   }
 
   return (
@@ -121,7 +120,9 @@ function MenuLink({
   onClick: () => void;
 }) {
   return (
-    <Link
+    // Plain `<a>`, not `Link` — see Button.tsx's own comment: the site's
+    // client-side router is currently broken.
+    <a
       href={href}
       onClick={onClick}
       role="menuitem"
@@ -129,6 +130,6 @@ function MenuLink({
     >
       <Icon className="size-4 text-muted" aria-hidden />
       {label}
-    </Link>
+    </a>
   );
 }

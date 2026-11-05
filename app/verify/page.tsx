@@ -1,7 +1,7 @@
 "use client";
 
 import { Loader2 } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { FileUploadField } from "@/components/auth/FileUploadField";
@@ -39,7 +39,6 @@ export default function VerifyPage() {
 type Stage = "code" | "driver-documents" | "driver-submitted" | "new-password" | "password-updated" | "profile-error";
 
 function VerifyContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
 
   const email = searchParams.get("email") ?? "";
@@ -107,7 +106,7 @@ function VerifyContent() {
     if (!raw) {
       // Nothing to complete (e.g. a stale reload) — best effort, fall back
       // to the pre-fix behavior rather than stranding the visitor here.
-      router.push(ROUTES.dashboardCustomer);
+      window.location.assign(ROUTES.dashboardCustomer);
       return;
     }
 
@@ -123,7 +122,9 @@ function VerifyContent() {
     }
 
     sessionStorage.removeItem(PENDING_CUSTOMER_PROFILE_KEY);
-    router.push(ROUTES.dashboardCustomer);
+    // Hard navigation, not router.push — see Button.tsx's own comment: the
+    // site's client-side router is currently broken.
+    window.location.assign(ROUTES.dashboardCustomer);
   }
 
   /**
@@ -137,7 +138,7 @@ function VerifyContent() {
   async function finishDriverSignup() {
     const raw = sessionStorage.getItem(PENDING_DRIVER_PROFILE_KEY);
     if (!raw) {
-      router.push(ROUTES.dashboardDriver);
+      window.location.assign(ROUTES.dashboardDriver);
       return;
     }
 
@@ -307,7 +308,7 @@ function VerifyContent() {
               : "Thank you for registering with HaulioCargo. Your driver application is being reviewed. We'll notify you when verification is complete."
           }
           ctaLabel="Go to Dashboard"
-          onCta={() => router.push(ROUTES.dashboardDriver)}
+          onCta={() => window.location.assign(ROUTES.dashboardDriver)}
         />
       </AuthShell>
     );
@@ -319,7 +320,7 @@ function VerifyContent() {
         <ConfirmationPanel
           message="Your password has been successfully changed."
           ctaLabel="Sign In"
-          onCta={() => router.push(ROUTES.signin)}
+          onCta={() => window.location.assign(ROUTES.signin)}
         />
       </AuthShell>
     );

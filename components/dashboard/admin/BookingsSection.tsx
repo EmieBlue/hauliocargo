@@ -2,7 +2,6 @@
 
 import { CheckCircle2, Clock, MapPin, Navigation, PackageCheck, Truck, XCircle } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { BackButton } from "@/components/dashboard/BackButton";
@@ -109,7 +108,7 @@ export function BookingsSection() {
 
           <div className="flex flex-wrap gap-2">
             {FILTERS.map((f) => (
-              <Link
+              <a
                 key={f.key}
                 href={f.key === "all" ? `${ROUTES.dashboardAdmin}?section=bookings` : `${ROUTES.dashboardAdmin}?section=bookings&status=${f.key}`}
                 className={cn(
@@ -120,7 +119,7 @@ export function BookingsSection() {
                 )}
               >
                 {f.label}
-              </Link>
+              </a>
             ))}
           </div>
 
@@ -155,7 +154,7 @@ function BookingRow({ booking }: { booking: AdminBookingRow }) {
   const customerName = booking.customer ? `${booking.customer.first_name} ${booking.customer.last_name}` : "Unknown customer";
 
   return (
-    <Link
+    <a
       href={`${ROUTES.dashboardAdmin}?section=bookings&id=${booking.id}`}
       className="-mx-5 flex items-center justify-between gap-3 px-5 py-3.5 transition-colors duration-200 first:pt-0 hover:bg-edge/[0.03]"
     >
@@ -169,7 +168,7 @@ function BookingRow({ booking }: { booking: AdminBookingRow }) {
         <Icon className="size-3" aria-hidden />
         {copy.label}
       </Badge>
-    </Link>
+    </a>
   );
 }
 

@@ -2,7 +2,6 @@
 
 import { ArrowRight, BadgeCheck, MapPin, Package, Receipt, Send, ShieldCheck, Truck } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { DashboardLoading, DashboardShell } from "@/components/auth/DashboardShell";
 import { cn } from "@/lib/cn";
@@ -42,7 +41,6 @@ const TRUST_ICONS: LucideIcon[] = [BadgeCheck, Receipt, MapPin, ShieldCheck];
 
 export default function CustomerDashboardPage() {
   const { loading } = useRequireRole("customer");
-  const router = useRouter();
   const [theme] = useTheme();
   const [firstName, setFirstName] = useState<string | null>(null);
 
@@ -80,7 +78,9 @@ export default function CustomerDashboardPage() {
               body={action.body}
               variant={action.variant}
               theme={theme}
-              onSelect={() => router.push(action.href)}
+              // Hard navigation, not router.push — see Button.tsx's own
+              // comment: the site's client-side router is currently broken.
+              onSelect={() => window.location.assign(action.href)}
             />
           ))}
         </div>

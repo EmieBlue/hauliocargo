@@ -1,7 +1,6 @@
 "use client";
 
 import { ArrowLeft } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { cn } from "@/lib/cn";
 import { ROUTES } from "@/lib/site";
 
@@ -9,15 +8,17 @@ import { ROUTES } from "@/lib/site";
  * A visible "← Back" that returns to the page the customer came from. With no
  * history to go back to (a fresh tab or a bookmarked link), it falls back to
  * the dashboard home instead of doing nothing.
+ *
+ * Native `window.history.back()`/`window.location.href`, not next/navigation's
+ * `router` — see Button.tsx's own comment: the site's client-side router is
+ * currently broken.
  */
 export function BackButton({ className }: { className?: string }) {
-  const router = useRouter();
-
   function handleBack() {
     if (window.history.length > 1) {
-      router.back();
+      window.history.back();
     } else {
-      router.push(ROUTES.dashboardCustomer);
+      window.location.assign(ROUTES.dashboardCustomer);
     }
   }
 

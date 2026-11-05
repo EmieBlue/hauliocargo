@@ -2,7 +2,6 @@
 
 import { motion } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
 import type { ReactNode } from "react";
 import { AuthVisual } from "@/components/three/AuthVisual";
 import { VideoBackdrop } from "@/components/layout/VideoBackdrop";
@@ -91,7 +90,9 @@ export function AuthShell({
           <Logo dark={scrolled} className="shrink-0" />
           <div className="flex items-center gap-4">
             {backHref ? (
-              <Link
+              // Plain `<a>`, not `Link` — see Button.tsx's own comment: the
+              // site's client-side router is currently broken.
+              <a
                 href={backHref}
                 className={cn(
                   "inline-flex items-center gap-1.5 font-display text-[0.72rem] font-semibold tracking-[0.08em] uppercase transition-colors duration-200",
@@ -100,7 +101,7 @@ export function AuthShell({
               >
                 <ArrowLeft className="size-3.5" aria-hidden />
                 {backLabel}
-              </Link>
+              </a>
             ) : null}
             <ThemeToggle dark={scrolled} />
           </div>

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
@@ -73,15 +72,19 @@ export function Button(props: AnchorProps | NativeButtonProps) {
   );
 
   if (typeof props.href === "string") {
-    // `Link`, not a plain `<a>` — every href here is an internal route, and a
-    // plain anchor forces a full hard page reload (all JS re-parsed, every
-    // asset re-requested) where `Link` prefetches the route and transitions
-    // client-side instead, which is what keeps e.g. Register feeling instant.
+    // Plain `<a>`, not `next/link` — the live site's client-side transition
+    // is currently broken (confirmed directly: the RSC payload for the
+    // target route fetches fine, but the router never actually commits the
+    // navigation, no console error, nothing — verified on page pairs with
+    // no relation to each other, so it's the router itself, not one page).
+    // A hard navigation always works regardless of whatever that is, at the
+    // cost of a full reload instead of an instant client transition. Revert
+    // to `Link` once the real cause is found and fixed.
     const { href, ...anchorRest } = rest as ComponentPropsWithoutRef<"a"> & { href: string };
     return (
-      <Link href={href} {...anchorRest} className={classes}>
+      <a href={href} {...anchorRest} className={classes}>
         {content}
-      </Link>
+      </a>
     );
   }
 

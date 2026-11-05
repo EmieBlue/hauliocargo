@@ -2,7 +2,6 @@
 
 import { History, LayoutDashboard, MessageSquare, Menu, Star, Truck, User, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { fetchDriverRatingSummary, type RatingSummary } from "@/lib/bookings";
 import { cn } from "@/lib/cn";
@@ -179,9 +178,11 @@ function MenuBody({
             );
           }
           return (
-            <Link key={item.key} href={item.href} className={className} aria-current={active ? "page" : undefined} onClick={onNavigate}>
+            // Plain `<a>`, not `Link` — see Button.tsx's own comment: the
+            // site's client-side router is currently broken.
+            <a key={item.key} href={item.href} className={className} aria-current={active ? "page" : undefined} onClick={onNavigate}>
               {row}
-            </Link>
+            </a>
           );
         })}
       </nav>

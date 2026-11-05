@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { DashboardLoading, DashboardShell } from "@/components/auth/DashboardShell";
 import { ROUTES } from "@/lib/site";
 import { useRequireRole } from "@/lib/useRequireRole";
@@ -13,12 +12,12 @@ export default function PackageDeliveryPage() {
   return (
     <DashboardShell>
       <div className="flex max-w-lg flex-col gap-6">
-        <Link
+        <a
           href={ROUTES.dashboardCustomer}
           className="self-start text-[0.8rem] font-medium text-muted transition-colors duration-200 hover:text-brand"
         >
           ← Back to dashboard
-        </Link>
+        </a>
         <div>
           <h1 className="text-[clamp(1.8rem,3.6vw,2.4rem)] font-extrabold tracking-[-0.02em] text-fg">
             Package Delivery

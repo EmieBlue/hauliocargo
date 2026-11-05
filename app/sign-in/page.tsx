@@ -2,8 +2,6 @@
 
 import { motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { PasswordField } from "@/components/auth/PasswordField";
@@ -16,7 +14,6 @@ import { ROUTES } from "@/lib/site";
 import { useTheme } from "@/lib/useTheme";
 
 export default function SignInPage() {
-  const router = useRouter();
   const [theme] = useTheme();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -37,7 +34,9 @@ export default function SignInPage() {
     }
 
     const profile = await getSessionProfile();
-    router.push(profile ? redirectPathFor(profile) : ROUTES.dashboardCustomer);
+    // Hard navigation, not router.push — see Button.tsx's own comment: the
+    // site's client-side router is currently broken.
+    window.location.assign(profile ? redirectPathFor(profile) : ROUTES.dashboardCustomer);
   }
 
   return (
@@ -71,12 +70,12 @@ export default function SignInPage() {
             value={password}
             onChange={(event) => setPassword(event.target.value)}
           />
-          <Link
+          <a
             href={ROUTES.forgotPassword}
             className="self-end text-[0.82rem] font-medium text-muted transition-colors duration-200 hover:text-brand"
           >
             Forgot Password?
-          </Link>
+          </a>
         </div>
 
         {error ? (
@@ -110,9 +109,9 @@ export default function SignInPage() {
 
       <p className="mt-8 text-center text-[0.88rem] text-muted">
         Don&rsquo;t have a HaulioCargo account?{" "}
-        <Link href={ROUTES.register} className="font-semibold text-brand hover:underline">
+        <a href={ROUTES.register} className="font-semibold text-brand hover:underline">
           Create an account
-        </Link>
+        </a>
       </p>
     </AuthShell>
   );

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { BackButton } from "@/components/dashboard/BackButton";
@@ -88,7 +87,7 @@ export function CustomersSection() {
 
 function CustomerRowItem({ customer }: { customer: CustomerRow }) {
   return (
-    <Link
+    <a
       href={`${ROUTES.dashboardAdmin}?section=customers&id=${customer.id}`}
       className="-mx-5 flex items-center justify-between gap-3 px-5 py-3.5 transition-colors duration-200 first:pt-0 hover:bg-edge/[0.03]"
     >
@@ -101,7 +100,7 @@ function CustomerRowItem({ customer }: { customer: CustomerRow }) {
       <p className="shrink-0 text-[0.78rem] text-muted">
         {customer.city || customer.area ? [customer.city, customer.area].filter(Boolean).join(", ") : "—"}
       </p>
-    </Link>
+    </a>
   );
 }
 

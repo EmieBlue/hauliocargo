@@ -1,7 +1,6 @@
 "use client";
 
 import { CheckCircle2, Clock, Loader2, User, XCircle } from "lucide-react";
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { DashboardLoading, DashboardShell } from "@/components/auth/DashboardShell";
 import { PasswordField } from "@/components/auth/PasswordField";
@@ -140,12 +139,12 @@ export default function ProfilePage() {
   return (
     <DashboardShell>
       <div className="flex w-full max-w-lg flex-col gap-5">
-        <Link
+        <a
           href={redirectPathFor(profile)}
           className="self-start text-[0.8rem] font-medium text-muted transition-colors duration-200 hover:text-brand"
         >
           ← Back to dashboard
-        </Link>
+        </a>
 
         <div>
           <h1 className="text-[clamp(1.6rem,3.2vw,2rem)] font-extrabold tracking-[-0.02em] text-fg">My Profile</h1>

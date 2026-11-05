@@ -1,7 +1,7 @@
 "use client";
 
 import { Clock, Loader2, MapPin, Truck } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { DashboardLoading, DashboardShell } from "@/components/auth/DashboardShell";
 import { BackButton } from "@/components/dashboard/BackButton";
@@ -69,7 +69,6 @@ type Selected = { id: string; row: JobRow | null };
 function DriverJobsContent() {
   const { loading, profile } = useRequireRole("driver");
   const jobId = useSearchParams().get("id");
-  const router = useRouter();
 
   const [available, setAvailable] = useState<JobRow[] | null>(null);
   const [mine, setMine] = useState<JobRow[] | null>(null);
@@ -196,7 +195,9 @@ function DriverJobsContent() {
     } else {
       await reload();
     }
-    if (fromDetail) router.push(ROUTES.driverJobs);
+    // Hard navigation, not router.push — see Button.tsx's own comment: the
+    // site's client-side router is currently broken.
+    if (fromDetail) window.location.assign(ROUTES.driverJobs);
   }
 
   const openMine = mine?.filter((j) => j.status === "confirmed" || ACTIVE_TRANSIT_STATUSES.includes(j.status)) ?? [];
@@ -697,10 +698,10 @@ function JobCard({
   /** Decline for an open job, Cancel for one the driver already accepted. */
   secondaryAction?: { label: string; onClick: () => void };
 }) {
-  const router = useRouter();
-
   function open() {
-    router.push(`${ROUTES.driverJobs}?id=${job.id}`);
+    // Hard navigation, not router.push — see Button.tsx's own comment: the
+    // site's client-side router is currently broken.
+    window.location.assign(`${ROUTES.driverJobs}?id=${job.id}`);
   }
 
   return (

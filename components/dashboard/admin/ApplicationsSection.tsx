@@ -2,7 +2,6 @@
 
 import { CheckCircle2, Clock, ExternalLink, Loader2, XCircle } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { BackButton } from "@/components/dashboard/BackButton";
@@ -141,7 +140,7 @@ export function ApplicationsSection() {
 
           <div className="flex flex-wrap gap-2">
             {FILTERS.map((f) => (
-              <Link
+              <a
                 key={f.key}
                 href={f.key === "pending" ? `${ROUTES.dashboardAdmin}?section=applications` : `${ROUTES.dashboardAdmin}?section=applications&status=${f.key}`}
                 className={cn(
@@ -152,7 +151,7 @@ export function ApplicationsSection() {
                 )}
               >
                 {f.label}
-              </Link>
+              </a>
             ))}
           </div>
 
@@ -206,7 +205,7 @@ function ApplicationRow({ application }: { application: DriverApplicationRow }) 
     : "Unknown applicant";
 
   return (
-    <Link
+    <a
       href={`${ROUTES.dashboardAdmin}?section=applications&id=${application.id}`}
       className="-mx-5 flex items-center justify-between gap-3 px-5 py-3.5 transition-colors duration-200 first:pt-0 hover:bg-edge/[0.03]"
     >
@@ -220,7 +219,7 @@ function ApplicationRow({ application }: { application: DriverApplicationRow }) 
         <Icon className="size-3" aria-hidden />
         {copy.label}
       </Badge>
-    </Link>
+    </a>
   );
 }
 

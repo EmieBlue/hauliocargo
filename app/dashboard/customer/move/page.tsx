@@ -3,7 +3,6 @@
 import { Box, Forklift, Loader2, Sparkles, Truck, Users } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Outfit } from "next/font/google";
-import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { DashboardLoading, DashboardShell } from "@/components/auth/DashboardShell";
 import { AppSideMenu } from "@/components/dashboard/AppSideMenu";
@@ -80,7 +79,6 @@ const CATEGORY_SHORT_BODY: Record<Category, string> = {
  */
 export default function MoveWithYouPage() {
   const { loading } = useRequireRole("customer");
-  const router = useRouter();
   const reducedMotion = useSettledReducedMotion();
   // Exactly one `MoveMapPanel` ever mounts — gated in JS, not just hidden
   // via CSS, so there's only ever one live `mapboxgl.Map` instance (two
@@ -244,7 +242,9 @@ export default function MoveWithYouPage() {
       setError(result.message);
       return;
     }
-    router.push(`${ROUTES.bookings}?id=${result.data}`);
+    // Hard navigation, not router.push — see Button.tsx's own comment: the
+    // site's client-side router is currently broken.
+    window.location.assign(`${ROUTES.bookings}?id=${result.data}`);
   }
 
   // Need Help Loading? is now required, same as every earlier stage on this

@@ -1,7 +1,6 @@
 "use client";
 
 import { Loader2 } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { TextField } from "@/components/auth/TextField";
@@ -16,7 +15,6 @@ import { isValidEmail } from "@/lib/validation";
  * `purpose=recovery`: one OTP experience, not two built in parallel.
  */
 export default function ForgotPasswordPage() {
-  const router = useRouter();
   const [identifier, setIdentifier] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +38,9 @@ export default function ForgotPasswordPage() {
       return;
     }
 
-    router.push(`${ROUTES.verify}?email=${encodeURIComponent(identifier)}&purpose=recovery`);
+    // Hard navigation, not router.push — see Button.tsx's own comment: the
+    // site's client-side router is currently broken.
+    window.location.assign(`${ROUTES.verify}?email=${encodeURIComponent(identifier)}&purpose=recovery`);
   }
 
   return (

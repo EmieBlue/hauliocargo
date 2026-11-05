@@ -2,7 +2,6 @@
 
 import { ArrowUpRight, Compass, MessageSquare, UserPlus } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import Link from "next/link";
 import { useState } from "react";
 import { ROUTES, SECTION_IDS } from "@/lib/site";
 import type { SignupIntent } from "@/lib/supabase";
@@ -129,11 +128,10 @@ function CardBody({
   }
 
   return (
-    // `Link`, not a plain `<a>` — the Register card points at an internal
-    // route and a plain anchor would force a full hard reload there (see
-    // components/ui/Button.tsx for the same fix, same reasoning).
-    <Link href={href ?? "#"} className={shared}>
+    // Plain `<a>`, not `Link` — see Button.tsx's own comment: the site's
+    // client-side router is currently broken.
+    <a href={href ?? "#"} className={shared}>
       {children}
-    </Link>
+    </a>
   );
 }

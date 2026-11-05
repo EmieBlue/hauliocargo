@@ -2,7 +2,6 @@
 
 import { ClipboardCheck, LayoutDashboard, Menu, Shield, Truck, Users, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 import { ROUTES } from "@/lib/site";
@@ -136,7 +135,9 @@ function MenuBody({
           const href = item.key === "overview" ? ROUTES.dashboardAdmin : `${ROUTES.dashboardAdmin}?section=${item.key}`;
 
           return (
-            <Link
+            // Plain `<a>`, not `Link` — see Button.tsx's own comment: the
+            // site's client-side router is currently broken.
+            <a
               key={item.key}
               href={href}
               className={cn(
@@ -159,7 +160,7 @@ function MenuBody({
               >
                 {item.label}
               </span>
-            </Link>
+            </a>
           );
         })}
       </nav>

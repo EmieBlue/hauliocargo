@@ -2,8 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Truck, User } from "lucide-react";
-import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Suspense, type ReactNode } from "react";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { CustomerRegisterForm } from "@/components/auth/CustomerRegisterForm";
@@ -45,7 +44,6 @@ export default function RegisterPage() {
 }
 
 function RegisterContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
 
   // Role lives in the URL, not local state — so "back" and the browser's own
@@ -54,14 +52,14 @@ function RegisterContent() {
   const roleParam = searchParams.get("role");
   const role: Role | null = roleParam === "customer" || roleParam === "driver" ? roleParam : null;
 
+  // Hard navigation throughout this component, not router.push/Link — see
+  // Button.tsx's own comment: the site's client-side router is currently broken.
   function afterCustomerSignup(email: string) {
-    router.push(
-      `${ROUTES.verify}?email=${encodeURIComponent(email)}&purpose=signup&role=customer`,
-    );
+    window.location.assign(`${ROUTES.verify}?email=${encodeURIComponent(email)}&purpose=signup&role=customer`);
   }
 
   function afterDriverSignup(email: string) {
-    router.push(`${ROUTES.verify}?email=${encodeURIComponent(email)}&purpose=signup&role=driver`);
+    window.location.assign(`${ROUTES.verify}?email=${encodeURIComponent(email)}&purpose=signup&role=driver`);
   }
 
   const copy = role ? COPY[role] : COPY.customer;
@@ -92,7 +90,7 @@ function RegisterContent() {
                 title="Customer"
                 body="I want to move my cargo"
                 selected={false}
-                onSelect={() => router.push(`${ROUTES.register}?role=customer`)}
+                onSelect={() => window.location.assign(`${ROUTES.register}?role=customer`)}
                 testId="role-customer"
               />
             </motion.div>
@@ -102,7 +100,7 @@ function RegisterContent() {
                 title="Driver"
                 body="I want to provide cargo transportation"
                 selected={false}
-                onSelect={() => router.push(`${ROUTES.register}?role=driver`)}
+                onSelect={() => window.location.assign(`${ROUTES.register}?role=driver`)}
                 testId="role-driver"
               />
             </motion.div>
@@ -110,19 +108,19 @@ function RegisterContent() {
 
           <p className="text-center text-[0.88rem] text-muted">
             Already have a HaulioCargo account?{" "}
-            <Link href={ROUTES.signin} className="font-semibold text-brand hover:underline">
+            <a href={ROUTES.signin} className="font-semibold text-brand hover:underline">
               Sign in
-            </Link>
+            </a>
           </p>
         </div>
       ) : (
         <div className="flex flex-col gap-6">
-          <Link
+          <a
             href={ROUTES.register}
             className="self-start text-[0.8rem] font-medium text-muted transition-colors duration-200 hover:text-brand"
           >
             ← Choose a different account type
-          </Link>
+          </a>
 
           {role === "customer" ? (
             <CustomerRegisterForm onSubmitted={afterCustomerSignup} />

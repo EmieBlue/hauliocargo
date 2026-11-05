@@ -1,7 +1,6 @@
 "use client";
 
 import { ClipboardCheck, Package, Truck, Users, type LucideIcon } from "lucide-react";
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Panel, SectionLabel } from "@/components/dashboard/admin/ApplicationsSection";
 import { fetchAdminStats, type AdminStats } from "@/lib/admin";
@@ -59,7 +58,7 @@ export function OverviewSection() {
 function StatCard({ card, value }: { card: Card; value: number | undefined }) {
   const Icon = card.icon;
   return (
-    <Link
+    <a
       href={card.href}
       className="flex flex-col gap-3 rounded-xl border border-edge/12 bg-ink-950 p-5 transition-colors duration-200 hover:border-brand/30"
     >
@@ -70,6 +69,6 @@ function StatCard({ card, value }: { card: Card; value: number | undefined }) {
         <p className="text-[1.75rem] font-extrabold tracking-[-0.02em] text-fg">{value ?? "—"}</p>
         <SectionLabel>{card.label}</SectionLabel>
       </div>
-    </Link>
+    </a>
   );
 }

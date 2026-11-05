@@ -2,7 +2,6 @@
 
 import { motion } from "framer-motion";
 import { Menu } from "lucide-react";
-import Link from "next/link";
 import { useCallback, useState } from "react";
 import { cn } from "@/lib/cn";
 import { EASE } from "@/lib/motion";
@@ -70,12 +69,15 @@ export function Navbar() {
              * button leaks onto small screens.
              */}
             {scrolled ? (
-              <Link
+              // Plain `<a>`, not `Link` — see Button.tsx's own comment: the
+              // site's client-side transition is currently broken, a hard
+              // navigation always works regardless of why.
+              <a
                 href={ROUTES.signin}
                 className="hidden h-11 items-center px-3 font-display text-[0.72rem] font-semibold tracking-[0.09em] uppercase text-black/70 transition-colors duration-300 hover:text-black sm:inline-flex"
               >
                 Sign In
-              </Link>
+              </a>
             ) : (
               <span className="hidden sm:block">
                 <Button

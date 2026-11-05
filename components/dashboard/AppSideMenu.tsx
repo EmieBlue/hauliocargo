@@ -2,7 +2,6 @@
 
 import { LayoutDashboard, MessageSquare, Navigation, Package, Send, Truck, User, X, Menu } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 import { ROUTES } from "@/lib/site";
@@ -236,9 +235,11 @@ function MenuBody({
             );
           }
           return (
-            <Link key={item.key} href={item.href} className={className} aria-current={active ? "page" : undefined} onClick={onNavigate}>
+            // Plain `<a>`, not `Link` — see Button.tsx's own comment: the
+            // site's client-side router is currently broken.
+            <a key={item.key} href={item.href} className={className} aria-current={active ? "page" : undefined} onClick={onNavigate}>
               {row}
-            </Link>
+            </a>
           );
         })}
 
@@ -247,7 +248,7 @@ function MenuBody({
             {requests.map((request) => {
               const selected = request.id === selectedId;
               return (
-                <Link
+                <a
                   key={request.id}
                   href={`${ROUTES.bookings}?id=${request.id}`}
                   onClick={onNavigate}
@@ -270,7 +271,7 @@ function MenuBody({
                     <span className="block truncate text-[0.8rem] font-medium">{request.dropoff_location}</span>
                     <span className="block truncate text-[0.7rem] opacity-70">{statusLabel(request.status)}</span>
                   </span>
-                </Link>
+                </a>
               );
             })}
           </div>

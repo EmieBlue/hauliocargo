@@ -1,7 +1,6 @@
 "use client";
 
 import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
 import type { ReactNode } from "react";
 import { DashboardBackdrop } from "@/components/layout/DashboardBackdrop";
 import { Logo } from "@/components/ui/Logo";
@@ -62,7 +61,9 @@ export function DashboardShell({
           <div className="flex items-center gap-5">
             <Logo dark={scrolled} />
             {backLink ? (
-              <Link
+              // Plain `<a>`, not `Link` — see Button.tsx's own comment: the
+              // site's client-side router is currently broken.
+              <a
                 href={backLink.href}
                 aria-label={backLink.label}
                 className={cn(
@@ -74,7 +75,7 @@ export function DashboardShell({
               >
                 <ArrowLeft className="size-3.5 shrink-0" aria-hidden />
                 <span className="hidden sm:inline">{backLink.label}</span>
-              </Link>
+              </a>
             ) : null}
           </div>
           <div className="flex items-center gap-4">

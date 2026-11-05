@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { cn } from "@/lib/cn";
 import { ROUTES } from "@/lib/site";
 import { useTheme } from "@/lib/useTheme";
@@ -55,7 +54,10 @@ export function Logo({
       : "/brand/nav-mark.png";
 
   return (
-    <Link
+    // Plain `<a>`, not `Link` — see Button.tsx's own comment: the site's
+    // client-side transition is currently broken, a hard navigation always
+    // works regardless of why.
+    <a
       href={ROUTES.homePage}
       className={cn("inline-flex items-center gap-2.5 transition-opacity duration-300 hover:opacity-85", className)}
     >
@@ -64,6 +66,6 @@ export function Logo({
         <span className={dark ? "text-white" : "text-brand"}>HAULIO</span>
         <span className={dark || theme === "light" ? "text-black" : "text-white"}>CARGO</span>
       </span>
-    </Link>
+    </a>
   );
 }
