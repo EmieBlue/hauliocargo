@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, Clock, Navigation, PackageCheck, XCircle } from "lucide-react";
+import { CheckCircle2, Clock, MapPin, Navigation, PackageCheck, Truck, XCircle } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -11,7 +11,7 @@ import type { LocationPoint } from "@/components/dashboard/MoveMap";
 import { LiveLocationNote, MoveMapPanel } from "@/components/dashboard/MoveMapPanel";
 import { Badge } from "@/components/ui/Badge";
 import { fetchAdminBooking, fetchAdminBookings, fetchBookingTimeline, type AdminBookingRow, type BookingStatusEvent } from "@/lib/admin";
-import type { BookingStatus } from "@/lib/bookings";
+import { ACTIVE_TRANSIT_STATUSES, type BookingStatus } from "@/lib/bookings";
 import { formatPrice } from "@/lib/pricing";
 import { cn } from "@/lib/cn";
 import { ROUTES } from "@/lib/site";
@@ -24,6 +24,9 @@ export const BOOKING_STATUS_COPY: Record<BookingStatus, { label: string; icon: L
   pending: { label: "Pending", icon: Clock },
   confirmed: { label: "Confirmed", icon: CheckCircle2 },
   in_progress: { label: "On the way", icon: Navigation },
+  heading_to_pickup: { label: "On the way", icon: Navigation },
+  arrived_at_pickup: { label: "Arrived", icon: MapPin },
+  heading_to_dropoff: { label: "Heading to destination", icon: Truck },
   completed: { label: "Completed", icon: PackageCheck },
   cancelled: { label: "Cancelled", icon: XCircle },
 };
@@ -31,14 +34,25 @@ export const BOOKING_STATUS_COPY: Record<BookingStatus, { label: string; icon: L
 const FILTERS: { key: BookingStatus | "all"; label: string }[] = [
   { key: "pending", label: "Pending" },
   { key: "confirmed", label: "Confirmed" },
-  { key: "in_progress", label: "On the way" },
+  { key: "heading_to_pickup", label: "On the way" },
+  { key: "arrived_at_pickup", label: "Arrived" },
+  { key: "heading_to_dropoff", label: "Heading to destination" },
   { key: "completed", label: "Completed" },
   { key: "cancelled", label: "Cancelled" },
   { key: "all", label: "All" },
 ];
 
 function isBookingStatus(value: string | null): value is BookingStatus {
-  return value === "pending" || value === "confirmed" || value === "in_progress" || value === "completed" || value === "cancelled";
+  return (
+    value === "pending" ||
+    value === "confirmed" ||
+    value === "in_progress" ||
+    value === "heading_to_pickup" ||
+    value === "arrived_at_pickup" ||
+    value === "heading_to_dropoff" ||
+    value === "completed" ||
+    value === "cancelled"
+  );
 }
 
 type Selected = { id: string; row: AdminBookingRow | null };
@@ -175,7 +189,7 @@ function DetailPanel({ booking }: { booking: AdminBookingRow }) {
       : null;
 
   const { position: livePosition, updatedAt: liveUpdatedAt } = useLiveLocation(
-    booking.status === "in_progress" ? booking.id : null,
+    ACTIVE_TRANSIT_STATUSES.includes(booking.status) ? booking.id : null,
   );
 
   return (
@@ -257,8 +271,12 @@ function DetailPanel({ booking }: { booking: AdminBookingRow }) {
           <SectionLabel>Price</SectionLabel>
           <dl className="mt-3 flex flex-col gap-3.5">
             <Row label="Distance" value={booking.distance_km != null ? `${booking.distance_km} km` : "—"} />
-            <Row label="Estimated Price" value={booking.estimated_price != null ? formatPrice(booking.estimated_price) : "—"} />
+            <Row
+              label={booking.final_price != null ? "Final Price" : "Estimated Price"}
+              value={booking.estimated_price != null ? formatPrice(booking.final_price ?? booking.estimated_price) : "—"}
+            />
           </dl>
+          {booking.price_change_reason ? <p className="mt-3 text-[0.78rem] text-muted">{booking.price_change_reason}</p> : null}
         </Panel>
       </div>
     </div>

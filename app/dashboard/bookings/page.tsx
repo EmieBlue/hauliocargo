@@ -10,7 +10,13 @@ import { DashboardLoading, DashboardShell } from "@/components/auth/DashboardShe
 import type { LocationPoint } from "@/components/dashboard/MoveMap";
 import { LiveLocationNote, MoveMapPanel } from "@/components/dashboard/MoveMapPanel";
 import { Button } from "@/components/ui/Button";
-import { fetchBookingRating, fetchMatchedDriverVehicle, submitDriverRating, type MatchedDriverVehicle } from "@/lib/bookings";
+import {
+  ACTIVE_TRANSIT_STATUSES,
+  fetchBookingRating,
+  fetchMatchedDriverVehicle,
+  submitDriverRating,
+  type MatchedDriverVehicle,
+} from "@/lib/bookings";
 import { cn } from "@/lib/cn";
 import { fetchMessages, sendMessage, subscribeToMessages, type MessageRow } from "@/lib/messages";
 import { formatPrice } from "@/lib/pricing";
@@ -27,7 +33,18 @@ const CREAM = "#f6f3ed";
 const AMBER = "#f0b429";
 const ACCRA_CENTER: [number, number] = [-0.2, 5.6];
 
-type BookingStatus = "pending" | "confirmed" | "in_progress" | "completed" | "cancelled";
+// `in_progress` kept only for type compatibility with old data shapes —
+// migration 029 remapped every row off it, nothing writes it anymore. See
+// ACTIVE_TRANSIT_STATUSES (lib/bookings.ts) for the three real stages.
+type BookingStatus =
+  | "pending"
+  | "confirmed"
+  | "in_progress"
+  | "heading_to_pickup"
+  | "arrived_at_pickup"
+  | "heading_to_dropoff"
+  | "completed"
+  | "cancelled";
 
 type BookingRow = {
   id: string;
@@ -45,6 +62,8 @@ type BookingRow = {
   cargo_photo_url: string | null;
   distance_km: number | null;
   estimated_price: number | null;
+  final_price: number | null;
+  price_change_reason: string | null;
   cargo_weight_kg: number | null;
   cargo_volume_m3: number | null;
   status: BookingStatus;
@@ -52,14 +71,16 @@ type BookingRow = {
 };
 
 const BOOKING_COLUMNS =
-  "id, pickup_location, dropoff_location, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng, scheduled_for, cargo_description, vehicle_category, vehicle_size, loading_assistants, cargo_photo_url, distance_km, estimated_price, cargo_weight_kg, cargo_volume_m3, status, driver_id";
+  "id, pickup_location, dropoff_location, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng, scheduled_for, cargo_description, vehicle_category, vehicle_size, loading_assistants, cargo_photo_url, distance_km, estimated_price, final_price, price_change_reason, cargo_weight_kg, cargo_volume_m3, status, driver_id";
 
 type DriverRow = { first_name: string; last_name: string; phone: string; avatar_path: string | null };
 
 const PROGRESS_STEPS = [
   { status: "pending", label: "Requested" },
   { status: "confirmed", label: "Confirmed" },
-  { status: "in_progress", label: "On the way" },
+  { status: "heading_to_pickup", label: "On the way" },
+  { status: "arrived_at_pickup", label: "Arrived" },
+  { status: "heading_to_dropoff", label: "Heading to destination" },
   { status: "completed", label: "Completed" },
 ] as const;
 
@@ -112,7 +133,7 @@ function BookingsContent() {
   // Called unconditionally, above the early return below, same as every
   // other hook here — the conditional part is the argument, not the call.
   const { position: livePosition, updatedAt: liveUpdatedAt } = useLiveLocation(
-    row?.status === "in_progress" ? row.id : null,
+    row && ACTIVE_TRANSIT_STATUSES.includes(row.status) ? row.id : null,
   );
 
   if (loading || !profile) return <DashboardLoading />;
@@ -417,9 +438,14 @@ function BookingDetailPanel({ booking }: { booking: BookingRow }) {
               <DetailRow label="Volume" value={`${booking.cargo_volume_m3} m³`} />
             ) : null}
             <div className="mt-1 flex items-center justify-between border-t pt-3" style={{ borderColor: "rgba(0,0,0,0.08)" }}>
-              <dt className="font-semibold">Estimated total</dt>
-              <dd className="text-[1.1rem] font-extrabold">{formatPrice(booking.estimated_price)}</dd>
+              <dt className="font-semibold">{booking.final_price != null ? "Final total" : "Estimated total"}</dt>
+              <dd className="text-[1.1rem] font-extrabold">{formatPrice(booking.final_price ?? booking.estimated_price)}</dd>
             </div>
+            {booking.price_change_reason ? (
+              <p className="text-[0.82rem]" style={{ color: MUTED }}>
+                {booking.price_change_reason}
+              </p>
+            ) : null}
           </dl>
         ) : (
           <p className="mt-2 text-[0.88rem]" style={{ color: MUTED }}>
@@ -710,7 +736,16 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-const STEP_INDEX: Record<BookingStatus, number> = { pending: 0, confirmed: 1, in_progress: 2, completed: 3, cancelled: -1 };
+const STEP_INDEX: Record<BookingStatus, number> = {
+  pending: 0,
+  confirmed: 1,
+  in_progress: 2,
+  heading_to_pickup: 2,
+  arrived_at_pickup: 3,
+  heading_to_dropoff: 4,
+  completed: 5,
+  cancelled: -1,
+};
 
 function ProgressTracker({ status }: { status: BookingStatus }) {
   if (status === "cancelled") {

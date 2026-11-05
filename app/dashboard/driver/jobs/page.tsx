@@ -11,9 +11,11 @@ import type { LocationPoint } from "@/components/dashboard/MoveMap";
 import { MoveMapPanel } from "@/components/dashboard/MoveMapPanel";
 import { Button } from "@/components/ui/Button";
 import {
+  ACTIVE_TRANSIT_STATUSES,
   acceptJob,
   advanceJob,
   cancelJob,
+  completeTrip,
   declineJob,
   fetchAvailableJobs,
   fetchDeclinedJobIds,
@@ -35,8 +37,22 @@ const STATUS_LABEL: Record<BookingStatus, string> = {
   pending: "Open",
   confirmed: "Accepted",
   in_progress: "On The Way",
+  heading_to_pickup: "On The Way",
+  arrived_at_pickup: "Arrived",
+  heading_to_dropoff: "Heading To Destination",
   completed: "Completed",
   cancelled: "Cancelled",
+};
+
+/** The label for the button that moves a job from its current status to the
+ * next one — one entry per driver-facing step, including the last one
+ * (heading_to_dropoff → completed), which calls `completeTrip` instead of
+ * `advanceJob` but still reads from this same map. */
+const NEXT_ACTION_LABEL: Partial<Record<BookingStatus, string>> = {
+  confirmed: "On The Way",
+  heading_to_pickup: "Arrived",
+  arrived_at_pickup: "Set Off To Destination",
+  heading_to_dropoff: "End Trip",
 };
 
 /** `useSearchParams` needs a Suspense boundary — see AGENTS.md. */
@@ -105,7 +121,7 @@ function DriverJobsContent() {
   // part is the argument, not the call. Shown back to the driver as direct
   // confirmation the share toggle in JobDetailPanel is actually sending.
   const { position: livePosition } = useLiveLocation(
-    current?.row?.status === "in_progress" ? current.row.id : null,
+    current?.row && ACTIVE_TRANSIT_STATUSES.includes(current.row.status) ? current.row.id : null,
   );
 
   if (loading || !profile) return <DashboardLoading />;
@@ -144,6 +160,20 @@ function DriverJobsContent() {
     await reload();
   }
 
+  /** The last step, heading_to_dropoff → completed — needs the full job row
+   * (distance, price, truck size…) to finalize the price, not just its id. */
+  async function handleComplete(job: JobRow) {
+    setActingOn(job.id);
+    setError(null);
+    const result = await completeTrip(job);
+    setActingOn(null);
+    if (!result.ok) {
+      setError(result.message);
+      return;
+    }
+    await reload();
+  }
+
   function openReason(kind: "decline" | "cancel", job: JobRow, fromDetail: boolean) {
     setReasonAction({ kind, job, fromDetail });
   }
@@ -169,7 +199,7 @@ function DriverJobsContent() {
     if (fromDetail) router.push(ROUTES.driverJobs);
   }
 
-  const openMine = mine?.filter((j) => j.status === "confirmed" || j.status === "in_progress") ?? [];
+  const openMine = mine?.filter((j) => j.status === "confirmed" || ACTIVE_TRANSIT_STATUSES.includes(j.status)) ?? [];
   const visibleAvailable = available?.filter((j) => !declinedIds.has(j.id)) ?? null;
   const detailOpen = Boolean(jobId);
 
@@ -225,6 +255,7 @@ function DriverJobsContent() {
                   busy={actingOn === current.row.id}
                   onAccept={() => handleAccept(current.row!.id)}
                   onAdvance={() => handleAdvance(current.row!.id, current.row!.status)}
+                  onComplete={() => handleComplete(current.row!)}
                   onDecline={() => openReason("decline", current.row!, true)}
                   onCancel={() => openReason("cancel", current.row!, true)}
                 />
@@ -262,10 +293,10 @@ function DriverJobsContent() {
                     job={job}
                     busy={actingOn === job.id}
                     action={
-                      job.status === "confirmed"
-                        ? { label: "Start Trip", onClick: () => handleAdvance(job.id, job.status) }
-                        : job.status === "in_progress"
-                          ? { label: "Mark Delivered", onClick: () => handleAdvance(job.id, job.status) }
+                      job.status === "heading_to_dropoff"
+                        ? { label: "End Trip", onClick: () => handleComplete(job) }
+                        : NEXT_ACTION_LABEL[job.status]
+                          ? { label: NEXT_ACTION_LABEL[job.status]!, onClick: () => handleAdvance(job.id, job.status) }
                           : null
                     }
                     secondaryAction={{ label: "Cancel", onClick: () => openReason("cancel", job, false) }}
@@ -327,6 +358,7 @@ function JobDetailPanel({
   busy,
   onAccept,
   onAdvance,
+  onComplete,
   onDecline,
   onCancel,
 }: {
@@ -334,6 +366,7 @@ function JobDetailPanel({
   busy: boolean;
   onAccept: () => void;
   onAdvance: () => void;
+  onComplete: () => void;
   onDecline: () => void;
   onCancel: () => void;
 }) {
@@ -413,8 +446,11 @@ function JobDetailPanel({
             ) : (
               <span />
             )}
-            <span className="text-[1.1rem] font-extrabold text-fg">{formatPrice(job.estimated_price)}</span>
+            <span className="text-[1.1rem] font-extrabold text-fg">
+              {formatPrice(job.final_price ?? job.estimated_price)}
+            </span>
           </div>
+          {job.price_change_reason ? <p className="mt-2 text-[0.78rem] text-muted">{job.price_change_reason}</p> : null}
         </Panel>
       ) : null}
 
@@ -437,7 +473,7 @@ function JobDetailPanel({
         </Panel>
       ) : null}
 
-      {job.status === "in_progress" ? <LocationShareToggle bookingId={job.id} /> : null}
+      {ACTIVE_TRANSIT_STATUSES.includes(job.status) ? <LocationShareToggle bookingId={job.id} /> : null}
 
       {job.status === "pending" ? (
         <div className="flex gap-2.5">
@@ -449,11 +485,17 @@ function JobDetailPanel({
             Decline
           </Button>
         </div>
-      ) : job.status === "confirmed" || job.status === "in_progress" ? (
+      ) : job.status === "confirmed" || ACTIVE_TRANSIT_STATUSES.includes(job.status) ? (
         <div className="flex gap-2.5">
-          <Button type="button" variant="primary" className="flex-1" disabled={busy} onClick={onAdvance}>
+          <Button
+            type="button"
+            variant="primary"
+            className="flex-1"
+            disabled={busy}
+            onClick={job.status === "heading_to_dropoff" ? onComplete : onAdvance}
+          >
             {busy ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
-            {job.status === "confirmed" ? "Start Trip" : "Mark Delivered"}
+            {NEXT_ACTION_LABEL[job.status]}
           </Button>
           <Button type="button" variant="ghost" className="flex-1" disabled={busy} onClick={onCancel}>
             Cancel
@@ -704,7 +746,7 @@ function JobCard({
             : "As soon as possible"}
         </span>
         {job.estimated_price != null ? (
-          <span className="font-semibold text-fg">{formatPrice(job.estimated_price)}</span>
+          <span className="font-semibold text-fg">{formatPrice(job.final_price ?? job.estimated_price)}</span>
         ) : null}
       </div>
 

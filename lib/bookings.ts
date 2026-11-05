@@ -1,6 +1,7 @@
 "use client";
 
 import type { AuthResult } from "./auth";
+import { assistantCountValue, quotePrice, straightLineKm } from "./pricing";
 import { authEnabled, getClient } from "./supabase";
 
 export type BookingType = "move" | "send" | "receive";
@@ -148,7 +149,23 @@ export async function analyzeCargoPhoto(file: File): Promise<AuthResult<CargoAna
 // Driver jobs
 // ---------------------------------------------------------------------------
 
-export type BookingStatus = "pending" | "confirmed" | "in_progress" | "completed" | "cancelled";
+// `in_progress`'s one "on the way" stage split into three real ones
+// (migration 029) — heading to pickup, arrived at pickup, heading to the
+// drop-off. `in_progress` itself is kept only so old `booking_status_events`
+// history (a log, never rewritten) still type-checks; nothing writes it anymore.
+export type BookingStatus =
+  | "pending"
+  | "confirmed"
+  | "in_progress"
+  | "heading_to_pickup"
+  | "arrived_at_pickup"
+  | "heading_to_dropoff"
+  | "completed"
+  | "cancelled";
+
+/** The three stages during which the driver is actively working the job —
+ * location sharing is available, and the live dot shows, throughout all three. */
+export const ACTIVE_TRANSIT_STATUSES: BookingStatus[] = ["heading_to_pickup", "arrived_at_pickup", "heading_to_dropoff"];
 
 export type JobRow = {
   id: string;
@@ -166,6 +183,8 @@ export type JobRow = {
   cargo_photo_url: string | null;
   distance_km: number | null;
   estimated_price: number | null;
+  final_price: number | null;
+  price_change_reason: string | null;
   cargo_weight_kg: number | null;
   cargo_volume_m3: number | null;
   status: BookingStatus;
@@ -179,7 +198,7 @@ export type JobRow = {
 // Exported: lib/admin.ts reuses this verbatim for the admin Bookings
 // section, which reads the same row shape through the admin's own RLS.
 export const JOB_COLUMNS =
-  "id, pickup_location, dropoff_location, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng, scheduled_for, cargo_description, vehicle_category, vehicle_size, loading_assistants, cargo_photo_url, distance_km, estimated_price, cargo_weight_kg, cargo_volume_m3, status, driver_id, customer_id";
+  "id, pickup_location, dropoff_location, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng, scheduled_for, cargo_description, vehicle_category, vehicle_size, loading_assistants, cargo_photo_url, distance_km, estimated_price, final_price, price_change_reason, cargo_weight_kg, cargo_volume_m3, status, driver_id, customer_id";
 
 /**
  * Open jobs any verified driver can claim. RLS already scopes this to
@@ -282,11 +301,16 @@ export async function acceptJob(bookingId: string): Promise<AuthResult> {
 }
 
 const NEXT_STATUS: Partial<Record<BookingStatus, BookingStatus>> = {
-  confirmed: "in_progress",
-  in_progress: "completed",
+  confirmed: "heading_to_pickup",
+  heading_to_pickup: "arrived_at_pickup",
+  arrived_at_pickup: "heading_to_dropoff",
 };
 
-/** Moves the driver's own job one step forward: confirmed → in_progress → completed. */
+/**
+ * Moves the driver's own job one step forward: confirmed → heading_to_pickup
+ * → arrived_at_pickup → heading_to_dropoff. The last step, → completed, goes
+ * through `completeTrip` instead — it also finalizes the price.
+ */
 export async function advanceJob(bookingId: string, currentStatus: BookingStatus): Promise<AuthResult> {
   if (!authEnabled) return { ok: false, message: NOT_CONFIGURED };
   const supabase = getClient();
@@ -307,6 +331,69 @@ export async function advanceJob(bookingId: string, currentStatus: BookingStatus
     .eq("driver_id", user.id);
   if (error) {
     console.error("advance job failed", error);
+    return { ok: false, message: "That didn't go through. Please try again." };
+  }
+  return { ok: true, data: undefined };
+}
+
+// Not a number with special significance — a reasonable starting point for
+// "the trip ran meaningfully longer than planned," easy to tune later.
+const DISTANCE_OVERRUN_THRESHOLD = 1.15;
+
+/**
+ * Ends the trip — heading_to_dropoff → completed, the one status transition
+ * that isn't a plain `advanceJob` step, since it also finalizes the price.
+ *
+ * The price is never typed in by the driver: this sums the actual distance
+ * traveled from the trip's own location pings (migration 028,
+ * `straightLineKm` between consecutive pings) and compares it to the
+ * original estimate. Only over the threshold does it recompute the price —
+ * with the real distance, through the exact same `quotePrice` formula the
+ * original estimate used — and write its own reason. Necessarily
+ * approximate: it only sees distance for however much of the trip actually
+ * had location sharing on, so it can undercount distance (and so
+ * under-adjust price), never overcount into an accidental overcharge.
+ */
+export async function completeTrip(job: JobRow): Promise<AuthResult> {
+  if (!authEnabled) return { ok: false, message: NOT_CONFIGURED };
+  const supabase = getClient();
+  if (!supabase) return { ok: false, message: NOT_CONFIGURED };
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Please sign in again." };
+
+  const { data: pings, error: pingsError } = await supabase
+    .from("booking_locations")
+    .select("lat, lng, recorded_at")
+    .eq("booking_id", job.id)
+    .order("recorded_at", { ascending: true });
+  if (pingsError) console.error("fetch trip pings failed", pingsError);
+
+  let finalPrice: number | null = null;
+  let reason: string | null = null;
+
+  if (pings && pings.length >= 2 && job.distance_km != null && job.estimated_price != null) {
+    let actualKm = 0;
+    for (let i = 1; i < pings.length; i++) {
+      actualKm += straightLineKm([pings[i - 1].lng, pings[i - 1].lat], [pings[i].lng, pings[i].lat]);
+    }
+    if (actualKm > job.distance_km * DISTANCE_OVERRUN_THRESHOLD) {
+      const assistants = assistantCountValue(job.loading_assistants);
+      finalPrice = quotePrice(actualKm, assistants, job.vehicle_size, job.cargo_weight_kg ?? 0, job.cargo_volume_m3 ?? 0);
+      const percentOver = Math.round(((actualKm - job.distance_km) / job.distance_km) * 100);
+      reason = `Trip covered about ${percentOver}% more distance than estimated (traffic or a longer route).`;
+    }
+  }
+
+  const { error } = await supabase
+    .from("bookings")
+    .update({ status: "completed", final_price: finalPrice, price_change_reason: reason })
+    .eq("id", job.id)
+    .eq("driver_id", user.id);
+  if (error) {
+    console.error("complete trip failed", error);
     return { ok: false, message: "That didn't go through. Please try again." };
   }
   return { ok: true, data: undefined };

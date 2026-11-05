@@ -8,9 +8,9 @@ import { fetchLatestLocation, subscribeToLocation, type LocationPing } from "./b
  * A booking's live position — the latest ping on mount, then live updates via
  * Realtime (migration 028), same fetch-then-subscribe shape `lib/messages.ts`
  * already uses for chat. Pass `null` when there's nothing to track (the
- * caller decides that — typically "booking.status === 'in_progress'") so the
- * fetch and the subscription only ever run when a live position is actually
- * meaningful.
+ * caller decides that — typically whether `booking.status` is one of
+ * `ACTIVE_TRANSIT_STATUSES`, lib/bookings.ts) so the fetch and the
+ * subscription only ever run when a live position is actually meaningful.
  */
 export function useLiveLocation(bookingId: string | null): {
   position: LocationPoint | null;

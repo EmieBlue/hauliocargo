@@ -13,7 +13,17 @@ const TEXT_MENU = "#c9c6c0";
 const AMBER = "#f0b429";
 const EASE = "cubic-bezier(0.2,0.74,0.18,1)";
 
-type RequestStatus = "pending" | "confirmed" | "in_progress" | "completed" | "cancelled";
+// `in_progress` kept only for type compatibility with old data shapes —
+// migration 029 remapped every row off it, nothing writes it anymore.
+type RequestStatus =
+  | "pending"
+  | "confirmed"
+  | "in_progress"
+  | "heading_to_pickup"
+  | "arrived_at_pickup"
+  | "heading_to_dropoff"
+  | "completed"
+  | "cancelled";
 
 type RequestItem = {
   id: string;
@@ -44,7 +54,13 @@ const ITEMS: MenuItem[] = [
   { key: "chat", label: "Chat", icon: MessageSquare, href: ROUTES.bookings },
 ];
 
-const ACTIVE_STATUSES: RequestStatus[] = ["pending", "confirmed", "in_progress"];
+const ACTIVE_STATUSES: RequestStatus[] = [
+  "pending",
+  "confirmed",
+  "heading_to_pickup",
+  "arrived_at_pickup",
+  "heading_to_dropoff",
+];
 
 /**
  * The customer's expanding side menu. Closed it's a 76px icon rail; hovering
@@ -324,7 +340,12 @@ function statusLabel(status: RequestStatus): string {
     case "confirmed":
       return "Confirmed";
     case "in_progress":
+    case "heading_to_pickup":
       return "On the way";
+    case "arrived_at_pickup":
+      return "Arrived";
+    case "heading_to_dropoff":
+      return "Heading to destination";
     case "completed":
       return "Completed";
     case "cancelled":
