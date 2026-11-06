@@ -12,6 +12,7 @@ import { LiveLocationNote, MoveMapPanel } from "@/components/dashboard/MoveMapPa
 import { Button } from "@/components/ui/Button";
 import {
   ACTIVE_TRANSIT_STATUSES,
+  confirmCustomerDeparture,
   fetchBookingRating,
   fetchMatchedDriverVehicle,
   submitDriverRating,
@@ -68,10 +69,11 @@ type BookingRow = {
   cargo_volume_m3: number | null;
   status: BookingStatus;
   driver_id: string | null;
+  customer_confirmed_departure_at: string | null;
 };
 
 const BOOKING_COLUMNS =
-  "id, pickup_location, dropoff_location, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng, scheduled_for, cargo_description, vehicle_category, vehicle_size, loading_assistants, cargo_photo_url, distance_km, estimated_price, final_price, price_change_reason, cargo_weight_kg, cargo_volume_m3, status, driver_id";
+  "id, pickup_location, dropoff_location, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng, scheduled_for, cargo_description, vehicle_category, vehicle_size, loading_assistants, cargo_photo_url, distance_km, estimated_price, final_price, price_change_reason, cargo_weight_kg, cargo_volume_m3, status, driver_id, customer_confirmed_departure_at";
 
 type DriverRow = { first_name: string; last_name: string; phone: string; avatar_path: string | null };
 
@@ -201,6 +203,15 @@ function BookingDetailPanel({ booking }: { booking: BookingRow }) {
   const [truckPhotoUrl, setTruckPhotoUrl] = useState<string | null>(null);
   // undefined = not checked yet, null = checked and not rated, number = already rated this many stars.
   const [existingRating, setExistingRating] = useState<number | null | undefined>(undefined);
+  const [departureConfirmedAt, setDepartureConfirmedAt] = useState(booking.customer_confirmed_departure_at);
+  const [confirmingDeparture, setConfirmingDeparture] = useState(false);
+
+  async function handleConfirmDeparture() {
+    setConfirmingDeparture(true);
+    const result = await confirmCustomerDeparture(booking.id);
+    setConfirmingDeparture(false);
+    if (result.ok) setDepartureConfirmedAt(new Date().toISOString());
+  }
 
   useEffect(() => {
     const path = booking.cargo_photo_url;
@@ -325,6 +336,25 @@ function BookingDetailPanel({ booking }: { booking: BookingRow }) {
           Your move
         </h1>
         <ProgressTracker status={booking.status} />
+        {booking.status === "arrived_at_pickup" ? (
+          departureConfirmedAt ? (
+            <p className="mt-4 text-[0.82rem]" style={{ color: MUTED }}>
+              You confirmed the driver set off at{" "}
+              {new Date(departureConfirmedAt).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}.
+            </p>
+          ) : (
+            <Button
+              type="button"
+              variant="secondary"
+              className="mt-4 w-full"
+              disabled={confirmingDeparture}
+              onClick={handleConfirmDeparture}
+            >
+              {confirmingDeparture ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
+              Confirm Driver Has Set Off With Your Cargo
+            </Button>
+          )
+        ) : null}
       </Card>
 
       <Card>

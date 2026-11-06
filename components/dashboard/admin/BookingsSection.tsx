@@ -230,6 +230,22 @@ function DetailPanel({ booking }: { booking: AdminBookingRow }) {
         <Panel>
           <SectionLabel>Timeline</SectionLabel>
           <Timeline bookingId={booking.id} />
+          {/* A second, independent signal (migration 030) — the customer's
+           * own confirmation, separate from the driver's self-reported
+           * status above, useful since location sharing is opt-in. */}
+          <div className="mt-4 border-t border-edge/10 pt-4">
+            <Row
+              label="Customer Confirmed Departure"
+              value={
+                booking.customer_confirmed_departure_at
+                  ? new Date(booking.customer_confirmed_departure_at).toLocaleString("en-GB", {
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                    })
+                  : "Not yet confirmed"
+              }
+            />
+          </div>
         </Panel>
 
         <Panel>

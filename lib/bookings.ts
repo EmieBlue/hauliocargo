@@ -85,6 +85,35 @@ export async function createBooking(
 }
 
 /**
+ * The customer's own, independent confirmation that the driver has set off
+ * with their cargo — informational only (migration 030): it records a
+ * timestamp alongside the driver's own self-reported status, it doesn't
+ * change `bookings.status` or require the two to agree. Useful precisely
+ * because location sharing (028) is opt-in and the driver could turn it off.
+ */
+export async function confirmCustomerDeparture(bookingId: string): Promise<AuthResult> {
+  if (!authEnabled) return { ok: false, message: NOT_CONFIGURED };
+  const supabase = getClient();
+  if (!supabase) return { ok: false, message: NOT_CONFIGURED };
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Please sign in again." };
+
+  const { error } = await supabase
+    .from("bookings")
+    .update({ customer_confirmed_departure_at: new Date().toISOString() })
+    .eq("id", bookingId)
+    .eq("customer_id", user.id);
+  if (error) {
+    console.error("confirm customer departure failed", error);
+    return { ok: false, message: "That didn't go through. Please try again." };
+  }
+  return { ok: true, data: undefined };
+}
+
+/**
  * Uploads a cargo photo to the private `cargo-photos` bucket, under a path
  * prefixed with the signed-in customer's own id — same policy shape as
  * `uploadDriverDocument` in `lib/auth.ts`. Returns the storage path to save
@@ -190,6 +219,7 @@ export type JobRow = {
   status: BookingStatus;
   driver_id: string | null;
   customer_id: string;
+  customer_confirmed_departure_at: string | null;
 };
 
 // Same field set as the customer side's own BOOKING_COLUMNS
@@ -198,7 +228,7 @@ export type JobRow = {
 // Exported: lib/admin.ts reuses this verbatim for the admin Bookings
 // section, which reads the same row shape through the admin's own RLS.
 export const JOB_COLUMNS =
-  "id, pickup_location, dropoff_location, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng, scheduled_for, cargo_description, vehicle_category, vehicle_size, loading_assistants, cargo_photo_url, distance_km, estimated_price, final_price, price_change_reason, cargo_weight_kg, cargo_volume_m3, status, driver_id, customer_id";
+  "id, pickup_location, dropoff_location, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng, scheduled_for, cargo_description, vehicle_category, vehicle_size, loading_assistants, cargo_photo_url, distance_km, estimated_price, final_price, price_change_reason, cargo_weight_kg, cargo_volume_m3, status, driver_id, customer_id, customer_confirmed_departure_at";
 
 /**
  * Open jobs any verified driver can claim. RLS already scopes this to
