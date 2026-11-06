@@ -345,8 +345,9 @@ function BookingDetailPanel({ booking }: { booking: BookingRow }) {
           ) : (
             <Button
               type="button"
-              variant="secondary"
+              variant="primary"
               className="mt-4 w-full"
+              style={{ background: AMBER }}
               disabled={confirmingDeparture}
               onClick={handleConfirmDeparture}
             >
