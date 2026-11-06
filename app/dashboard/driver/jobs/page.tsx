@@ -27,7 +27,7 @@ import {
 } from "@/lib/bookings";
 import { cn } from "@/lib/cn";
 import { fetchMessages, sendMessage, subscribeToMessages, type MessageRow } from "@/lib/messages";
-import { formatPrice } from "@/lib/pricing";
+import { formatPrice, straightLineKm } from "@/lib/pricing";
 import { ROUTES } from "@/lib/site";
 import { getClient } from "@/lib/supabase";
 import { useLiveLocation } from "@/lib/useLiveLocation";
@@ -253,6 +253,7 @@ function DriverJobsContent() {
                 <JobDetailPanel
                   key={current.row.id}
                   job={current.row}
+                  livePosition={livePosition}
                   busy={actingOn === current.row.id}
                   onAccept={() => handleAccept(current.row!.id)}
                   onAdvance={() => handleAdvance(current.row!.id, current.row!.status)}
@@ -356,6 +357,7 @@ function DriverJobsContent() {
 
 function JobDetailPanel({
   job,
+  livePosition,
   busy,
   onAccept,
   onAdvance,
@@ -364,6 +366,7 @@ function JobDetailPanel({
   onCancel,
 }: {
   job: JobRow;
+  livePosition: LocationPoint | null;
   busy: boolean;
   onAccept: () => void;
   onAdvance: () => void;
@@ -371,6 +374,8 @@ function JobDetailPanel({
   onDecline: () => void;
   onCancel: () => void;
 }) {
+  const [sharing, setSharing] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
   const [customer, setCustomer] = useState<{ first_name: string; last_name: string; phone: string } | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
 
@@ -410,6 +415,65 @@ function JobDetailPanel({
       cancelled = true;
     };
   }, [job.cargo_photo_url]);
+
+  // One ping, awaitable — the interval below uses it on a timer; the
+  // Advance/Complete handler also calls it directly right before an
+  // arrival claim, so that check runs against a position read this
+  // instant, not whatever the last 20s-cycle ping happened to catch.
+  function sendLocationNow(): Promise<GeolocationPosition> {
+    return new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          reportLocation(job.id, pos.coords.latitude, pos.coords.longitude).then((result) => {
+            if (!result.ok) setLocationError(result.message);
+          });
+          resolve(pos);
+        },
+        (err) => {
+          setLocationError("Couldn't get your location — check your browser's location permission.");
+          reject(err);
+        },
+        { enableHighAccuracy: true, timeout: 15000 },
+      );
+    });
+  }
+
+  useEffect(() => {
+    if (!sharing) return;
+    sendLocationNow().catch(() => setSharing(false));
+    const id = window.setInterval(() => sendLocationNow().catch(() => {}), 20_000);
+    return () => window.clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- sendLocationNow closes over job.id, stable for this component's lifetime (keyed by job.id)
+  }, [sharing]);
+
+  /**
+   * Only for the two transitions that are themselves an arrival claim
+   * ("Arrived" at pickup, "End Trip" at the destination) — "On The Way" and
+   * "Set Off" aren't claiming to be anywhere specific, so nothing to check.
+   * Warns, never blocks: GPS is never perfectly precise (weak signal, a pin
+   * a street off from the real entrance), so refusing the action outright
+   * risks stranding a driver who genuinely is there.
+   */
+  async function confirmArrival(targetLat: number | null, targetLng: number | null, label: string): Promise<boolean> {
+    if (!sharing || targetLat == null || targetLng == null) return true;
+    let pos: GeolocationPosition;
+    try {
+      pos = await sendLocationNow();
+    } catch {
+      return true;
+    }
+    const km = straightLineKm([targetLng, targetLat], [pos.coords.longitude, pos.coords.latitude]);
+    if (km <= 0.3) return true;
+    return window.confirm(`You appear to be ${km.toFixed(1)} km from ${label} — mark as arrived anyway?`);
+  }
+
+  const liveDistanceKm =
+    livePosition &&
+    (job.status === "heading_to_pickup" && job.pickup_lat != null && job.pickup_lng != null
+      ? straightLineKm([job.pickup_lng, job.pickup_lat], livePosition.center)
+      : job.status === "heading_to_dropoff" && job.dropoff_lat != null && job.dropoff_lng != null
+        ? straightLineKm([job.dropoff_lng, job.dropoff_lat], livePosition.center)
+        : null);
 
   return (
     <div className="flex flex-col gap-4">
@@ -474,7 +538,18 @@ function JobDetailPanel({
         </Panel>
       ) : null}
 
-      {ACTIVE_TRANSIT_STATUSES.includes(job.status) ? <LocationShareToggle bookingId={job.id} /> : null}
+      {ACTIVE_TRANSIT_STATUSES.includes(job.status) ? (
+        <LocationShareToggle
+          sharing={sharing}
+          onToggle={() => {
+            setLocationError(null);
+            setSharing((v) => !v);
+          }}
+          error={locationError}
+          distanceKm={liveDistanceKm}
+          distanceLabel={job.status === "heading_to_pickup" ? "pickup" : "destination"}
+        />
+      ) : null}
 
       {job.status === "pending" ? (
         <div className="flex gap-2.5">
@@ -493,7 +568,15 @@ function JobDetailPanel({
             variant="primary"
             className="flex-1"
             disabled={busy}
-            onClick={job.status === "heading_to_dropoff" ? onComplete : onAdvance}
+            onClick={async () => {
+              if (job.status === "heading_to_pickup") {
+                if (await confirmArrival(job.pickup_lat, job.pickup_lng, "the pickup location")) onAdvance();
+              } else if (job.status === "heading_to_dropoff") {
+                if (await confirmArrival(job.dropoff_lat, job.dropoff_lng, "the destination")) onComplete();
+              } else {
+                onAdvance();
+              }
+            }}
           >
             {busy ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
             {NEXT_ACTION_LABEL[job.status]}
@@ -510,38 +593,29 @@ function JobDetailPanel({
 /**
  * Opt-in only — turning this on is what triggers the browser's own
  * location-permission prompt, never a silent background start. While on,
- * re-reads position every 20s and reports it (migration 028); this is a web
- * app, not a native one, so sharing only actually works while this tab
- * stays open and the screen stays on — no true background tracking on
- * mobile web.
+ * `JobDetailPanel` re-reads position every 20s and reports it (migration
+ * 028); this is a web app, not a native one, so sharing only actually works
+ * while this tab stays open and the screen stays on — no true background
+ * tracking on mobile web.
+ *
+ * Purely controlled — the sharing state, the actual ping loop, and the
+ * distance-to-target math all live in the parent `JobDetailPanel`, since the
+ * Advance/Complete button there needs the same `sharing` flag and a way to
+ * force an immediate ping before an arrival claim.
  */
-function LocationShareToggle({ bookingId }: { bookingId: string }) {
-  const [sharing, setSharing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  function sendPing() {
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        reportLocation(bookingId, pos.coords.latitude, pos.coords.longitude).then((result) => {
-          if (!result.ok) setError(result.message);
-        });
-      },
-      () => {
-        setError("Couldn't get your location — check your browser's location permission.");
-        setSharing(false);
-      },
-      { enableHighAccuracy: true, timeout: 15000 },
-    );
-  }
-
-  useEffect(() => {
-    if (!sharing) return;
-    sendPing();
-    const id = window.setInterval(sendPing, 20_000);
-    return () => window.clearInterval(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- sendPing closes over bookingId, which is stable for this component's lifetime (keyed by job.id)
-  }, [sharing]);
-
+function LocationShareToggle({
+  sharing,
+  onToggle,
+  error,
+  distanceKm,
+  distanceLabel,
+}: {
+  sharing: boolean;
+  onToggle: () => void;
+  error: string | null;
+  distanceKm: number | null;
+  distanceLabel: "pickup" | "destination";
+}) {
   return (
     <Panel title="Live Location">
       <div className="flex items-center justify-between gap-3">
@@ -558,10 +632,7 @@ function LocationShareToggle({ bookingId }: { bookingId: string }) {
           role="switch"
           aria-checked={sharing}
           aria-label="Share my location"
-          onClick={() => {
-            setError(null);
-            setSharing((v) => !v);
-          }}
+          onClick={onToggle}
           className={cn(
             "relative h-6 w-11 shrink-0 rounded-full transition-colors duration-200",
             sharing ? "bg-brand" : "bg-edge/20",
@@ -575,6 +646,11 @@ function LocationShareToggle({ bookingId }: { bookingId: string }) {
           />
         </button>
       </div>
+      {sharing && distanceKm != null ? (
+        <p className="mt-2 text-[0.78rem] text-muted">
+          ~{distanceKm.toFixed(1)} km from {distanceLabel}
+        </p>
+      ) : null}
       {error ? (
         <p role="alert" className="mt-2 text-[0.78rem] text-brand">
           {error}
