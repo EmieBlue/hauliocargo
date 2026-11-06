@@ -1,8 +1,9 @@
 "use client";
 
-import { Clock, Loader2, MapPin, Truck } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Clock, Loader2, MapPin, Truck, X } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useRef, useState, type ReactNode } from "react";
+import { Suspense, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { DashboardLoading, DashboardShell } from "@/components/auth/DashboardShell";
 import { BackButton } from "@/components/dashboard/BackButton";
 import { CANCEL_REASONS, DECLINE_REASONS, ReasonDialog } from "@/components/dashboard/ReasonDialog";
@@ -27,6 +28,7 @@ import {
 } from "@/lib/bookings";
 import { cn } from "@/lib/cn";
 import { fetchMessages, sendMessage, subscribeToMessages, type MessageRow } from "@/lib/messages";
+import { EASE } from "@/lib/motion";
 import { formatPrice, straightLineKm } from "@/lib/pricing";
 import { ROUTES } from "@/lib/site";
 import { getClient } from "@/lib/supabase";
@@ -376,6 +378,11 @@ function JobDetailPanel({
 }) {
   const [sharing, setSharing] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [confirmPrompt, setConfirmPrompt] = useState<{
+    message: string;
+    confirmLabel: string;
+    resolve: (ok: boolean) => void;
+  } | null>(null);
   const [customer, setCustomer] = useState<{ first_name: string; last_name: string; phone: string } | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
 
@@ -454,7 +461,12 @@ function JobDetailPanel({
    * a street off from the real entrance), so refusing the action outright
    * risks stranding a driver who genuinely is there.
    */
-  async function confirmArrival(targetLat: number | null, targetLng: number | null, label: string): Promise<boolean> {
+  async function confirmArrival(
+    targetLat: number | null,
+    targetLng: number | null,
+    label: string,
+    confirmLabel: string,
+  ): Promise<boolean> {
     if (!sharing || targetLat == null || targetLng == null) return true;
     let pos: GeolocationPosition;
     try {
@@ -464,7 +476,9 @@ function JobDetailPanel({
     }
     const km = straightLineKm([targetLng, targetLat], [pos.coords.longitude, pos.coords.latitude]);
     if (km <= 0.3) return true;
-    return window.confirm(`You appear to be ${km.toFixed(1)} km from ${label} — mark as arrived anyway?`);
+    return new Promise<boolean>((resolve) => {
+      setConfirmPrompt({ message: `You appear to be ${km.toFixed(1)} km from ${label}.`, confirmLabel, resolve });
+    });
   }
 
   const liveDistanceKm =
@@ -570,9 +584,9 @@ function JobDetailPanel({
             disabled={busy}
             onClick={async () => {
               if (job.status === "heading_to_pickup") {
-                if (await confirmArrival(job.pickup_lat, job.pickup_lng, "the pickup location")) onAdvance();
+                if (await confirmArrival(job.pickup_lat, job.pickup_lng, "the pickup location", "Mark as Arrived")) onAdvance();
               } else if (job.status === "heading_to_dropoff") {
-                if (await confirmArrival(job.dropoff_lat, job.dropoff_lng, "the destination")) onComplete();
+                if (await confirmArrival(job.dropoff_lat, job.dropoff_lng, "the destination", "End Trip Anyway")) onComplete();
               } else {
                 onAdvance();
               }
@@ -586,7 +600,114 @@ function JobDetailPanel({
           </Button>
         </div>
       ) : null}
+
+      <ArrivalConfirmDialog
+        prompt={confirmPrompt}
+        onResolve={(ok) => {
+          confirmPrompt?.resolve(ok);
+          setConfirmPrompt(null);
+        }}
+      />
     </div>
+  );
+}
+
+/**
+ * The branded replacement for a native `window.confirm()` — same
+ * overlay/card/animation/Escape/focus-lock shape as `ReasonDialog`
+ * (components/dashboard/ReasonDialog.tsx), just a plain yes/no instead of a
+ * reasons checklist.
+ */
+function ArrivalConfirmDialog({
+  prompt,
+  onResolve,
+}: {
+  prompt: { message: string; confirmLabel: string; resolve: (ok: boolean) => void } | null;
+  onResolve: (ok: boolean) => void;
+}) {
+  return (
+    <AnimatePresence>
+      {prompt ? (
+        <ArrivalConfirmPanel message={prompt.message} confirmLabel={prompt.confirmLabel} onResolve={onResolve} />
+      ) : null}
+    </AnimatePresence>
+  );
+}
+
+function ArrivalConfirmPanel({
+  message,
+  confirmLabel,
+  onResolve,
+}: {
+  message: string;
+  confirmLabel: string;
+  onResolve: (ok: boolean) => void;
+}) {
+  const titleId = useId();
+  const panel = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onResolve(false);
+    };
+    document.addEventListener("keydown", onKey);
+
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    panel.current?.querySelector<HTMLElement>("button")?.focus();
+
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = previous;
+    };
+  }, [onResolve]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.25, ease: EASE }}
+      className="fixed inset-0 z-90 grid place-items-center bg-black/75 p-5 backdrop-blur-sm"
+      onClick={() => onResolve(false)}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={titleId}
+    >
+      <motion.div
+        ref={panel}
+        initial={{ opacity: 0, y: 18, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 10, scale: 0.98 }}
+        transition={{ duration: 0.4, ease: EASE }}
+        onClick={(event) => event.stopPropagation()}
+        className="relative w-full max-w-md rounded-2xl border border-edge/12 bg-ink-900 p-7"
+      >
+        <button
+          type="button"
+          onClick={() => onResolve(false)}
+          aria-label="Close"
+          className="absolute top-4 right-4 grid size-9 place-items-center rounded-lg text-muted transition-colors duration-200 hover:bg-edge/6 hover:text-fg"
+        >
+          <X className="size-4" aria-hidden />
+        </button>
+
+        <h2 id={titleId} className="font-display text-xl font-bold text-fg">
+          Confirm your location
+        </h2>
+        <p className="mt-2 text-[0.88rem] leading-relaxed text-muted">{message}</p>
+
+        <div className="mt-6 flex gap-2.5">
+          <Button type="button" variant="ghost" className="flex-1" onClick={() => onResolve(false)}>
+            Cancel
+          </Button>
+          <Button type="button" variant="primary" className="flex-1" onClick={() => onResolve(true)}>
+            {confirmLabel}
+          </Button>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
